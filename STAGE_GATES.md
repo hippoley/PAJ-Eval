@@ -3,54 +3,90 @@
 ## Stage 0 — Instrument Skeleton
 **Status: CONDITIONAL PASS**
 
-Goal: prove the construct can be represented as an executable decision environment.
+Goal: prove the construct can be represented as an executable sequential decision environment.
 
 Required artifacts:
-- causal toy world
-- objective observation model
-- budgeted research actions
-- Research Utility
-- EIG/cost
-- oracle planner
-- naive baselines
-- reproducibility tests
+- causal toy world;
+- objective observation model;
+- budgeted research actions;
+- Expected / Realized Research Utility;
+- EIG/cost;
+- oracle planner;
+- naive baselines;
+- deterministic seeded simulation;
+- public CI.
 
 Exit rule:
-- oracle > sensible heuristic > weak baselines
-- no metric degeneracy
-- implementation reproducible
+- oracle > sensible heuristic > weak baselines;
+- no metric degeneracy;
+- oracle first action responds to initial evidence;
+- implementation reproducible;
+- install and tests pass from public repository.
 
 ---
 
-## Stage 1 — Environment Validity
+## Stage 1A — Minimal Environment Falsification
 **Status: NEXT**
 
-Goal: determine whether the benchmark rewards recognizable research judgment rather than toy-game exploitation.
+Goal: try to invalidate the instrument before scaling it.
 
 Build:
-- 8–12 generated causal worlds
-- 2–3 surface renderings per causal world
-- at least 2 held-out mechanism families
-- richer observations: plots, logs, sample outputs, notes
-- actions whose value changes with evidence history
-- world generator separated from surface renderer
+- one adversarial counterfactual pair;
+- two surface renderings per latent world;
+- richer observations: plots, logs, sample outputs, notes;
+- actions whose value changes with evidence history;
+- heuristic attack suite;
+- surface-only leakage probe;
+- omitted-action capture.
 
 Expert walkthrough:
-- 5–8 experienced ML researchers
-- blinded to latent cause and EIG tables
+- 5–8 experienced ML researchers/engineers;
+- blinded to latent cause, likelihood tables, EIG, reward parameters, and oracle.
+
+Kill gates:
+- similar-looking counterfactual worlds do not produce different investigation priorities;
+- same latent world changes qualitatively under superficial rerendering;
+- a fixed heuristic approaches oracle;
+- superficial wording predicts cause or oracle first action too well;
+- experts systematically reject benchmark-preferred moves;
+- experts repeatedly identify missing dominant investigations;
+- modest reward perturbations reverse the intended action ranking.
+
+Deliverable:
+`Stage1A_Falsification_Report.md`
+
+---
+
+## Stage 1B — Environment Validity at Scale
+
+Goal: determine whether PAJ-Eval remains coherent after expanding beyond the hand-built pair.
+
+Build:
+- 6–10 causal worlds;
+- 2–3 surface renderings where they provide a real invariance test;
+- at least 2 held-out mechanism families;
+- world generator separated from surface renderer;
+- discriminant-validity screens for factual knowledge and Bayesian numeracy.
 
 Primary questions:
 - Are multiple hypotheses genuinely plausible?
-- Are high-value investigations recognizable as good research after the fact?
+- Are high-value investigations recognizable as good research?
 - Are distractors realistic rather than arbitrary?
 - Does any universal heuristic solve most worlds?
-- Is score strongly but not completely associated with expertise?
+- Does score remain informative beyond factual ML knowledge and numeracy?
 
-Kill gates:
-- one action dominates >60% of worlds
-- experts find artifacts unrealistic
-- non-experts with benchmark familiarity outperform experts
-- score is >80% explained by factual ML quiz performance
+Acceptance gates:
+- median expert realism ≥4/5;
+- >1 plausible initial explanation in ≥80% of worlds;
+- no universal first move;
+- simple heuristics meaningfully below oracle;
+- positive expert/benchmark action-value coherence;
+- surface invariance;
+- counterfactual sensitivity;
+- leakage resistance;
+- acceptable omitted-action coverage;
+- reward robustness;
+- evidence of discriminant validity.
 
 Deliverable:
 `PAJ-Eval Environment Validity Report v0.2`
@@ -59,49 +95,61 @@ Deliverable:
 
 ## Stage 2 — Treatment Validity
 
-Goal: prove Direct and Elicitation are genuinely different interaction policies while current assisted performance remains approximately matched.
+Goal: establish a causal manipulation that changes who frames first while keeping eventual AI information as similar as possible.
+
+Preferred design: **information-yoked sequencing**.
 
 Build:
-- frozen base model
-- Direct policy protocol
-- Elicitation policy protocol
-- rescue ladder
-- turn-level treatment-fidelity classifier
-- information-volume audit
+- frozen base model / canonical assistance packets;
+- Frame-first protocol;
+- Commit-first protocol;
+- commitment capture UI;
+- treatment-fidelity logger;
+- information-overlap audit;
+- effort / time / turn logging.
 
 Required manipulation checks:
-- frame-before-user rate
-- user-generated hypotheses before first supplied frame
-- direct recommendation rate
-- rescue rate
+- independent commitment before AI frame exposure;
+- substantive information overlap between arms;
+- comparable eventual recommendation exposure;
+- stable treatment separation;
+- blinded fidelity audit.
 
-Gate:
-- assisted Research Utility equivalent within preregistered margin
-- treatment-fidelity separation large and stable
+Assisted-task performance:
+- calibrate arms ex ante to practical equivalence;
+- test arm-level equivalence using a preregistered margin;
+- **do not condition the treatment-effect analysis on participant-level observed assisted performance.**
 
 Deliverable:
-`Assistant Policy Validation Report v0.3`
+`Sequencing Intervention Validation Report v0.3`
 
 ---
 
 ## Stage 3 — Human Feasibility Pilot
 
-Goal: establish that delayed, unframed post-assistance measurement works with humans.
+Goal: establish that delayed, unframed post-assistance measurement is feasible and produces interpretable variance with humans.
 
-Target:
-- N ≈ 48
-- randomized Direct vs Elicitation
-- baseline no-AI world
-- 3 assisted training worlds
-- delayed no-AI held-out worlds
+Initial target:
+- N ≈ 40–60;
+- randomized Frame-first vs Commit-first;
+- baseline no-AI world;
+- 2–3 assisted training worlds;
+- delayed no-AI held-out worlds;
+- at least one transfer level stronger than pure surface rerendering.
 
 Primary endpoint:
-- post-assistance Research Utility / oracle regret
+- post-assistance Expected Research Utility / oracle regret.
 
-Mechanism:
-- EIG per budget
+Secondary:
+- Realized Research Utility;
+- EIG per budget;
+- time to first discriminating investigation;
+- frame revision;
+- stopping quality.
 
-No publication-grade causal claim unless powered accordingly.
+Purpose:
+- feasibility, variance estimation, fidelity, and effect-direction estimation;
+- no publication-grade causal claim unless the study is powered and preregistered for it.
 
 Deliverable:
 `Human Pilot Report v0.4`
@@ -110,15 +158,18 @@ Deliverable:
 
 ## Stage 4 — Confirmatory Study
 
-Goal: test the causal claim.
+Goal: test the causal claim under a frozen instrument.
 
 Requirements:
-- preregistration
-- simulation-based power analysis
-- held-out worlds frozen before collection
-- blinded analysis where possible
-- equivalence test on assisted performance
-- primary analysis fixed in advance
+- preregistration;
+- simulation-based power analysis;
+- held-out worlds frozen before collection;
+- primary transfer level chosen in advance;
+- blinded scoring / analysis where possible;
+- assisted-performance equivalence gate;
+- fidelity threshold fixed in advance;
+- primary analysis fixed before unblinding;
+- null result interpreted as evidence against the stronger treatment hypothesis rather than benchmark failure by default.
 
 Deliverable:
 `PAJ-Eval v1.0 Paper + Dataset + Code`
@@ -127,18 +178,19 @@ Deliverable:
 
 ## Stage 5 — External / Field Validity
 
-Goal: test whether PAJ-Eval predicts real behavior in repeated AI-assisted work.
+Goal: test whether PAJ-Eval predicts behavior in repeated real AI-assisted work.
 
 Possible settings:
-- real research workflows
-- coding/debugging
-- data analysis
-- operations diagnosis
+- research workflows;
+- coding/debugging;
+- data analysis;
+- operations diagnosis.
 
 Questions:
 - Does lab PAJ predict independent verification and reframing later?
 - Does expertise moderate effects?
-- Which patterns of delegation predict stronger/weaker post-assistance judgment?
+- Which delegation patterns predict stronger or weaker post-assistance judgment?
+- Does an information-ordering intervention that matters in the lab still matter when users can freely choose how to use AI?
 
 Deliverable:
 `PAJ-Eval Field Validation`
