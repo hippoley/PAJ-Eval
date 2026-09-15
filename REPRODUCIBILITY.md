@@ -1,34 +1,80 @@
 # Reproducibility
 
-PAJ-Eval Stage 0 is deterministic given the supplied seeds.
-
 ## Environment
 
-- Python: 3.9+
-- Package install: `python -m pip install -e .`
-- Test command: `pytest -q`
-- Simulation command: `python demo.py`
+Reference CI environment:
 
-## Determinism fix in this public release
+- Ubuntu 24.04
+- Python 3.11
+- install: `python -m pip install -e .`
+- test: `pytest -q`
 
-The original internal prototype selected available actions from Python `set` objects. Although the random number generator itself was seeded, cross-process set iteration order could change the candidate list and therefore change the RandomPolicy trace. Oracle tie-breaking could also inherit set iteration order in exact ties.
+The public GitHub Actions workflow checks installation and tests on every push / pull request.
 
-The public version stabilizes both paths:
+## Current test status
 
-- `RandomPolicy` samples from `sorted(unused)`;
-- the oracle iterates `sorted(unused)`.
+As of 2026-09-15, public CI reports:
 
-With those changes, repeated fresh-process runs produce identical `policy_summary.csv` and `policy_simulation.csv` hashes for the fixed demo seed.
+```text
+11 passed
+```
 
-## Current deterministic Stage 0 summary
+The test suite includes both the original Stage 0 toy-world checks and Stage 1A counterfactual-pair checks.
 
-300 episodes per policy, seed = 7:
+## Determinism
 
-| Policy | Expected RU | Realized RU | Cost | EIG | IAE | Steps |
-|---|---:|---:|---:|---:|---:|---:|
-| oracle | 4.417 | 4.567 | 3.593 | 0.759 | 0.214 | 1.710 |
-| greedy_eig | 3.442 | 3.750 | 5.310 | 0.925 | 0.190 | 2.537 |
-| random | 0.295 | 0.457 | 5.027 | 0.448 | 0.077 | 2.063 |
-| expensive_bias | -4.567 | -4.400 | 8.000 | 0.195 | 0.024 | 2.000 |
+The prototype uses explicit `random.Random(seed)` instances for simulations.
 
-These numbers are sanity checks for the toy environment, not human-study results.
+Action iteration that can affect policy selection or oracle tie-breaking is sorted before selection. This avoids cross-process variation caused by Python set iteration order.
+
+Stage 0 reference simulation:
+
+```bash
+python demo.py
+```
+
+uses 300 episodes per policy with fixed seed 7.
+
+Reference qualitative ordering:
+
+```text
+Oracle > Greedy EIG/cost > Random > Expensive-bias
+```
+
+Reference mean expected Research Utility:
+
+```text
+Oracle          4.417
+Greedy EIG      3.442
+Random          0.295
+Expensive-bias -4.567
+```
+
+## Stage 1A counterfactual fixture
+
+The first counterfactual pair is deterministic at the normative-model level.
+
+Reference first decisions:
+
+```text
+World A -> rerun_seeds
+World B -> recompute_metrics
+```
+
+Reference expected utilities and cross-world forced-action regret:
+
+```text
+World A oracle value                  6.158
+World A force recompute_metrics       regret 1.190
+
+World B oracle value                  5.970
+World B force rerun_seeds             regret 1.150
+```
+
+These values are test-fixture results, not empirical human estimates.
+
+## Important boundary
+
+Reproducing the code does not reproduce construct validity.
+
+The initial posteriors and likelihood tables in Stage 1A are hand-specified hypotheses about the decision structure. They must still be challenged by expert walkthroughs, omitted-action review, leakage checks, and sensitivity analysis before they can support a human study.
