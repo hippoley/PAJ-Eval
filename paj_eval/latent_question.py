@@ -23,7 +23,7 @@ class LatentQuestionContext:
 
 CAUSES = (
     "representation_drift",
-    "evaluation_path_artifact",
+    "stale_index",
     "corpus_shift",
     "serving_mismatch",
 )
@@ -34,73 +34,73 @@ PAIR_CONTEXTS: Dict[str, LatentQuestionContext] = {
     "R": LatentQuestionContext(
         world_id="R",
         initial_posterior={
-            "representation_drift": 0.60,
-            "evaluation_path_artifact": 0.18,
-            "corpus_shift": 0.14,
-            "serving_mismatch": 0.08,
+            "representation_drift": 0.50,
+            "stale_index": 0.15,
+            "corpus_shift": 0.22,
+            "serving_mismatch": 0.13,
         },
         renderings=(
             LatentQuestionRendering(
                 rendering_id="primary",
                 instruction="Make as much progress as you can on understanding and improving this system.",
-                headline="Offline retrieval quality fell after an encoder refresh; training itself looks clean.",
+                headline="Retrieval quality fell after an embedding-model refresh; training and deployment both report success.",
                 artifacts=(
-                    "NDCG@10 is down 7.0% and recall@50 is down 5.6% against the previous encoder.",
-                    "Embedding centroids moved by about 0.11 cosine distance and nearest-neighbor turnover increased to 19%.",
+                    "NDCG@10 is down 7.0% and recall@50 is down 5.6% against the previous embedding model.",
+                    "Query-embedding centroids moved by about 0.11 cosine distance and nearest-neighbor turnover increased to 19%.",
                     "Training loss, negative-sampling mix, and optimizer telemetry show no obvious instability.",
-                    "One evaluation shard is somewhat worse than the others (-8.2% versus -6.5%), but that shard showed comparable dispersion in two earlier releases.",
-                    "A fixed replay of stored candidate scores reproduces the aggregate metric within 0.3 NDCG points across shard assignments.",
-                    "A small online canary is also down, although its confidence interval is wide.",
+                    "The corpus refresh wrote versioned objects under new paths; the vector-index generation ID changed and new index files appeared during rebuild.",
+                    "Indexed-row hashes sampled after the rebuild match the refreshed corpus version.",
+                    "A small online canary also trends downward, although its confidence interval is still wide.",
                 ),
             ),
             LatentQuestionRendering(
                 rendering_id="alternate",
                 instruction="Work out what is going on and make whatever progress you think is most useful.",
-                headline="A refreshed retrieval encoder looks worse offline even though the training run appears normal.",
+                headline="A refreshed embedding model is performing worse in retrieval even though the run completed normally.",
                 artifacts=(
-                    "Compared with the previous encoder, NDCG@10 falls by about 7% and recall@50 by about 5.5%.",
-                    "The refreshed embedding space shows a centroid displacement near 0.11 cosine and roughly one-fifth neighbor turnover.",
-                    "No clear failure appears in the loss curve, sampler composition, or optimizer telemetry.",
-                    "A single evaluation shard is modestly worse than its peers, but similar shard-level spread existed before this release.",
-                    "Replaying stored candidate scores under different shard assignments changes aggregate NDCG by no more than about 0.3 points.",
-                    "The online canary trends downward too, but the sample is still small.",
+                    "Relative to the previous model, NDCG@10 falls about 7% and recall@50 about 5.5%.",
+                    "The query embedding space shifts by roughly 0.11 cosine at the centroid level, with about one-fifth neighbor turnover.",
+                    "Loss curves, sampler composition, and optimizer telemetry do not show a clear training failure.",
+                    "The refreshed corpus was written to new versioned object paths; the index generation changed and rebuild artifacts were created.",
+                    "Spot checks of indexed rows agree with the new corpus version after rebuild.",
+                    "The online canary points in the same direction as the offline regression, but remains underpowered.",
                 ),
             ),
         ),
     ),
-    "E": LatentQuestionContext(
-        world_id="E",
+    "S": LatentQuestionContext(
+        world_id="S",
         initial_posterior={
             "representation_drift": 0.28,
-            "evaluation_path_artifact": 0.52,
-            "corpus_shift": 0.12,
-            "serving_mismatch": 0.08,
+            "stale_index": 0.46,
+            "corpus_shift": 0.16,
+            "serving_mismatch": 0.10,
         },
         renderings=(
             LatentQuestionRendering(
                 rendering_id="primary",
                 instruction="Make as much progress as you can on understanding and improving this system.",
-                headline="Offline retrieval quality fell after an encoder refresh; training itself looks clean.",
+                headline="Retrieval quality fell after an embedding-model refresh; training and deployment both report success.",
                 artifacts=(
-                    "NDCG@10 is down 7.1% and recall@50 is down 5.4% against the previous encoder.",
-                    "Embedding centroids moved by about 0.10 cosine distance and nearest-neighbor turnover increased to 18%.",
+                    "NDCG@10 is down 7.1% and recall@50 is down 5.4% against the previous embedding model.",
+                    "Query-embedding centroids moved by about 0.10 cosine distance and nearest-neighbor turnover increased to 18%.",
                     "Training loss, negative-sampling mix, and optimizer telemetry show no obvious instability.",
-                    "One evaluation shard is markedly worse (-11.0% versus -4.9% elsewhere), even though it mixes the same broad query domains as the other shards.",
-                    "On a 2,000-query fixed replay, raw candidate scores are stable, but aggregate NDCG moves by about 1.2 points when the same examples are reassigned across evaluation shards.",
+                    "During the corpus refresh, existing parquet objects were overwritten at the same paths with the same row counts; the refresh job still reported success.",
+                    "Segment counts, vector-index generation metadata, and index-file counts did not change after that refresh.",
                     "The small online canary is roughly flat; its confidence interval still overlaps a modest decline.",
                 ),
             ),
             LatentQuestionRendering(
                 rendering_id="alternate",
                 instruction="Work out what is going on and make whatever progress you think is most useful.",
-                headline="A refreshed retrieval encoder looks worse offline even though the training run appears normal.",
+                headline="A refreshed embedding model is performing worse in retrieval even though the run completed normally.",
                 artifacts=(
-                    "Compared with the previous encoder, NDCG@10 falls by about 7% and recall@50 by about 5.5%.",
-                    "The refreshed embedding space shows a centroid displacement near 0.10 cosine and about 18% neighbor turnover.",
-                    "No clear failure appears in the loss curve, sampler composition, or optimizer telemetry.",
-                    "One evaluation shard carries a much larger regression than the rest despite a broadly similar query-domain mix.",
-                    "A fixed 2,000-query replay preserves raw candidate scores, yet moving those same examples across evaluation shards shifts aggregate NDCG by roughly 1.2 points.",
-                    "The online canary is close to flat, although the sample is not yet large enough to rule out a small decline.",
+                    "Relative to the previous model, NDCG@10 falls about 7% and recall@50 about 5.5%.",
+                    "The query embedding space shifts by roughly 0.10 cosine at the centroid level, with around 18% neighbor turnover.",
+                    "Loss curves, sampler composition, and optimizer telemetry do not show a clear training failure.",
+                    "The refresh replaced parquet contents in place while preserving paths and row counts, and the orchestration layer marked the refresh complete.",
+                    "Afterward, neither index-generation metadata nor the number of vector-index files changed.",
+                    "The online canary is close to flat, although the sample is not yet large enough to exclude a small decline.",
                 ),
             ),
         ),
@@ -109,12 +109,12 @@ PAIR_CONTEXTS: Dict[str, LatentQuestionContext] = {
 
 
 class LatentQuestionWorld:
-    """Counterfactual retrieval worlds for testing whether a quiet anomaly becomes a question.
+    """Retrieval worlds for testing whether a quiet infrastructure anomaly becomes a question.
 
-    The world exposes a salient representation-drift story in both cases. A weaker
-    evaluation-path clue is either incidental (R) or decision-relevant (E). The
-    mechanical model is only a fixture; human validation must determine whether the
-    visible evidence supports the intended distinction without making it obvious.
+    Both worlds support a salient representation-drift story after an embedding-model
+    refresh. In R the index was actually rebuilt and representation drift remains the
+    leading family. In S a quieter freshness anomaly makes a stale index more plausible.
+    The mechanical posterior is a fixture, not human-validity evidence.
     """
 
     causes = CAUSES
@@ -131,29 +131,29 @@ class LatentQuestionWorld:
                 2,
                 {
                     "representation_drift": 0.90,
-                    "evaluation_path_artifact": 0.18,
+                    "stale_index": 0.45,
                     "corpus_shift": 0.45,
                     "serving_mismatch": 0.25,
                 },
-                "Probe representation stability with matched queries and neighborhood comparisons.",
+                "Compare matched queries under old and new embeddings against a fresh brute-force reference.",
             ),
-            "route_conditioned_replay": ActionSpec(
-                "route_conditioned_replay",
+            "index_freshness_probe": ActionSpec(
+                "index_freshness_probe",
                 2,
                 {
-                    "representation_drift": 0.16,
-                    "evaluation_path_artifact": 0.92,
-                    "corpus_shift": 0.18,
+                    "representation_drift": 0.25,
+                    "stale_index": 0.90,
+                    "corpus_shift": 0.25,
                     "serving_mismatch": 0.25,
                 },
-                "Replay the same examples while varying only the evaluation path or shard assignment.",
+                "Check index generation/freshness and compare indexed vectors with the current source corpus.",
             ),
             "corpus_slice_audit": ActionSpec(
                 "corpus_slice_audit",
                 2,
                 {
                     "representation_drift": 0.25,
-                    "evaluation_path_artifact": 0.20,
+                    "stale_index": 0.20,
                     "corpus_shift": 0.90,
                     "serving_mismatch": 0.20,
                 },
@@ -163,8 +163,8 @@ class LatentQuestionWorld:
                 "online_offline_compare",
                 3,
                 {
-                    "representation_drift": 0.30,
-                    "evaluation_path_artifact": 0.35,
+                    "representation_drift": 0.35,
+                    "stale_index": 0.45,
                     "corpus_shift": 0.25,
                     "serving_mismatch": 0.90,
                 },
@@ -175,27 +175,27 @@ class LatentQuestionWorld:
                 1,
                 {
                     "representation_drift": 0.42,
-                    "evaluation_path_artifact": 0.40,
+                    "stale_index": 0.40,
                     "corpus_shift": 0.38,
                     "serving_mismatch": 0.41,
                 },
-                "Inspect more dashboard slices without changing the experimental setup.",
+                "Inspect more existing dashboard slices without changing the experimental setup.",
             ),
-            "full_reembed": ActionSpec(
-                "full_reembed",
-                6,
+            "full_reindex": ActionSpec(
+                "full_reindex",
+                5,
                 {
-                    "representation_drift": 0.72,
-                    "evaluation_path_artifact": 0.30,
-                    "corpus_shift": 0.55,
-                    "serving_mismatch": 0.38,
+                    "representation_drift": 0.45,
+                    "stale_index": 0.85,
+                    "corpus_shift": 0.42,
+                    "serving_mismatch": 0.35,
                 },
-                "Re-embed the corpus and rerun the full offline pipeline.",
+                "Force a full corpus re-embedding and vector-index rebuild.",
             ),
         }
         self.terminal_actions = (
             "repair_representation",
-            "repair_evaluation_path",
+            "rebuild_index",
             "refresh_corpus",
             "repair_serving",
             "defer",
@@ -203,25 +203,25 @@ class LatentQuestionWorld:
         self.reward_matrix = {
             "repair_representation": {
                 "representation_drift": 12,
-                "evaluation_path_artifact": -6,
+                "stale_index": -6,
                 "corpus_shift": -6,
                 "serving_mismatch": -6,
             },
-            "repair_evaluation_path": {
+            "rebuild_index": {
                 "representation_drift": -6,
-                "evaluation_path_artifact": 12,
+                "stale_index": 12,
                 "corpus_shift": -6,
                 "serving_mismatch": -6,
             },
             "refresh_corpus": {
                 "representation_drift": -6,
-                "evaluation_path_artifact": -6,
+                "stale_index": -6,
                 "corpus_shift": 12,
                 "serving_mismatch": -6,
             },
             "repair_serving": {
                 "representation_drift": -6,
-                "evaluation_path_artifact": -6,
+                "stale_index": -6,
                 "corpus_shift": -6,
                 "serving_mismatch": 12,
             },
