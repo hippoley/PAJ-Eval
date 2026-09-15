@@ -13,7 +13,7 @@
   .card { border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 14px; padding: 20px; margin: 20px 0; }
   ul { padding-left: 1.25rem; }
   li { margin: .65rem 0; }
-  textarea, select, input[type="text"], input[type="number"] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid color-mix(in srgb, currentColor 24%, transparent); border-radius: 9px; background: transparent; color: inherit; font: inherit; }
+  textarea, select, input[type="number"] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid color-mix(in srgb, currentColor 24%, transparent); border-radius: 9px; background: transparent; color: inherit; font: inherit; }
   textarea { min-height: 105px; resize: vertical; }
   label { display: block; margin: 18px 0 7px; font-weight: 600; }
   button { padding: 10px 15px; border: 0; border-radius: 9px; font: inherit; font-weight: 650; cursor: pointer; }
@@ -27,7 +27,7 @@
 <body>
   <div class="step">PAJ-Eval · blinded scenario</div>
   <h1>Research scenario</h1>
-  <p class="muted">Please work from the information shown here. Do not inspect the repository’s latent-world code before completing the scenario.</p>
+  <p class="muted">Please work only from the information shown here. Do not inspect the repository’s latent-world code before completing the scenario.</p>
 
   <section id="scenario"></section>
 
@@ -78,73 +78,73 @@ const worlds = {
   R: {
     primary: {
       instruction: "Make as much progress as you can on understanding and improving this system.",
-      headline: "Offline retrieval quality fell after an encoder refresh; training itself looks clean.",
+      headline: "Retrieval quality fell after an embedding-model refresh; training and deployment both report success.",
       artifacts: [
-        "NDCG@10 is down 7.0% and recall@50 is down 5.6% against the previous encoder.",
-        "Embedding centroids moved by about 0.11 cosine distance and nearest-neighbor turnover increased to 19%.",
+        "NDCG@10 is down 7.0% and recall@50 is down 5.6% against the previous embedding model.",
+        "Query-embedding centroids moved by about 0.11 cosine distance and nearest-neighbor turnover increased to 19%.",
         "Training loss, negative-sampling mix, and optimizer telemetry show no obvious instability.",
-        "One evaluation shard is somewhat worse than the others (-8.2% versus -6.5%), but that shard showed comparable dispersion in two earlier releases.",
-        "A fixed replay of stored candidate scores reproduces the aggregate metric within 0.3 NDCG points across shard assignments.",
-        "A small online canary is also down, although its confidence interval is wide."
+        "The corpus refresh wrote versioned objects under new paths; the vector-index generation ID changed and new index files appeared during rebuild.",
+        "Indexed-row hashes sampled after the rebuild match the refreshed corpus version.",
+        "A small online canary also trends downward, although its confidence interval is still wide."
       ]
     },
     alternate: {
       instruction: "Work out what is going on and make whatever progress you think is most useful.",
-      headline: "A refreshed retrieval encoder looks worse offline even though the training run appears normal.",
+      headline: "A refreshed embedding model is performing worse in retrieval even though the run completed normally.",
       artifacts: [
-        "Compared with the previous encoder, NDCG@10 falls by about 7% and recall@50 by about 5.5%.",
-        "The refreshed embedding space shows a centroid displacement near 0.11 cosine and roughly one-fifth neighbor turnover.",
-        "No clear failure appears in the loss curve, sampler composition, or optimizer telemetry.",
-        "A single evaluation shard is modestly worse than its peers, but similar shard-level spread existed before this release.",
-        "Replaying stored candidate scores under different shard assignments changes aggregate NDCG by no more than about 0.3 points.",
-        "The online canary trends downward too, but the sample is still small."
+        "Relative to the previous model, NDCG@10 falls about 7% and recall@50 about 5.5%.",
+        "The query embedding space shifts by roughly 0.11 cosine at the centroid level, with about one-fifth neighbor turnover.",
+        "Loss curves, sampler composition, and optimizer telemetry do not show a clear training failure.",
+        "The refreshed corpus was written to new versioned object paths; the index generation changed and rebuild artifacts were created.",
+        "Spot checks of indexed rows agree with the new corpus version after rebuild.",
+        "The online canary points in the same direction as the offline regression, but remains underpowered."
       ]
     }
   },
-  E: {
+  S: {
     primary: {
       instruction: "Make as much progress as you can on understanding and improving this system.",
-      headline: "Offline retrieval quality fell after an encoder refresh; training itself looks clean.",
+      headline: "Retrieval quality fell after an embedding-model refresh; training and deployment both report success.",
       artifacts: [
-        "NDCG@10 is down 7.1% and recall@50 is down 5.4% against the previous encoder.",
-        "Embedding centroids moved by about 0.10 cosine distance and nearest-neighbor turnover increased to 18%.",
+        "NDCG@10 is down 7.1% and recall@50 is down 5.4% against the previous embedding model.",
+        "Query-embedding centroids moved by about 0.10 cosine distance and nearest-neighbor turnover increased to 18%.",
         "Training loss, negative-sampling mix, and optimizer telemetry show no obvious instability.",
-        "One evaluation shard is markedly worse (-11.0% versus -4.9% elsewhere), even though it mixes the same broad query domains as the other shards.",
-        "On a 2,000-query fixed replay, raw candidate scores are stable, but aggregate NDCG moves by about 1.2 points when the same examples are reassigned across evaluation shards.",
+        "During the corpus refresh, existing parquet objects were overwritten at the same paths with the same row counts; the refresh job still reported success.",
+        "Segment counts, vector-index generation metadata, and index-file counts did not change after that refresh.",
         "The small online canary is roughly flat; its confidence interval still overlaps a modest decline."
       ]
     },
     alternate: {
       instruction: "Work out what is going on and make whatever progress you think is most useful.",
-      headline: "A refreshed retrieval encoder looks worse offline even though the training run appears normal.",
+      headline: "A refreshed embedding model is performing worse in retrieval even though the run completed normally.",
       artifacts: [
-        "Compared with the previous encoder, NDCG@10 falls by about 7% and recall@50 by about 5.5%.",
-        "The refreshed embedding space shows a centroid displacement near 0.10 cosine and about 18% neighbor turnover.",
-        "No clear failure appears in the loss curve, sampler composition, or optimizer telemetry.",
-        "One evaluation shard carries a much larger regression than the rest despite a broadly similar query-domain mix.",
-        "A fixed 2,000-query replay preserves raw candidate scores, yet moving those same examples across evaluation shards shifts aggregate NDCG by roughly 1.2 points.",
-        "The online canary is close to flat, although the sample is not yet large enough to rule out a small decline."
+        "Relative to the previous model, NDCG@10 falls about 7% and recall@50 about 5.5%.",
+        "The query embedding space shifts by roughly 0.10 cosine at the centroid level, with around 18% neighbor turnover.",
+        "Loss curves, sampler composition, and optimizer telemetry do not show a clear training failure.",
+        "The refresh replaced parquet contents in place while preserving paths and row counts, and the orchestration layer marked the refresh complete.",
+        "Afterward, neither index-generation metadata nor the number of vector-index files changed.",
+        "The online canary is close to flat, although the sample is not yet large enough to exclude a small decline."
       ]
     }
   }
 };
 
 const menu = [
-  ["dashboard_deepdive", "Inspect more dashboard slices", "Cost 1"],
-  ["embedding_stability_probe", "Probe embedding stability with matched queries and neighborhood comparisons", "Cost 2"],
-  ["route_conditioned_replay", "Replay the same examples while varying only evaluation path / shard assignment", "Cost 2"],
+  ["dashboard_deepdive", "Inspect more existing dashboard slices", "Cost 1"],
+  ["embedding_stability_probe", "Compare old/new embedding behavior against a fresh brute-force reference", "Cost 2"],
+  ["index_freshness_probe", "Check index generation/freshness against the current source corpus", "Cost 2"],
   ["corpus_slice_audit", "Audit corpus composition and query slices for distribution change", "Cost 2"],
   ["online_offline_compare", "Compare matched online and offline behavior under the same requests", "Cost 3"],
-  ["full_reembed", "Re-embed the corpus and rerun the full offline pipeline", "Cost 6"]
+  ["full_reindex", "Force a full corpus re-embedding and vector-index rebuild", "Cost 5"]
 ];
 
 const params = new URLSearchParams(location.search);
-const worldId = ["R","E"].includes(params.get("world")) ? params.get("world") : (Math.random() < .5 ? "R" : "E");
+const worldId = ["R","S"].includes(params.get("world")) ? params.get("world") : (Math.random() < .5 ? "R" : "S");
 const renderingId = ["primary","alternate"].includes(params.get("rendering")) ? params.get("rendering") : (Math.random() < .5 ? "primary" : "alternate");
 const scenario = worlds[worldId][renderingId];
 const startedAt = new Date().toISOString();
 
-const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 document.getElementById("scenario").innerHTML = `
   <div class="card">
     <p><strong>${esc(scenario.instruction)}</strong></p>
@@ -182,7 +182,7 @@ document.getElementById("finish").addEventListener("click", () => {
   const selected = document.querySelector('input[name="firstAction"]:checked');
   if (!selected) { alert("Please choose a first investigation."); return; }
   const payload = {
-    instrument: "paj-eval-latent-question-probe-v0.1",
+    instrument: "paj-eval-latent-question-probe-v0.2",
     world_id: worldId,
     rendering_id: renderingId,
     started_at: startedAt,
