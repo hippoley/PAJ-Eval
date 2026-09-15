@@ -10,7 +10,7 @@
   <img src="assets/paj-eval-overview.svg" alt="PAJ-Eval study design" width="100%">
 </p>
 
-**Current status:** v0.2 design · Stage 0 executable instrument · first Stage 1A counterfactual pair implemented · expert environment validation next.  
+**Current status:** v0.2 design · Stage 0 executable instrument · first Stage 1A counterfactual pair implemented · blinded expert environment validation next.  
 **Research note:** [Same Task Success, Different Humans](https://thirdstructure.wordpress.com/2026/09/15/same-task-success-different-humans/)  
 **Canonical repository:** `hippoley/PAJ-Eval`
 
@@ -127,6 +127,7 @@ Files:
 - [`tests/test_stage1a_pair.py`](tests/test_stage1a_pair.py) — counterfactual tests
 - [`EXPERT_WALKTHROUGH_STAGE1A.md`](EXPERT_WALKTHROUGH_STAGE1A.md) — blinded expert protocol
 - [`expert_walkthrough_stage1a.html`](expert_walkthrough_stage1a.html) — standalone response form
+- [`analyze_stage1a_experts.py`](analyze_stage1a_experts.py) — pre-specified response analysis
 
 ## The instrument should be easy to kill
 
@@ -164,11 +165,7 @@ python demo.py
 pytest -q
 ```
 
-Current public CI result:
-
-```text
-11 passed
-```
+The exact test count may grow as validity checks are added; public GitHub Actions is the source of truth for the current `main` branch.
 
 ## Repository map
 
@@ -181,6 +178,7 @@ PAJ-Eval/
 ├── STAGE1A_COUNTERFACTUAL_PAIR.md
 ├── EXPERT_WALKTHROUGH_STAGE1A.md
 ├── expert_walkthrough_stage1a.html
+├── analyze_stage1a_experts.py
 ├── VALIDATION.md
 ├── REPRODUCIBILITY.md
 ├── STAGE_GATES.md
