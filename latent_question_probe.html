@@ -14,7 +14,7 @@
   ul { padding-left: 1.25rem; }
   li { margin: .65rem 0; }
   textarea, select, input[type="number"] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid color-mix(in srgb, currentColor 24%, transparent); border-radius: 9px; background: transparent; color: inherit; font: inherit; }
-  textarea { min-height: 105px; resize: vertical; }
+  textarea { min-height: 120px; resize: vertical; }
   label { display: block; margin: 18px 0 7px; font-weight: 600; }
   button { padding: 10px 15px; border: 0; border-radius: 9px; font: inherit; font-weight: 650; cursor: pointer; }
   .actions { display: grid; gap: 9px; margin-top: 12px; }
@@ -32,22 +32,19 @@
   <section id="scenario"></section>
 
   <section id="freeform">
-    <h2>1. Before seeing any investigation menu</h2>
-    <label for="warrants">What, if anything, seems worth investigating here?</label>
-    <textarea id="warrants" placeholder="Write the questions, anomalies, or possibilities that occur to you. There is no required number."></textarea>
+    <h2>1. Your next move</h2>
+    <label for="nextFree">What would you do next, and why?</label>
+    <textarea id="nextFree" placeholder="Write what you would actually do next. Explain your reasoning as if handing the work to a teammate."></textarea>
 
-    <label for="nextFree">If you had to do one thing next, what would you do?</label>
-    <textarea id="nextFree" placeholder="Describe the next move in your own words."></textarea>
-
-    <label for="confidenceFree">How confident are you that your current direction is useful? (0–100)</label>
+    <label for="confidenceFree">How confident are you that this direction is useful? (0–100)</label>
     <input id="confidenceFree" type="number" min="0" max="100" step="1" />
 
-    <p><button id="lockFree">Continue to investigation menu</button></p>
+    <p><button id="lockFree">Continue</button></p>
   </section>
 
   <section id="menuStage" class="hidden">
-    <h2>2. Now choose from a fixed investigation menu</h2>
-    <p>You have a limited budget. Choose the <strong>single investigation you would buy first</strong>.</p>
+    <h2>2. Fixed investigation menu</h2>
+    <p>You now have a limited budget. Choose the <strong>single investigation you would buy first</strong>.</p>
     <div id="actions" class="actions"></div>
 
     <label for="menuWhy">Why is this the best first purchase?</label>
@@ -59,7 +56,7 @@
     <label for="realism">How realistic is the research situation? (1–5)</label>
     <select id="realism"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
 
-    <label for="ambiguity">Before choosing an investigation, did more than one causal explanation seem genuinely plausible? (1–5)</label>
+    <label for="ambiguity">Before seeing the fixed menu, did more than one causal explanation seem genuinely plausible? (1–5)</label>
     <select id="ambiguity"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
 
     <label for="leak">Did any wording seem to reveal what the benchmark author wanted you to choose?</label>
@@ -158,19 +155,16 @@ document.getElementById("actions").innerHTML = menu.map(([id,label,cost]) => `
 
 let lockedSnapshot = null;
 document.getElementById("lockFree").addEventListener("click", () => {
-  const warrants = document.getElementById("warrants").value.trim();
   const nextFree = document.getElementById("nextFree").value.trim();
-  if (!warrants || !nextFree) {
-    alert("Please answer the two free-form questions before continuing.");
+  if (!nextFree) {
+    alert("Please describe what you would do next before continuing.");
     return;
   }
   lockedSnapshot = {
-    warrants,
     next_free: nextFree,
     confidence_free: document.getElementById("confidenceFree").value,
     locked_at: new Date().toISOString()
   };
-  document.getElementById("warrants").disabled = true;
   document.getElementById("nextFree").disabled = true;
   document.getElementById("confidenceFree").disabled = true;
   document.getElementById("lockFree").disabled = true;
@@ -182,7 +176,7 @@ document.getElementById("finish").addEventListener("click", () => {
   const selected = document.querySelector('input[name="firstAction"]:checked');
   if (!selected) { alert("Please choose a first investigation."); return; }
   const payload = {
-    instrument: "paj-eval-latent-question-probe-v0.2",
+    instrument: "paj-eval-latent-question-probe-v0.3",
     world_id: worldId,
     rendering_id: renderingId,
     started_at: startedAt,
