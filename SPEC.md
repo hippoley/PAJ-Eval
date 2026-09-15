@@ -84,9 +84,7 @@ Expected EIG at choice time is preferred over realized information gain for acti
 
 ## Decision utility: separate normative quality from outcome luck
 
-The earlier specification used one Research Utility expression for both decision quality and realized outcome. v0.2 separates them.
-
-### Expected Research Utility (primary decision-quality score)
+### Expected Research Utility (confirmatory primary endpoint)
 
 Let `u_T` be the terminal action after history `H_T`:
 
@@ -106,9 +104,9 @@ RRU = R(u_T, Z*) - λ Σ_t C(a_t)
 
 RRU records what actually happened in the generated world. It is useful as an ecological secondary outcome, but it is noisier as a measure of decision quality.
 
-### Oracle regret
+### Oracle regret (derived diagnostic)
 
-For known synthetic worlds, let `V*(H_0)` be the finite-budget optimal expected utility. Then:
+For known synthetic worlds, let `V*(H_0)` be the finite-budget optimal expected utility:
 
 ```text
 OracleRegret = V*(H_0) - ERU_participant
@@ -121,7 +119,7 @@ NormalizedERU = (ERU_participant - E[ERU_random]) /
                 (V*(H_0) - E[ERU_random])
 ```
 
-This normalization is descriptive, not a claim that the oracle defines human rationality.
+These are useful for cross-world interpretation, but the first confirmatory human study should designate **one primary endpoint: post-assistance ERU**.
 
 ## Oracle reference
 
@@ -135,60 +133,53 @@ The oracle is a benchmark-validation instrument, not a behavioral prescription. 
 
 A broad contrast between “direct” and “eliciting” assistants changes too many variables at once. v0.2 therefore specifies a cleaner first intervention.
 
-For each assisted training environment, construct a **canonical assistance packet** containing the same substantive AI information for both arms: relevant hypotheses, interpretation of evidence, diagnostic options, and recommended next steps.
+For each assisted training environment, construct a **canonical assistance packet** containing the same substantive AI information for both arms: relevant hypotheses, interpretation of evidence, diagnostic options, and recommended next steps. The packet should have a fixed `packet_id` / content hash and must not be customized from the participant's pre-packet response.
 
 ### Frame-first arm
 
-The canonical assistance packet is shown **before** the participant records an independent problem frame, competing hypotheses, or next investigation.
+The canonical assistance packet is shown **before** the participant records their own problem frame, competing hypotheses, uncertainty, or next investigation.
 
-### Commit-first arm
+### Self-frame-first arm
 
-Before seeing the canonical assistance packet, the participant records:
+Before seeing the canonical assistance packet, the participant records a **private, non-binding, explicitly revisable snapshot** of:
 
-- an initial problem frame,
-- at least two plausible explanations where applicable,
+- their initial problem frame,
+- plausible competing explanations,
 - the uncertainty they consider most important,
 - the next investigation they would choose.
 
-The **same assistance packet** is then shown.
+The snapshot is not used to customize the assistant. The **same canonical assistance packet** is then shown.
 
-Subsequent technical assistance should be kept as similar as practicable across arms.
+This intervention changes whether a self-generated problem representation exists **before AI framing**, while holding eventual AI information constant.
 
-This intervention primarily changes **causal order**, not eventual information access.
+The wording “self-frame-first” is deliberate: the design should not create artificial commitment pressure or imply that the participant ought to defend the initial frame.
 
 ## Identification target
 
-Let `P ∈ {FrameFirst, CommitFirst}` denote randomized treatment assignment.
+Let `P ∈ {FrameFirst, SelfFrameFirst}` denote randomized treatment assignment.
 
 The primary causal estimand is:
 
 ```text
-ATE_J = E[J_post | do(P = CommitFirst)]
+ATE_J = E[J_post | do(P = SelfFrameFirst)]
       - E[J_post | do(P = FrameFirst)]
 ```
 
-where `J_post` is post-assistance judgment measured in held-out unframed worlds.
+where `J_post` is post-assistance judgment measured in held-out unframed worlds and operationalized by the preregistered ERU endpoint.
 
 ### Assisted performance is a design gate, not a conditioning variable
 
-The two arms should be calibrated **before the confirmatory study** to produce practically equivalent assisted-task performance and comparable eventual information exposure.
+The two arms should be calibrated **before the confirmatory study** to produce practically equivalent assisted-task performance and identical eventual assistance packets.
 
 Arm-level assisted equivalence should be tested with a pre-specified equivalence margin.
 
 Do **not** estimate the treatment effect by conditioning or matching on each participant's observed assisted performance, because assisted performance is post-treatment and conditioning on it can distort the causal comparison.
 
-### What is allowed to differ?
+### Effort is a mechanism, but also an alternative explanation
 
-The total effect of the sequencing policy may legitimately include changes in:
+Self-framing may increase cognitive effort. That may be part of the mechanism, so it should not simply be regressed away.
 
-- cognitive effort,
-- self-generation,
-- commitment,
-- attention allocation.
-
-These may be mechanisms rather than nuisance variables. They should be measured, not automatically regressed away.
-
-A secondary mechanism analysis may examine whether treatment effects co-vary with pre-assistance commitment quality, effort, or frame revision, but such analyses should be labeled exploratory unless separately powered and preregistered.
+If the two-arm pilot shows a post-assistance effect, the next study should add an **effort-yoked control** or another intervention that separates self-generated framing from generic extra effort. Time, typing, turns, and subjective effort should be logged from the first pilot onward.
 
 ## Post-assistance measurement
 
@@ -201,17 +192,17 @@ Preferred transfer levels:
 3. **Compositional transfer:** novel combination of previously seen causal components.
 4. **Domain transfer:** different technical surface domain with preserved decision structure.
 
-The main confirmatory endpoint should be chosen before data collection; stronger claims require stronger transfer levels.
+The main confirmatory claim should specify its transfer level before data collection. Stronger claims require stronger transfer.
 
-## Primary and secondary measures
+## Measures
 
-**Primary**
+**Confirmatory primary**
 
-- post-assistance Expected Research Utility (ERU),
-- oracle regret.
+- post-assistance Expected Research Utility (ERU).
 
-**Secondary / mechanism**
+**Derived / secondary**
 
+- oracle regret,
 - Realized Research Utility,
 - expected EIG per cost,
 - time to first discriminating investigation,
@@ -227,8 +218,8 @@ The main confirmatory endpoint should be chosen before data collection; stronger
 
 At minimum:
 
-- whether independent commitment occurred before AI frame exposure,
-- frame-before-user rate,
+- whether the private self-frame snapshot occurred before AI frame exposure,
+- canonical assistance `packet_id` / content hash,
 - substantive information overlap between arms,
 - assistant token/information volume,
 - direct recommendation rate,
@@ -262,6 +253,6 @@ Stage 0 **does not** require evidence that one human-AI interaction policy outpe
 
 ## Core falsifiable claim
 
-> **Two AI interaction policies can be equivalent on assisted-task performance yet produce measurably different subsequent human judgment in a novel unframed environment.**
+> **Two AI interaction policies can be equivalent on assisted-task performance and eventual information exposure yet produce measurably different subsequent human judgment in a novel unframed environment.**
 
 The null result is scientifically meaningful: if information-yoked sequencing does not change post-assistance judgment under a validated instrument, then the stronger version of this hypothesis should weaken.
