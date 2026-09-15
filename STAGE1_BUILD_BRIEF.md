@@ -4,146 +4,41 @@
 
 Demonstrate that PAJ-Eval rewards recognizable research judgment rather than exploitation of a small Bayesian game.
 
-The revised execution principle is:
-
-> **Do not build 30 polished episodes before we know the instrument survives one hard counterexample.**
-
-Stage 1 is therefore split into **Stage 1A: Minimal Falsification** and **Stage 1B: Scale Validation**.
+Stage 1 is complete only when experienced researchers can inspect rendered environments, remain blind to benchmark likelihood tables, and agree that high-scoring investigation trajectories are substantively better research moves—not merely moves that exploit benchmark conventions.
 
 ---
 
-# Stage 1A — Minimal Falsification
+## Stage 1A — Falsification pair first
 
-## 1. Build one adversarial counterfactual pair
+**Mechanical status: IMPLEMENTED. Human-validity status: NOT YET ESTABLISHED.**
 
-Create two research environments with intentionally similar initial evidence but different latent causal structures.
+Before expanding the benchmark, build one deliberately adversarial counterfactual pair.
 
-Example:
+This pair now exists in [`paj_eval/stage1a.py`](paj_eval/stage1a.py):
 
-### World A
-Visible evidence includes elevated seed variance, mild subgroup drift, and a suspicious preprocessing note. The true cause is **optimization instability**.
+- both worlds share the same headline anomaly;
+- both use the same action menu, costs, observation model, rewards, and budget;
+- weak contextual evidence changes the initial evidence state;
+- World A's oracle first move is `rerun_seeds`;
+- World B's oracle first move is `recompute_metrics`;
+- forcing the opposite-world first move incurs >1.0 expected-utility regret in each world.
 
-### World B
-The same visible motifs appear, but seed variance is incidental and the true cause is an **evaluation artifact** or **conditional preprocessing mismatch**.
+See [`STAGE1A_COUNTERFACTUAL_PAIR.md`](STAGE1A_COUNTERFACTUAL_PAIR.md).
 
-The key requirement is not that the root causes differ. It is that **the best next investigation differs for principled reasons**.
+This is only a **mechanical counterfactual-sensitivity pass**. It is not enough to claim construct validity.
 
-If the same obvious action remains best in both worlds, rebuild the pair.
+Stage 1A now proceeds to blinded expert walkthroughs using:
 
-## 2. Render each world twice
+- [`EXPERT_WALKTHROUGH_STAGE1A.md`](EXPERT_WALKTHROUGH_STAGE1A.md)
+- [`expert_walkthrough_stage1a.html`](expert_walkthrough_stage1a.html)
 
-Use at least two substantially different surface renderings for the same latent structure.
-
-Initial target:
-
-```text
-2 latent worlds × 2 surface renderings = 4 episodes
-```
-
-This is enough to test the two most important invariances:
-
-- **counterfactual sensitivity:** change latent reason → preferred investigation changes;
-- **surface invariance:** change surface story → underlying action values remain coherent.
-
-Do not scale until both are visible.
-
-## 3. Replace binary observations in the pair
-
-The first adversarial pair should already expose research-like evidence:
-
-- metric tables,
-- small plots,
-- logs,
-- subgroup slices,
-- seed distributions,
-- sample-level errors,
-- confidence intervals,
-- partial failures.
-
-The internal scoring model may discretize these artifacts, but participants should not see `signal/no_signal` abstractions.
-
-## 4. Heuristic attack suite
-
-Run at least:
-
-- cheapest-first;
-- expensive-first;
-- subgroup-first;
-- rerun-first;
-- fixed sequence;
-- anomaly/action-name lexical match;
-- greedy EIG/cost;
-- stop-immediately;
-- exhaust-budget.
-
-Also run a **surface-only leakage probe** that sees the initial wording and labels but cannot purchase evidence. Ask it to predict:
-
-1. latent cause;
-2. oracle first action.
-
-A good pair should resist both fixed heuristics and superficial leakage.
-
-## 5. Expert walkthrough before expansion
-
-Recruit **5–8 experienced ML researchers/engineers** for the four Stage 1A episodes.
-
-Keep them blind to:
-
-- latent cause;
-- likelihood tables;
-- EIG values;
-- oracle policy;
-- reward parameters.
-
-Capture:
-
-- first investigation;
-- ranked top-3 investigations;
-- rationale;
-- confidence;
-- perceived realism;
-- initial plausible explanations;
-- what evidence would change their mind;
-- any missing investigation they would run in real work.
-
-After completion, reveal the world model and oracle and ask whether benchmark-preferred actions reflect good research or game logic.
-
-## 6. Stage 1A kill gates
-
-Do **not** proceed to large-scale generation if any of these fail materially:
-
-### K1 — Counterfactual sensitivity
-The two similar-looking worlds do not require meaningfully different investigation priorities.
-
-### K2 — Surface invariance
-Experts or policies change dramatically when only nouns/rendering change.
-
-### K3 — Heuristic resistance
-A fixed heuristic approaches oracle across the pair.
-
-### K4 — Leakage
-The latent cause or oracle first action is easily predicted from superficial wording alone.
-
-### K5 — Expert coherence
-Experts repeatedly regard the benchmark-preferred action as scientifically poor.
-
-### K6 — Omitted-action coverage
-Experts identify missing actions that would clearly dominate the available menu.
-
-### K7 — Reward robustness
-Small plausible changes in costs/rewards reverse the intended action ranking.
-
-If a kill gate fails, revise the world/scoring model before adding more content.
+Do not scale the world generator until this pair survives the human-validity kill gates.
 
 ---
 
-# Stage 1B — Scale Validation
+## 1. Architecture change
 
-Only after Stage 1A survives should the project expand.
-
-## 7. World generator architecture
-
-Separate:
+Separate four layers:
 
 ```text
 Causal World Generator
@@ -155,158 +50,249 @@ Surface Renderer
 Research Interface + Event Logger
 ```
 
-A causal world must be renderable through multiple surface stories without changing its latent decision structure.
+A causal world must be renderable through multiple surface stories without changing its latent structure.
 
-A surface story should also be reusable across different latent structures so superficial nouns cannot reliably reveal the answer.
+A surface story should also be reusable across different latent structures where feasible, so superficial language cannot reveal the answer.
 
-## 8. Scale target
+---
 
-Expand to **6–10 core causal worlds**, not automatically 30.
+## 2. Stage 1B expansion target
+
+Only after Stage 1A survives expert review, expand to **6–10 core causal worlds**.
 
 Each world should have:
-
 - 4–7 plausible latent hypotheses;
-- 7–12 investigations;
-- ≥2 attractive but low-value actions;
-- ≥1 cheap high-information action that is not visually privileged;
-- ≥2 plausible stopping points;
-- meaningful downside to incorrect terminal action.
+- 7–12 available investigations;
+- at least 2 attractive but low-value actions;
+- at least 1 cheap high-information action that is not visually privileged;
+- at least 2 plausible stopping points;
+- a terminal intervention set with meaningful downside for acting incorrectly.
 
-Use **2–3 surface renderings per world** only where they provide a real invariance test.
+At least **2 mechanism families should be held out** from any later training condition.
 
-At least **2 mechanism families** should be held out from the assisted training condition for later transfer measurement.
+---
 
-## 9. Mechanism-family target
+## 3. Surface multiplicity
 
-The v0.2 generator should support at least:
+For each validated causal world, create **2–3 surface renderings**.
 
-- conditional preprocessing mismatch;
-- evaluation implementation artifact;
-- optimization instability;
-- capacity mismatch;
-- conditional label corruption;
-- leakage / spurious shortcut.
+Examples:
+- transformer classification pipeline;
+- retrieval/ranking system;
+- vision model evaluation;
+- recommendation experiment;
+- synthetic scientific analysis.
 
-Later worlds may compose more than one mechanism, but single-cause worlds remain useful for calibration and interpretability.
+The same latent logic should not be recognizable from fixed nouns or iconography.
 
-## 10. Expert validation at scale
+Do not lock a 30-episode target until the first counterfactual pair survives expert validation.
+
+---
+
+## 4. Observation richness
+
+Replace binary `signal/no_signal` where feasible with richer outputs:
+
+- small numeric tables;
+- metric deltas;
+- mini-plots;
+- sample-level errors;
+- logs;
+- confidence intervals;
+- seed-to-seed variability;
+- subgroup differences;
+- partial failures.
+
+The benchmark may internally discretize these for posterior calculation, but participants should encounter research-like artifacts.
+
+---
+
+## 5. Anti-shortcut tests
+
+Before treatment testing, run heuristic agents:
+
+### H1 — Always choose cheapest action
+Should not approach oracle performance.
+
+### H2 — Always choose subgroup analysis first
+Should fail meaningfully on some worlds.
+
+### H3 — Always choose the action whose name best matches the initial anomaly
+Should not dominate.
+
+### H4 — Always use the same fixed sequence
+Should incur substantial oracle regret.
+
+### H5 — Expensive-action preference
+Should remain clearly suboptimal.
+
+### H6 — Greedy EIG
+Should be strong but not identical to the full oracle because stopping and terminal value matter.
+
+### H7 — Stop immediately
+Should fail in worlds where discriminating evidence is worth its cost.
+
+### H8 — Exhaust budget
+Should fail in worlds where appropriate stopping dominates additional evidence collection.
+
+Kill expansion if a simple fixed heuristic reaches within **10% of oracle utility on >70% of validated worlds**.
+
+---
+
+## 6. Counterfactual world tests
+
+For selected surface renderings, create paired worlds where weak contextual evidence changes the correct research move.
+
+The initial headline anomaly should remain similar enough that a one-keyword policy cannot succeed.
+
+A good investigator must integrate the evidence state and purchase discriminating evidence rather than pattern-match the headline.
+
+The first implemented pair uses a shared seed-variance headline but flips the preferred first diagnostic between `rerun_seeds` and `recompute_metrics`.
+
+---
+
+## 7. Expert walkthrough protocol
+
+Recruit **5–8 experienced ML researchers/engineers** for Stage 1A.
+
+They receive:
+- the four current A/B × rendering scenarios in randomized order;
+- no latent-cause list;
+- no posterior values;
+- no EIG values;
+- no oracle trajectory.
+
+Capture:
+- top-3 chosen investigations;
+- rationale;
+- confidence;
+- perceived realism;
+- number of plausible initial explanations;
+- belief-changing evidence;
+- omitted investigations;
+- leakage concerns.
+
+After completion, reveal the causal model and oracle trajectory.
+
+Ask:
+
+1. Was the benchmark's preferred evidence actually useful?
+2. Were low-value distractors realistically tempting?
+3. Did the optimal trajectory feel like good research rather than game logic?
+4. Which actions were missing?
+5. Which artifacts were implausible?
+6. Did the reward function punish any defensible scientific behavior?
+
+---
+
+## 8. Human-expert agreement target
 
 Do not require experts to copy the exact oracle.
 
-Measure:
-
-- rank correlation between expert-perceived action value and benchmark value;
-- top-3 overlap;
+Measure instead:
+- movement in first-choice distribution across the counterfactual pair;
+- rank correlation between expert-perceived investigation value and benchmark action value;
+- overlap between expert top-3 actions and benchmark top-3 actions;
 - qualitative agreement on low-value distractions;
 - disagreement clusters;
-- frequency of missing-action proposals;
-- realism and ambiguity ratings.
+- rendering sensitivity within the same latent world.
+
+Desired Stage 1A signal:
+
+- `rerun_seeds` receives materially more support in A than B;
+- `recompute_metrics` receives materially more support in B than A;
+- alternate surface renderings do not reverse the latent-world effect;
+- no systematic case where experts strongly prefer an omitted action that would dominate the menu.
+
+---
+
+## 9. Expertise-discrimination test
+
+The benchmark should correlate with relevant expertise, but not collapse into a factual ML exam.
+
+Add a short independent ML knowledge screen only after the environment itself is credible.
+
+Stage 1 concern if:
+
+```text
+PAJ score ≈ factual-knowledge score
+```
 
 Desired pattern:
 
 ```text
-benchmark value and expert judgment are positively related,
-but disagreement remains where real research judgment is genuinely contestable.
-```
-
-## 11. Discriminant validity
-
-Add independent screens for:
-
-- factual ML knowledge;
-- Bayesian/numeracy skill;
-- ML debugging experience.
-
-The benchmark should be expertise-sensitive without collapsing into a knowledge exam.
-
-Concern:
-
-```text
-PAJ ≈ factual quiz
-```
-
-Desired:
-
-```text
 expertise matters,
-but investigation quality retains residual variance.
+but investigation quality retains substantial residual variance.
 ```
-
-## 12. Reward robustness
-
-Perturb:
-
-- costs;
-- priors;
-- wrong-action penalties;
-- defer reward;
-- total budget;
-- terminal reward asymmetry.
-
-Track whether world difficulty and policy ranking remain stable enough to support interpretation.
 
 ---
 
-# Stage 1 acceptance gates
+## 10. Reward robustness
 
-Advance to a human treatment pilot only if the validated world set satisfies all of the following:
+Perturb:
+- investigation costs;
+- false-intervention penalties;
+- defer reward;
+- prior over latent causes.
+
+Check whether qualitative action rankings survive reasonable changes.
+
+If small reward changes reverse the benchmark's central counterfactual distinction, the instrument is too brittle.
+
+---
+
+## 11. Stage 1 acceptance gates
+
+Advance to treatment-policy work only if all hold:
 
 ### G1 — Realism
-Median expert realism rating ≥ 4/5.
+Median expert realism rating >= 4/5.
 
-### G2 — Genuine initial ambiguity
-More than one plausible initial explanation is reported in ≥80% of worlds.
+### G2 — Ambiguity
+Experts report >1 plausible initial explanation in >=80% of scenarios.
 
 ### G3 — No universal first move
-No action is oracle-optimal first in >50% of generated worlds.
+No action is oracle-optimal first in >50% of validated worlds after expansion.
 
 ### G4 — No simple shortcut
 Fixed heuristics remain meaningfully below oracle.
 
-### G5 — Expert coherence
-Benchmark action value is positively related to expert-perceived action value.
+### G5 — Expert/action-value coherence
+Positive expert-value vs benchmark-value rank correlation in aggregate, without requiring exact oracle imitation.
 
-### G6 — Surface invariance
-Alternate renderings of the same latent world preserve qualitative action-value structure.
+### G6 — Surface robustness
+Same causal world rendered differently yields broadly comparable expert and policy ranking.
 
 ### G7 — Counterfactual sensitivity
-Similar-looking worlds with changed latent structure require different high-value investigations.
+Paired similar-looking worlds produce different preferred investigations when the causal evidence state changes.
 
-### G8 — Leakage resistance
-Superficial wording alone does not reliably reveal hidden cause or best first action.
+### G8 — Reward robustness
+Main action rankings survive reasonable parameter perturbations.
 
 ### G9 — Omitted-action coverage
-Experts do not frequently identify clearly dominant investigations absent from the menu.
+Experts do not repeatedly identify an unlisted investigation that dominates the benchmark menu.
 
-### G10 — Reward robustness
-Main conclusions survive reasonable parameter perturbations.
-
-### G11 — Discriminant validity
-PAJ performance is not reducible to factual ML knowledge or numeracy alone.
+### G10 — Leakage resistance
+Surface-only cues do not trivially reveal latent cause or intended action.
 
 ---
 
-# Stage 1 deliverables
+## Stage 1 deliverables
 
-## Stage 1A
+Stage 1A now has:
 
-1. `counterfactual_pair/`
-2. `4 rendered episodes`
-3. `heuristic_attack_report.csv`
-4. `leakage_probe_report.md`
-5. `expert_walkthrough_protocol.md`
-6. `expert_stage1a_results.csv`
-7. `Stage1A_Falsification_Report.md`
+1. `paj_eval/stage1a.py`
+2. `tests/test_stage1a_pair.py`
+3. `STAGE1A_COUNTERFACTUAL_PAIR.md`
+4. `EXPERT_WALKTHROUGH_STAGE1A.md`
+5. `expert_walkthrough_stage1a.html`
 
-## Stage 1B
+Still required before Stage 1A passes:
 
-1. `world_generator/`
-2. `renderers/`
-3. `6–10 validated causal worlds`
-4. `heuristic_baseline_report.csv`
-5. `surface_invariance_report.md`
-6. `reward_robustness_report.md`
-7. `expert_validity_results.csv`
-8. `Environment_Validity_Report_v0.2.md`
+6. 5–8 blinded expert responses
+7. expert ranking / rendering analysis
+8. omitted-action review
+9. posterior / reward sensitivity analysis
+10. Stage 1A validity decision: pass / revise / kill
 
-Only after Stage 1A/1B pass should the project run the information-yoked **Frame-first vs Commit-first** treatment pilot.
+Only after that should Stage 1B expand the generator and surfaces.
