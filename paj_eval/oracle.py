@@ -51,6 +51,29 @@ class OraclePlanner:
             _belief_key(posterior, self.causes), remaining, frozenset(unused)
         )
 
+    def forced_action_value(self, posterior, remaining, unused, action_name):
+        unused = set(unused)
+        if action_name not in unused:
+            raise ValueError(f"action {action_name!r} is not available")
+        spec = self.world.actions[action_name]
+        if spec.cost > remaining:
+            raise ValueError(f"action {action_name!r} exceeds remaining budget")
+
+        future_unused = frozenset(x for x in unused if x != action_name)
+        value = -float(spec.cost)
+        for obs in self.observations:
+            po = self.world.observation_prob(posterior, action_name, obs)
+            if po <= 0:
+                continue
+            post = self.world.update_posterior(posterior, action_name, obs)
+            future_value, _ = self.value(
+                _belief_key(post, self.causes),
+                remaining - spec.cost,
+                future_unused,
+            )
+            value += po * future_value
+        return value
+
 
 class OraclePolicy:
     def __init__(self, world):
