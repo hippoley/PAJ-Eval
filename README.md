@@ -10,10 +10,11 @@
   <img src="assets/paj-eval-overview.svg" alt="PAJ-Eval study design" width="100%">
 </p>
 
-**Current status:** v0.1 · Stage 0 instrument skeleton · advancing to environment validity.  
-**Research note:** [Same Task Success, Different Humans](https://thirdstructure.wordpress.com/2026/09/15/same-task-success-different-humans/)
+**Current status:** v0.1 · Stage 0 instrument skeleton · Stage 1A environment falsification next.  
+**Research note:** [Same Task Success, Different Humans](https://thirdstructure.wordpress.com/2026/09/15/same-task-success-different-humans/)  
+**Canonical repository:** `hippoley/PAJ-Eval`
 
-This repository is the canonical home of PAJ-Eval. The earlier public artifact in [`hippoley/evals/paj-eval`](https://github.com/hippoley/evals/tree/main/paj-eval) is retained as the original Stage 0 public timestamp.
+The earlier artifact in [`hippoley/evals/paj-eval`](https://github.com/hippoley/evals/tree/main/paj-eval) is retained as the original public Stage 0 timestamp.
 
 ---
 
@@ -21,9 +22,7 @@ This repository is the canonical home of PAJ-Eval. The earlier public artifact i
 
 Most AI evaluations stop when the assisted task ends. They measure what the model can do, or what the human–AI pair can do together.
 
-PAJ-Eval asks a different question: **what can the human independently notice and do afterward?**
-
-The construct is intentionally narrower than general AI dependence or skill retention. It targets judgment *before the next task has been framed for the user*.
+PAJ-Eval asks a different question: **what can the human independently notice and do afterward, when nobody has framed the next problem for them?**
 
 Three constraints are mandatory:
 
@@ -31,11 +30,26 @@ Three constraints are mandatory:
 2. **The next problem is unframed**: the participant is not told which failure mode, hypothesis family, or reasoning skill to apply.
 3. **Information acquisition is endogenous**: the participant chooses what to inspect under a finite budget.
 
-The observable object is therefore a trajectory, not a single answer:
+The observable object is a trajectory rather than a single answer:
 
 ```text
 observation → framing → hypothesis → investigation → revision → stopping → action
 ```
+
+### Where this sits relative to adjacent work
+
+PAJ-Eval is not trying to re-claim established findings such as “AI can improve current productivity while weakening later mastery.” The intended contribution is narrower.
+
+| Adjacent direction | What it mainly asks | PAJ-Eval adds |
+|---|---|---|
+| [OpenAI GeneBench-Pro](https://openai.com/index/introducing-genebench-pro/) | Can an AI system exercise research judgment under ambiguity? | What happens to the **human's** independent judgment after repeated AI assistance? |
+| [Anthropic TASTE](https://alignment.anthropic.com/2026/taste/) | Can models agree with experts about research quality? | Sequential, behaviorally observed judgment in an **unframed** environment. |
+| [Anthropic skill-formation RCT](https://www.anthropic.com/research/AI-assistance-coding-skills) | Does AI assistance change later mastery of a known skill? | Can a person independently determine **what problem is present and what evidence to seek**? |
+| [Anthropic disempowerment](https://www.anthropic.com/research/disempowerment-patterns) | Are real-world AI interactions associated with distorted beliefs, values, or actions? | A controlled post-assistance task with known latent ground truth and objective information-seeking opportunities. |
+
+The novelty claim should therefore live or die on one distinction:
+
+> **Known-skill transfer starts after the task has been specified. PAJ-Eval starts one step earlier, where the person must construct the task worth pursuing.**
 
 ## Why a synthetic research environment?
 
@@ -48,32 +62,43 @@ Each investigation has:
 - calculable expected information gain (EIG), and
 - a downstream effect on terminal decision quality.
 
-This makes it possible to ask whether a research trajectory was informative without assuming that humans should behave exactly like a Bayesian planner.
+This lets the benchmark test whether a research trajectory was informative without assuming that humans should literally behave like Bayesian planners.
 
-The primary score is **Research Utility**: terminal decision value minus investigation cost. EIG is retained as a mechanism diagnostic rather than the final objective, because a participant can gather useful information indefinitely and still fail to stop or act.
+The primary decision score is **Research Utility**: terminal decision value minus investigation cost. EIG is a mechanism diagnostic rather than the final objective, because a participant can gather useful information indefinitely and still fail to stop or act.
 
-## The causal experiment PAJ-Eval is meant to enable
+## A cleaner causal intervention: same information, different order
 
-The intended experiment is **not AI vs. no AI**.
+The original candidate contrast was broad: **frame-supplying** versus **frame-eliciting** assistance. That is useful conceptually, but it risks changing too many things at once: information quantity, number of turns, time, effort, and response content.
 
-It compares interaction policies using the same underlying model capability, for example:
+The preferred v0.2 intervention is therefore an **information-yoked sequencing design**.
 
-- **Frame-supplying assistance** — may proactively provide the problem representation, leading hypotheses, experiment ranking, interpretation, and next action.
-- **Frame-eliciting assistance** — has access to the same factual and technical capability, but first elicits competing explanations, uncertainty, falsification conditions, and evidence priorities before supplying the higher-level frame.
+For each assisted training environment, construct one canonical assistance packet containing the same diagnosis-relevant information, hypotheses, evidence interpretation, and recommended next actions.
 
-The design target is:
+- **Frame-first condition:** the assistance packet is shown **before** the user records an independent frame or investigation choice.
+- **Commit-first condition:** the user must first record an initial frame, competing hypotheses, and next investigation; the **same assistance packet** is then shown.
 
 ```text
-matched assisted performance
+same task
+same base model
+same eventual AI information
+same assistance packet
+        ↓
+only the causal order changes
+        ↓
+AI frame before human commitment
+              vs.
+human commitment before AI frame
         ↓
 assistant removed
         ↓
-novel environment + problem unspecified
+novel unframed environment
         ↓
-measure what the human does next
+post-assistance judgment
 ```
 
-The experiment should **not** assume in advance that either policy preserves judgment better.
+This does not prove that ordering is the only relevant design variable. It creates a much cleaner first intervention: if post-assistance behavior differs, the result is harder to explain by “one group simply received better or more information.”
+
+**Important identification rule:** assisted-task equivalence is a **design gate**, not a participant-level matching variable. The study should calibrate the two arms to produce equivalent assisted performance ex ante and test that equivalence at the arm level; it should not condition the causal analysis on each participant’s observed post-treatment performance.
 
 ## Stage 0: executable sanity check
 
@@ -98,26 +123,35 @@ It does **not** establish that:
 
 - AI assistance changes human judgment,
 - this toy world already measures real research judgment,
-- frame-eliciting assistance is superior, or
+- commit-first assistance is superior,
+- the current reward function captures every defensible scientific strategy, or
 - PAJ-Eval is ready for a confirmatory human study.
 
-## The next falsification
+## Stage 1A: try to kill the instrument before scaling it
 
-The immediate target is not simply “more worlds.” It is **counterfactual world pairs** with similar visible evidence but different latent causes, such that the highest-value next investigation changes.
+The immediate target is deliberately small: build **one adversarial counterfactual pair** before building dozens of worlds.
 
-If a participant can learn a fixed rule like:
+Two environments should look similar on the surface while having different latent structures, such that the highest-value next investigation changes. If a fixed rule such as
 
 ```text
 high seed variance → rerun seeds
 ```
 
-then the benchmark is measuring benchmark-pattern recognition rather than judgment.
+works in both, the pair has failed.
 
-The next environment must force the harder question:
+Stage 1A then asks experienced ML researchers to attack the pair while blind to likelihood tables and oracle values.
 
-> **Given everything observed so far, which next action would most change what I should believe or do?**
+The instrument advances only if it survives:
 
-See [`STAGE1_BUILD_BRIEF.md`](STAGE1_BUILD_BRIEF.md) for the environment-validity program.
+- **counterfactual sensitivity** — similar surface, different correct investigation;
+- **surface invariance** — same latent world, alternate rendering, comparable action values;
+- **heuristic resistance** — cheap fixed strategies stay meaningfully below oracle;
+- **expert coherence** — benchmark-preferred evidence is recognizable as useful research evidence;
+- **leakage audit** — the latent cause cannot be recovered from superficial wording alone;
+- **omitted-action audit** — experts are allowed to identify sensible investigations missing from the action set;
+- **reward robustness** — modest cost/reward perturbations do not reverse the whole benchmark.
+
+See [`MEASUREMENT_VALIDITY.md`](MEASUREMENT_VALIDITY.md) and [`STAGE1_BUILD_BRIEF.md`](STAGE1_BUILD_BRIEF.md).
 
 ## Alignment implication under test
 
@@ -144,7 +178,7 @@ Expected test result:
 4 passed
 ```
 
-The simulation outputs are written to `outputs/`.
+The repository has CI enabled; install and test currently pass on the public `main` branch.
 
 ## Repository map
 
@@ -152,6 +186,7 @@ The simulation outputs are written to `outputs/`.
 PAJ-Eval/
 ├── README.md
 ├── SPEC.md
+├── MEASUREMENT_VALIDITY.md
 ├── VALIDATION.md
 ├── REPRODUCIBILITY.md
 ├── STAGE_GATES.md
@@ -169,13 +204,14 @@ PAJ-Eval/
 
 ## What would be most useful to challenge?
 
-I am especially interested in adversarial feedback on four questions:
+The highest-value feedback is a concrete way to make the construct fail.
 
-1. **Construct validity:** does this measure research judgment, or merely competence at a Bayesian game?
-2. **Counterfactual design:** can superficially similar worlds genuinely require different information-seeking actions without becoming artificial?
-3. **Treatment validity:** can assistance policies be separated without confounding information quantity, model quality, effort, or time?
-4. **Human-study interpretation:** what result would actually distinguish post-assistance judgment from ordinary learning transfer or expertise effects?
+1. **Construct validity:** does this still reduce to Bayesian-game literacy, generic intelligence, or ML trivia?
+2. **Identification:** can the information-yoked sequencing design still be explained by differential effort, commitment, or demand effects?
+3. **Counterfactual design:** can similar-looking worlds genuinely require different information-seeking actions without becoming artificial?
+4. **Scoring:** what scientifically defensible behavior would the current reward model punish?
+5. **External validity:** what would have to change before a result in this synthetic lab should generalize to real research workflows?
 
-If you work on research-judgment evals, human–AI interaction, scalable oversight, model behavior, or long-horizon user capability, please open an issue with the strongest objection you can make.
+Open the strongest objection you can make in [Issue #1](https://github.com/hippoley/PAJ-Eval/issues/1).
 
 — **Jialun Lin**, Independent Researcher
