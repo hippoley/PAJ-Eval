@@ -1,6 +1,6 @@
 # Stage 1A Counterfactual Pair — Mechanical Validation
 
-**Status:** mechanical counterfactual-sensitivity check implemented; human validity not yet established.
+**Status:** mechanical counterfactual-sensitivity and local robustness checks implemented; human validity not yet established.
 
 ## Purpose
 
@@ -22,15 +22,15 @@ What changes is the initial evidence state implied by weak contextual artifacts.
 
 ### World A — optimization instability is more plausible
 
-Examples of visible context:
+Visible context includes:
 
 - smooth training loss but material seed-to-seed validation variation;
 - optimizer-state restoration warnings after the stack update;
 - cached prediction arrays themselves differ across reruns;
-- evaluation script checksum is unchanged;
-- no stable subgroup explains the full regression.
+- evaluation script checksum unchanged;
+- no stable subgroup explaining the full regression.
 
-Initial benchmark posterior used by the mechanical fixture:
+Mechanical fixture posterior:
 
 ```text
 preprocessing  0.15
@@ -47,15 +47,15 @@ rerun_seeds
 
 ### World B — evaluation artifact is more plausible
 
-Examples of visible context:
+Visible context includes:
 
 - smooth training loss but material displayed metric variation;
-- optimizer defaults and restored state hashes are stable;
-- cached raw predictions/scores are effectively identical where dashboard metrics disagree;
-- metric aggregation dependency changed in the stack update;
-- no stable subgroup explains the full regression.
+- optimizer defaults and restored state hashes stable;
+- cached raw predictions/scores effectively identical where dashboard metrics disagree;
+- metric aggregation dependency changed in the same stack update;
+- no stable subgroup explaining the full regression.
 
-Initial benchmark posterior used by the mechanical fixture:
+Mechanical fixture posterior:
 
 ```text
 preprocessing  0.15
@@ -72,8 +72,6 @@ recompute_metrics
 
 ## Mechanical result
 
-Using the Stage 1A fixture:
-
 | World | Oracle first action | Oracle expected utility | Forced opposite-world first action | Regret |
 |---|---|---:|---|---:|
 | A | `rerun_seeds` | 6.158 | `recompute_metrics` | 1.190 |
@@ -84,6 +82,27 @@ This is the first executable counterfactual flip in the repository.
 It establishes only that the **formal environment** can encode two superficially similar states in which the value of the next investigation changes materially.
 
 It does **not** establish that experienced researchers will interpret the visible artifacts in the way encoded by the benchmark posterior.
+
+## Local robustness checks
+
+The flip is not located at a single knife-edge posterior.
+
+Holding preprocessing at 0.15 and capacity at 0.10, and moving the remaining 0.75 probability mass between evaluation and optimization:
+
+- `recompute_metrics` remains oracle-optimal through optimization posterior 0.30;
+- the decision boundary lies between optimization posterior 0.35 and 0.40;
+- `rerun_seeds` remains oracle-optimal from optimization posterior 0.40 upward in the tested grid.
+
+The selected fixtures are therefore separated from the local decision boundary:
+
+```text
+World A optimization posterior = 0.55
+World B optimization posterior = 0.20
+```
+
+Automated tests also perturb the costs of both `rerun_seeds` and `recompute_metrics` independently across 1, 2, and 3 budget units. The preferred first action does not flip in either world across that grid.
+
+These are only **local robustness checks**. They do not validate the hand-set likelihood model, priors, or reward matrix against real expert judgment.
 
 ## Surface renderings
 
@@ -98,32 +117,35 @@ This is a minimal implementation of surface invariance. A real validity claim re
 
 ## What could still kill this pair?
 
-The pair should be rejected or revised if any of the following occur in expert walkthroughs:
+Reject or revise the pair if any of the following occurs in expert walkthroughs:
 
-- experts regard one world as obviously solved from the visible artifacts rather than genuinely ambiguous;
-- experts do not agree that `rerun_seeds` is a defensible high-value first diagnostic in World A;
-- experts do not agree that `recompute_metrics` is a defensible high-value first diagnostic in World B;
+- experts regard one world as already diagnosed rather than genuinely ambiguous;
+- experts reject `rerun_seeds` as a defensible high-value first diagnostic in World A;
+- experts reject `recompute_metrics` as a defensible high-value first diagnostic in World B;
 - an unlisted investigation would dominate the offered action menu;
-- wording differences reveal the benchmark-author intent rather than the causal structure;
+- wording differences reveal benchmark-author intent rather than causal structure;
 - experts' action rankings are highly sensitive to cosmetic rerendering;
-- modest changes to the hand-set initial posterior reverse the pair too easily.
+- broader posterior, likelihood, or reward perturbations reveal substantial brittleness.
 
 ## Next required evidence
-
-The mechanical pair is ready for the next, much harder gate:
 
 1. hide all posterior and likelihood values;
 2. present both worlds in randomized order;
 3. present at least two surface renderings per latent world;
 4. collect top-3 investigation rankings and free-text rationale from 5–8 experienced ML researchers/engineers;
 5. ask participants to propose any missing investigation they would actually run;
-6. only after completion, reveal the benchmark model and ask whether its preferred evidence was defensible.
+6. only after completion, reveal the causal model/oracle and ask whether its preferred evidence was defensible;
+7. run the pre-specified expert-response analysis without selecting metrics after seeing responses.
 
 The criterion is not exact agreement with the oracle. The criterion is whether the benchmark's distinction survives contact with recognizable expert research practice.
 
 ## Implementation
 
 - Pair definition: [`paj_eval/stage1a.py`](paj_eval/stage1a.py)
-- Tests: [`tests/test_stage1a_pair.py`](tests/test_stage1a_pair.py)
+- Counterfactual tests: [`tests/test_stage1a_pair.py`](tests/test_stage1a_pair.py)
+- Robustness tests: [`tests/test_stage1a_sensitivity.py`](tests/test_stage1a_sensitivity.py)
+- Expert protocol: [`EXPERT_WALKTHROUGH_STAGE1A.md`](EXPERT_WALKTHROUGH_STAGE1A.md)
+- Standalone expert form: [`expert_walkthrough_stage1a.html`](expert_walkthrough_stage1a.html)
+- Pre-specified analysis: [`analyze_stage1a_experts.py`](analyze_stage1a_experts.py)
 - Broader validity gates: [`MEASUREMENT_VALIDITY.md`](MEASUREMENT_VALIDITY.md)
 - Tracking issue: [#2 — Stage 1A counterfactual pair](https://github.com/hippoley/PAJ-Eval/issues/2)
