@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use PAJ-Eval, please cite this research artifact."
+title: "PAJ-Eval: Post-Assistance Judgment Evaluation"
+type: software
+authors:
+  - family-names: Lin
+    given-names: Jialun
+version: 0.1.0
+date-released: 2026-09-15
+url: "https://github.com/hippoley/PAJ-Eval"
+repository-code: "https://github.com/hippoley/PAJ-Eval"
+abstract: "An experimental benchmark for whether different AI interaction policies that produce matched assisted performance leave people differently able to identify, investigate, revise, and act on novel unframed problems after assistance is removed."

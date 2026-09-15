@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="360" viewBox="0 0 860 360">
+<rect width="100%" height="100%" fill="white"/>
+<style>text{font-family:Inter,Arial,sans-serif;fill:#1e1e1e}.title{font-size:20px;font-weight:600}.sub{font-size:13px;fill:#666}.lab{font-size:14px}.val{font-size:13px;font-weight:600}.axis{stroke:#999;stroke-width:1}.bar{fill:#1e1e1e}</style>
+<text x="24" y="27" class="title">Stage 0 policy sanity check</text>
+<text x="24" y="48" class="sub">Mean expected Research Utility · 300 simulated episodes per policy · seed 7</text>
+<line x1="502.5" y1="64" x2="502.5" y2="306" class="axis"/>
+<text x="24" y="103" class="lab">Oracle</text>
+<rect x="502.5" y="78" width="265.5" height="38" rx="2" class="bar"/>
+<text x="776.0" y="103" text-anchor="start" class="val">4.417</text>
+<text x="24" y="164" class="lab">Greedy EIG/cost</text>
+<rect x="502.5" y="139" width="206.8" height="38" rx="2" class="bar"/>
+<text x="717.3" y="164" text-anchor="start" class="val">3.442</text>
+<text x="24" y="225" class="lab">Random</text>
+<rect x="502.5" y="200" width="17.7" height="38" rx="2" class="bar"/>
+<text x="528.2" y="225" text-anchor="start" class="val">0.295</text>
+<text x="24" y="286" class="lab">Expensive-bias</text>
+<rect x="228.0" y="261" width="274.5" height="38" rx="2" class="bar"/>
+<text x="220.0" y="286" text-anchor="end" class="val">-4.567</text>
+<text x="190" y="342" class="sub">Lower</text>
+<text x="786" y="342" class="sub">Higher</text>
+</svg>

@@ -1,0 +1,9 @@
+[project]
+name = "paj-eval-toy"
+version = "0.1.0"
+description = "Runnable toy environment for post-assistance judgment evaluation"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

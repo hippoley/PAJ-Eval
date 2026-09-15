@@ -1,0 +1,81 @@
+{
+  "true_cause": "capacity",
+  "initial_clue": "underfit_pattern",
+  "initial_posterior": {
+    "preprocessing": 0.15789473684210525,
+    "evaluation": 0.15789473684210525,
+    "optimization": 0.15789473684210525,
+    "capacity": 0.5263157894736842
+  },
+  "initial_budget": 8,
+  "steps": [
+    {
+      "action": "preprocess_audit",
+      "cost": 2,
+      "observation": "no_signal",
+      "posterior_before": {
+        "preprocessing": 0.15789473684210525,
+        "evaluation": 0.15789473684210525,
+        "optimization": 0.15789473684210525,
+        "capacity": 0.5263157894736842
+      },
+      "posterior_after": {
+        "preprocessing": 0.014573213046495481,
+        "evaluation": 0.1873698820263706,
+        "optimization": 0.1873698820263706,
+        "capacity": 0.6106870229007634
+      },
+      "eig": 0.31316389689738955,
+      "eig_per_cost": 0.15658194844869477,
+      "remaining_budget": 6
+    },
+    {
+      "action": "recompute_metrics",
+      "cost": 2,
+      "observation": "no_signal",
+      "posterior_before": {
+        "preprocessing": 0.014573213046495481,
+        "evaluation": 0.1873698820263706,
+        "optimization": 0.1873698820263706,
+        "capacity": 0.6106870229007634
+      },
+      "posterior_after": {
+        "preprocessing": 0.01756520416698349,
+        "evaluation": 0.02053075811725343,
+        "optimization": 0.22583833928978786,
+        "capacity": 0.7360656984259752
+      },
+      "eig": 0.33578437783619863,
+      "eig_per_cost": 0.16789218891809932,
+      "remaining_budget": 4
+    },
+    {
+      "action": "rerun_seeds",
+      "cost": 3,
+      "observation": "no_signal",
+      "posterior_before": {
+        "preprocessing": 0.01756520416698349,
+        "evaluation": 0.02053075811725343,
+        "optimization": 0.22583833928978786,
+        "capacity": 0.7360656984259752
+      },
+      "posterior_after": {
+        "preprocessing": 0.022922157601632204,
+        "evaluation": 0.027445598902176023,
+        "optimization": 0.03594066522904005,
+        "capacity": 0.9136915782671517
+      },
+      "eig": 0.2615007309821602,
+      "eig_per_cost": 0.08716691032738673,
+      "remaining_budget": 1
+    }
+  ],
+  "terminal_action": "increase_capacity",
+  "terminal_expected_reward": 10.446448408808733,
+  "realized_terminal_reward": 12,
+  "total_cost": 7,
+  "research_utility_expected": 3.446448408808733,
+  "research_utility_realized": 5,
+  "total_eig": 0.9104490057157484,
+  "information_acquisition_efficiency": 0.13006414367367833
+}

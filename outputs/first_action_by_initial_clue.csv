@@ -1,0 +1,6 @@
+initial_clue,top_EIG_per_cost_action,top_EIG_per_cost,oracle_first_decision,oracle_value,posterior
+slice_anomaly,preprocess_audit,0.2855499387153757,preprocess_audit,5.113017262621784,"{""preprocessing"": 0.526, ""evaluation"": 0.158, ""optimization"": 0.158, ""capacity"": 0.158}"
+metric_inconsistency,recompute_metrics,0.2663542893097638,recompute_metrics,4.981606737458636,"{""preprocessing"": 0.158, ""evaluation"": 0.526, ""optimization"": 0.158, ""capacity"": 0.158}"
+seed_variance,preprocess_audit,0.16151342857759454,rerun_seeds,3.9430214744189955,"{""preprocessing"": 0.158, ""evaluation"": 0.158, ""optimization"": 0.526, ""capacity"": 0.158}"
+underfit_pattern,preprocess_audit,0.15658194844869477,subgroup_metrics,3.6873473693741996,"{""preprocessing"": 0.158, ""evaluation"": 0.158, ""optimization"": 0.158, ""capacity"": 0.526}"
+ambiguous,preprocess_audit,0.21885965334650992,preprocess_audit,3.1867439998897193,"{""preprocessing"": 0.25, ""evaluation"": 0.25, ""optimization"": 0.25, ""capacity"": 0.25}"
