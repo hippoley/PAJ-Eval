@@ -5,5 +5,8 @@ description = "Runnable toy environment for post-assistance judgment evaluation"
 requires-python = ">=3.10"
 dependencies = ["pandas>=2.0"]
 
+[tool.setuptools]
+packages = ["paj_eval"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
