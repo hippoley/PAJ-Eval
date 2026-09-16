@@ -27,6 +27,8 @@ Primary instrument signal at this stage:
 Secondary behavioral signals:
 
 - first investigation;
+- free-form investigation request;
+- whether the participant voluntarily opens the available-check menu;
 - investigation sequence and cost;
 - evidence-dependent direction changes;
 - stopping point;
@@ -72,12 +74,33 @@ Before the first move is locked:
 
 After the first move is locked:
 
-1. Investigation controls may become visible.
-2. Every active check has an explicit cost.
-3. Evidence is revealed only after the participant requests it.
-4. Terminal action and defer are available immediately; investigation is not mandatory.
-5. The full event trajectory is recorded locally.
-6. Instrument critique occurs only after the task.
+1. The default interface is a free-form investigation console, not a diagnostic menu.
+2. The participant writes what they want to inspect, compare, or test.
+3. If the request maps to a modeled action, evidence is revealed and budget is charged.
+4. If it is not modeled, preserve the request as an instrument limitation rather than a participant error.
+5. A secondary **Show available checks** control may reveal the structured menu; opening it is logged.
+6. Terminal action and defer are available immediately; investigation is not mandatory.
+7. The full event trajectory is recorded locally.
+8. Instrument critique occurs only after the task.
+
+This produces an explicit distinction:
+
+- **problem opening:** the participant generates an investigation before candidate actions are supplied;
+- **problem recognition:** the participant identifies a useful investigation after choosing to reveal the menu.
+
+These must not be collapsed.
+
+## Interface philosophy
+
+The interface should feel like a restrained production incident console, not a survey and not a game.
+
+Visual quality is part of measurement quality when it reduces confusion about role, state transitions, and available interaction. But visual salience must not encode a diagnosis.
+
+The participant should understand, without external coaching:
+
+`handoff → first move → investigation → decision → critique`
+
+The interface should make those state transitions obvious while leaving the epistemic work to the participant.
 
 ## Falsification gates
 
@@ -92,6 +115,7 @@ The environment fails if any of the following survives replication:
 7. **Omitted-action failure:** experienced participants repeatedly propose a higher-value action absent from the world model.
 8. **Expert incoherence:** blinded experts do not regard the evidence/action consequences as technically coherent.
 9. **UI comprehension confound:** first-time participants require experimenter explanation to understand how to participate.
+10. **Free-form mapping fragility:** reasonable investigation requests are frequently mis-mapped or rejected because of wording rather than substance.
 
 ## Pilot sequence
 
@@ -107,9 +131,11 @@ For each session:
 
 1. participant receives one opaque world/rendering;
 2. first move is locked before candidate investigations appear;
-3. participant investigates and terminates at will;
-4. participant critiques missing actions and leakage only after termination;
-5. two independent coders score the pre-menu response while blind to world, downstream actions, and outcome.
+3. participant first encounters the free-form investigation console;
+4. opening the structured menu is optional and logged;
+5. participant investigates and terminates at will;
+6. participant critiques missing actions and leakage only after termination;
+7. two independent coders score the pre-menu response while blind to world, downstream actions, and outcome.
 
 ### Stage C — counterfactual validity
 
@@ -140,4 +166,8 @@ The oracle is an instrument-validation device. Human rationality is not defined 
 
 ## Success criterion for this version
 
-The next participant should be able to receive only the URL, understand the task without experimenter coaching, make a genuine first move before the interface supplies candidate diagnoses, and leave a trajectory whose causal sensitivity can later be tested.
+The next participant should be able to receive only the URL, understand the task without experimenter coaching, make a genuine first move before the interface supplies candidate diagnoses, propose at least one investigation in their own words, and leave a trajectory whose causal sensitivity can later be tested.
+
+The scientific sequence is deliberate:
+
+**first prove the ruler bends when the world bends; only then use it to measure what AI leaves behind.**
