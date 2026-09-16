@@ -1,0 +1,1 @@
+Ten locale shells are available. Full scenario text is not yet semantically validated in all ten languages; confirmatory multilingual pooling is therefore not supported yet.
