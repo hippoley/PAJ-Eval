@@ -1,0 +1,1 @@
+Probe Player v3: PF01-PF08 playable seeds; 10 locale shells; trace-to-construct evaluation view. These are instrument seeds, not validated human-effect results.
