@@ -1,0 +1,1 @@
+No essay-first elicitation. No required click path. Visible controls represent ordinary actions in the world. The latent construct and preferred action remain hidden. More clicking is not automatically better. A session trace is raw measurement, not a personality score.
