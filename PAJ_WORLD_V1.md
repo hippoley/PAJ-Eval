@@ -102,6 +102,15 @@ The participant should understand, without external coaching:
 
 The interface should make those state transitions obvious while leaving the epistemic work to the participant.
 
+The visual standard is therefore:
+
+- strong enough that a first-time participant immediately understands state and ownership;
+- restrained enough that typography, color, layout, and motion do not privilege one diagnostic interpretation;
+- operational rather than decorative: the page should feel like a live engineering surface with an evidence timeline, budget, locked first move, free-form investigation console, and terminal decisions;
+- every visually salient element must correspond to a real experimental state or action.
+
+A visually memorable instrument is useful only if its memorability comes from clarity and consequence, not from cueing the hidden cause.
+
 ## Falsification gates
 
 The environment fails if any of the following survives replication:
