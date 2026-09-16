@@ -1,41 +1,55 @@
 from pathlib import Path
 
-
 HTML = (Path(__file__).parents[1] / "docs" / "index.html").read_text(encoding="utf-8")
+SPEC = (Path(__file__).parents[1] / "INCEPTION_PLAYGROUND_V1.md").read_text(encoding="utf-8")
 
 
-def test_task_contract_is_explicit():
-    assert "HUMAN PARTICIPANT" in HTML
-    assert "You — not an AI model" in HTML
-    assert "Unavailable in this task" in HTML
-    assert "7 investigation credits" in HTML
-    assert "Good decision under limited evidence" in HTML
-
-
-def test_probe_is_action_first_not_essay_first():
+def test_experience_starts_with_action_not_explanation():
+    assert "90-second cognitive experiment" in HTML
+    assert "I won't ask you to explain yourself" in HTML
     assert "What would you do first, and why?" not in HTML
-    assert "openingText" not in HTML
-    assert "first move" not in HTML.lower()
-    assert "Where do you look next?" in HTML
-    assert "DECIDE ANYTIME" in HTML
+    assert "textarea" not in HTML.lower()
 
 
-def test_world_has_costs_consequences_and_stopping():
-    assert "budget_before" in HTML
-    assert "budget_after" in HTML
-    assert "finding:F[s.world][id]" in HTML
-    assert "Defer / escalate" in HTML
-    assert "More evidence is not automatically better" in HTML
+def test_vertical_slice_contains_baseline_intervention_and_transfer():
+    for screen in ['id="shop"', 'id="consequence"', 'id="inception"', 'id="career"', 'id="transfer"']:
+        assert screen in HTML
+    assert "intervention_exposed" in HTML
+    assert "after_intervention:true" in HTML
 
 
-def test_no_correctness_feedback_during_play():
-    forbidden = ["correct answer", "incorrect answer", "you are correct", "you are wrong"]
-    lower = HTML.lower()
-    for phrase in forbidden:
-        assert phrase not in lower
+def test_probe_is_behavioral_and_world_embedded():
+    assert "Inspect first:" in HTML
+    assert "Compatibility" in HTML
+    assert "Look closer" in HTML
+    assert "Ground transport" in HTML
+    assert "inspect" in HTML
+    assert "commit" in HTML
 
 
-def test_trace_identifies_human_no_ai_instrument():
-    assert "participant:'human'" in HTML
-    assert "ai_available:false" in HTML
-    assert "paj-playable-probe-v2" in HTML
+def test_intervention_is_minimal_and_then_removed():
+    assert "what does this decision make easy—or expensive—later?" in HTML
+    career = HTML.split('id="career"', 1)[1].split('id="transfer"', 1)[0]
+    travel = HTML.split('id="transfer"', 1)[1].split('id="done"', 1)[0]
+    assert "easy—or expensive—later" not in career
+    assert "easy—or expensive—later" not in travel
+
+
+def test_trace_and_profile_exist_but_are_marked_prototype():
+    assert "BEHAVIOR TRACE" in HTML
+    assert "inception transfer profile · local preview" in HTML
+    assert "not a judgment about you" in HTML
+    assert "inception-playground-v1" in HTML
+
+
+def test_research_contract_preserves_core_invariants():
+    required = [
+        "No essay-first elicitation",
+        "target cognitive structure is never named before baseline",
+        "Intervention is minimal",
+        "intervention is then removed",
+        "Transfer worlds change surface and domain",
+        "over-application must be measured",
+    ]
+    for phrase in required:
+        assert phrase in SPEC
