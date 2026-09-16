@@ -1,4 +1,4 @@
-# Inception Playground v1
+# Inception Playground v1/v2
 
 ## Product promise
 
@@ -19,52 +19,72 @@ A participant should experience a small useful cognitive shift before being aske
 11. Participant-facing value and research value must arise from the same interaction.
 12. Scores shown in the prototype are exploratory signals, never claims about a participant.
 
-## v1 target
+## v2 correction: natural-world affordances
 
-`future_option_hidden_constraint`
+The participant-facing interface must expose **real objects, not research variables**.
+
+A button is valid only when the same action would make sense if this were a real shop, inbox, trip planner, IDE, dashboard, or workspace. Examples: open a device, open a contract, inspect a team page, open a map, view an airport page, book a flight. Invalid primary affordances include labels such as `compatibility`, `hidden constraint`, `future option`, or `look closer` when those phrases exist only because the researcher wants a particular construct measured.
+
+The design rule is:
+
+`front end: concrete objects and ordinary actions -> event stream -> inference layer: abstract latent hypotheses`
+
+The user must know what an action does while remaining unable to infer which action the researcher wants. There is no required correct path. Multiple different trajectories may support the same latent explanation, and the same action may support competing explanations.
+
+Research inference must remain downstream of behavior. The prototype therefore separates:
+
+- factual event layer: what object was opened, when, in what world, and what decision followed;
+- semantic tags: candidate meanings such as downstream constraint, diligence, risk, convenience, or future-option search;
+- latent hypotheses: competing explanations updated from the trajectory.
+
+No participant-facing score should be computed directly from one privileged click.
+
+## Current target
+
+`downstream_option_structure`
 
 Working structure: visible choices can conceal downstream constraints and option-value consequences.
 
-The participant is not taught this as a proposition. The first shopping world creates an experience in which a visible price advantage can reverse after compatibility constraints appear. A minimal intervention then names only the shape of the experience. Career and travel worlds remove the wording and test whether related information is sought spontaneously.
+The participant is not taught this as a proposition. The first shopping world creates an experience in which a visible price advantage can reverse after compatibility constraints appear. A minimal intervention then names only the shape of the experience. Career and travel worlds remove the wording and test whether related information is sought spontaneously through ordinary interfaces.
 
 ## Vertical slice
 
-`shopping baseline -> consequence -> minimal intervention -> career transfer -> travel transfer -> local trace`
+`shopping baseline -> consequence -> minimal intervention -> career transfer -> travel transfer -> local research view`
 
 ### Shopping baseline
 
-Behavioral signals include first inspection, inspection order, whether compatibility is sought before commitment, and initial commitment.
+The participant can use a normal product surface: products, their own devices, reviews, delivery/returns, and search. The research layer observes navigation and commitment. Compatibility is not a dedicated research button.
 
 ### Consequence
 
-If the cheaper visible choice is selected, a downstream bridge cost is revealed. The participant can keep, reconsider, or inspect further. There is no correctness feedback.
+If the cheaper visible choice is selected, checkout reveals the bridge requirement and changed total cost. The participant can continue, change the product, or inspect the affected devices. There is no correctness feedback.
 
 ### Minimal intervention
 
-One sentence opens the downstream-option frame. It must not become a tutorial.
+One sentence opens the downstream-option shape. It must not become a tutorial.
 
 ### Career transfer
 
-The surface changes from products to employment. The participant can commit immediately or look closer. Role mobility is one relevant downstream-option signal, but the UI must not claim it is the only rational consideration.
+The surface changes to an offer inbox with offer pages, company pages, contracts, team descriptions, calendar, and map. The participant can decide immediately or navigate naturally. No `look closer` control is supplied.
 
 ### Travel transfer
 
-No explicit `look closer` call to action. Ordinary itinerary affordances remain available. Arrival and ground-transport inspection can reveal downstream constraints.
+The surface changes again to a trip planner: flights, itinerary, airport, hotel, and calendar. No target vocabulary is repeated.
 
 ## Event ontology
 
-Core events:
+Core events include:
 
 - `session_start`
-- `inspect`
+- `open_object`
+- `open_detail`
+- `search_query`
 - `commit`
-- `hidden_constraint_avoided`
-- `update_after_constraint`
+- `post_consequence_action`
 - `intervention_exposed`
-- `career_action`
 - `session_complete`
 
-Every event records elapsed time. Inspect events record world, target, whether prompted, and whether after intervention.
+Every event records elapsed time. Object events may carry hidden semantic tags used only by the inference layer.
 
 ## Measurement status
 
@@ -83,7 +103,7 @@ Before human-effect claims, add:
 
 ## Architecture direction
 
-The static v1 intentionally keeps world transitions deterministic. The next implementation should separate:
+The static prototype intentionally keeps world transitions deterministic. The next implementation should separate:
 
 - `World Renderer`: participant-facing micro-worlds;
 - `Session Runtime`: state and event stream;
