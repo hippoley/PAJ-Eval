@@ -1,0 +1,1 @@
+Probe Player makes post-assistance judgment trajectories observable. It does not claim that a single play session measures learning, agency, or treatment effects. Those claims belong to the validated PAJ-Eval experiment layer.
