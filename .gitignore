@@ -2,3 +2,13 @@ __pycache__/
 .pytest_cache/
 *.py[cod]
 .venv/
+
+# Local / deployment secrets
+.env
+.env.*
+!.env.example
+config.local.yml
+config.local.yaml
+secrets.yml
+secrets.yaml
+.supabase/
