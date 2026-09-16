@@ -1,0 +1,1 @@
+micro-world -> raw trajectory -> behavioral features -> PAJ construct -> validated score -> counterfactual/surface validity -> no-AI transfer -> assistance-policy treatment effect
