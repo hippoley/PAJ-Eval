@@ -1,0 +1,1 @@
+This static prototype keeps the session trace in the browser unless the participant explicitly exports it. No server-side participant database is implemented in this build.
