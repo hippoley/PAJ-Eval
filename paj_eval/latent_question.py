@@ -42,27 +42,27 @@ PAIR_CONTEXTS: Dict[str, LatentQuestionContext] = {
         renderings=(
             LatentQuestionRendering(
                 rendering_id="primary",
-                instruction="Make as much progress as you can on understanding and improving this system.",
-                headline="Retrieval quality fell after an embedding-model refresh; training and deployment both report success.",
+                instruction="You have inherited this system after a routine release. Decide what you would do next.",
+                headline="Retrieval quality is worse after a scheduled model-and-corpus refresh; the release pipeline is green.",
                 artifacts=(
-                    "NDCG@10 is down 7.0% and recall@50 is down 5.6% against the previous embedding model.",
+                    "NDCG@10 is down 7.0% and recall@50 is down 5.6% relative to the previous release.",
                     "Query-embedding centroids moved by about 0.11 cosine distance and nearest-neighbor turnover increased to 19%.",
-                    "Training loss, negative-sampling mix, and optimizer telemetry show no obvious instability.",
-                    "The corpus refresh wrote versioned objects under new paths; the vector-index generation ID changed and new index files appeared during rebuild.",
-                    "Indexed-row hashes sampled after the rebuild match the refreshed corpus version.",
-                    "A small online canary also trends downward, although its confidence interval is still wide.",
+                    "Training loss, negative-sampling mix, and optimizer telemetry look similar to recent successful runs.",
+                    "The corpus refresh completed with the expected document count and the indexing stage completed within its usual runtime band.",
+                    "A routine post-release sample of document identifiers resolves to the current corpus snapshot.",
+                    "A small online canary trends downward too, although its confidence interval is still wide.",
                 ),
             ),
             LatentQuestionRendering(
                 rendering_id="alternate",
-                instruction="Work out what is going on and make whatever progress you think is most useful.",
-                headline="A refreshed embedding model is performing worse in retrieval even though the run completed normally.",
+                instruction="You are taking over this system after a routine release. What would you do next?",
+                headline="Retrieval metrics worsened after the latest model-and-corpus refresh even though the release completed normally.",
                 artifacts=(
-                    "Relative to the previous model, NDCG@10 falls about 7% and recall@50 about 5.5%.",
+                    "Relative to the previous release, NDCG@10 falls about 7% and recall@50 about 5.5%.",
                     "The query embedding space shifts by roughly 0.11 cosine at the centroid level, with about one-fifth neighbor turnover.",
-                    "Loss curves, sampler composition, and optimizer telemetry do not show a clear training failure.",
-                    "The refreshed corpus was written to new versioned object paths; the index generation changed and rebuild artifacts were created.",
-                    "Spot checks of indexed rows agree with the new corpus version after rebuild.",
+                    "Loss curves, sampler composition, and optimizer telemetry resemble recent healthy runs.",
+                    "The corpus job produced the expected document count and the indexing stage finished in its normal time range.",
+                    "A routine sample of document IDs after release points to the current corpus snapshot.",
                     "The online canary points in the same direction as the offline regression, but remains underpowered.",
                 ),
             ),
@@ -79,27 +79,27 @@ PAIR_CONTEXTS: Dict[str, LatentQuestionContext] = {
         renderings=(
             LatentQuestionRendering(
                 rendering_id="primary",
-                instruction="Make as much progress as you can on understanding and improving this system.",
-                headline="Retrieval quality fell after an embedding-model refresh; training and deployment both report success.",
+                instruction="You have inherited this system after a routine release. Decide what you would do next.",
+                headline="Retrieval quality is worse after a scheduled model-and-corpus refresh; the release pipeline is green.",
                 artifacts=(
-                    "NDCG@10 is down 7.1% and recall@50 is down 5.4% against the previous embedding model.",
+                    "NDCG@10 is down 7.1% and recall@50 is down 5.4% relative to the previous release.",
                     "Query-embedding centroids moved by about 0.10 cosine distance and nearest-neighbor turnover increased to 18%.",
-                    "Training loss, negative-sampling mix, and optimizer telemetry show no obvious instability.",
-                    "During the corpus refresh, existing parquet objects were overwritten at the same paths with the same row counts; the refresh job still reported success.",
-                    "Segment counts, vector-index generation metadata, and index-file counts did not change after that refresh.",
+                    "Training loss, negative-sampling mix, and optimizer telemetry look similar to recent successful runs.",
+                    "The corpus refresh completed with the expected document count; storage usage for the retrieval artifacts is almost unchanged from the previous release.",
+                    "A routine post-release sample of document identifiers resolves successfully, but the sample does not record which index generation served each lookup.",
                     "The small online canary is roughly flat; its confidence interval still overlaps a modest decline.",
                 ),
             ),
             LatentQuestionRendering(
                 rendering_id="alternate",
-                instruction="Work out what is going on and make whatever progress you think is most useful.",
-                headline="A refreshed embedding model is performing worse in retrieval even though the run completed normally.",
+                instruction="You are taking over this system after a routine release. What would you do next?",
+                headline="Retrieval metrics worsened after the latest model-and-corpus refresh even though the release completed normally.",
                 artifacts=(
-                    "Relative to the previous model, NDCG@10 falls about 7% and recall@50 about 5.5%.",
+                    "Relative to the previous release, NDCG@10 falls about 7% and recall@50 about 5.5%.",
                     "The query embedding space shifts by roughly 0.10 cosine at the centroid level, with around 18% neighbor turnover.",
-                    "Loss curves, sampler composition, and optimizer telemetry do not show a clear training failure.",
-                    "The refresh replaced parquet contents in place while preserving paths and row counts, and the orchestration layer marked the refresh complete.",
-                    "Afterward, neither index-generation metadata nor the number of vector-index files changed.",
+                    "Loss curves, sampler composition, and optimizer telemetry resemble recent healthy runs.",
+                    "The corpus job reports the expected document count, while disk usage for retrieval artifacts is nearly identical to the prior release.",
+                    "Routine document-ID lookups succeed after release, although the check does not preserve the serving index-generation identifier.",
                     "The online canary is close to flat, although the sample is not yet large enough to exclude a small decline.",
                 ),
             ),
@@ -127,104 +127,42 @@ class LatentQuestionWorld:
         self.budget = budget
         self.actions: Dict[str, ActionSpec] = {
             "embedding_stability_probe": ActionSpec(
-                "embedding_stability_probe",
-                2,
-                {
-                    "representation_drift": 0.90,
-                    "stale_index": 0.45,
-                    "corpus_shift": 0.45,
-                    "serving_mismatch": 0.25,
-                },
+                "embedding_stability_probe", 2,
+                {"representation_drift": 0.90, "stale_index": 0.45, "corpus_shift": 0.45, "serving_mismatch": 0.25},
                 "Compare matched queries under old and new embeddings against a fresh brute-force reference.",
             ),
             "index_freshness_probe": ActionSpec(
-                "index_freshness_probe",
-                2,
-                {
-                    "representation_drift": 0.25,
-                    "stale_index": 0.90,
-                    "corpus_shift": 0.25,
-                    "serving_mismatch": 0.25,
-                },
+                "index_freshness_probe", 2,
+                {"representation_drift": 0.25, "stale_index": 0.90, "corpus_shift": 0.25, "serving_mismatch": 0.25},
                 "Check index generation/freshness and compare indexed vectors with the current source corpus.",
             ),
             "corpus_slice_audit": ActionSpec(
-                "corpus_slice_audit",
-                2,
-                {
-                    "representation_drift": 0.25,
-                    "stale_index": 0.20,
-                    "corpus_shift": 0.90,
-                    "serving_mismatch": 0.20,
-                },
+                "corpus_slice_audit", 2,
+                {"representation_drift": 0.25, "stale_index": 0.20, "corpus_shift": 0.90, "serving_mismatch": 0.20},
                 "Audit corpus composition and query slices for distribution change.",
             ),
             "online_offline_compare": ActionSpec(
-                "online_offline_compare",
-                3,
-                {
-                    "representation_drift": 0.35,
-                    "stale_index": 0.45,
-                    "corpus_shift": 0.25,
-                    "serving_mismatch": 0.90,
-                },
+                "online_offline_compare", 3,
+                {"representation_drift": 0.35, "stale_index": 0.45, "corpus_shift": 0.25, "serving_mismatch": 0.90},
                 "Compare matched online and offline behavior under the same requests.",
             ),
             "dashboard_deepdive": ActionSpec(
-                "dashboard_deepdive",
-                1,
-                {
-                    "representation_drift": 0.42,
-                    "stale_index": 0.40,
-                    "corpus_shift": 0.38,
-                    "serving_mismatch": 0.41,
-                },
+                "dashboard_deepdive", 1,
+                {"representation_drift": 0.42, "stale_index": 0.40, "corpus_shift": 0.38, "serving_mismatch": 0.41},
                 "Inspect more existing dashboard slices without changing the experimental setup.",
             ),
             "full_reindex": ActionSpec(
-                "full_reindex",
-                5,
-                {
-                    "representation_drift": 0.45,
-                    "stale_index": 0.85,
-                    "corpus_shift": 0.42,
-                    "serving_mismatch": 0.35,
-                },
+                "full_reindex", 5,
+                {"representation_drift": 0.45, "stale_index": 0.85, "corpus_shift": 0.42, "serving_mismatch": 0.35},
                 "Force a full corpus re-embedding and vector-index rebuild.",
             ),
         }
-        self.terminal_actions = (
-            "repair_representation",
-            "rebuild_index",
-            "refresh_corpus",
-            "repair_serving",
-            "defer",
-        )
+        self.terminal_actions = ("repair_representation", "rebuild_index", "refresh_corpus", "repair_serving", "defer")
         self.reward_matrix = {
-            "repair_representation": {
-                "representation_drift": 12,
-                "stale_index": -6,
-                "corpus_shift": -6,
-                "serving_mismatch": -6,
-            },
-            "rebuild_index": {
-                "representation_drift": -6,
-                "stale_index": 12,
-                "corpus_shift": -6,
-                "serving_mismatch": -6,
-            },
-            "refresh_corpus": {
-                "representation_drift": -6,
-                "stale_index": -6,
-                "corpus_shift": 12,
-                "serving_mismatch": -6,
-            },
-            "repair_serving": {
-                "representation_drift": -6,
-                "stale_index": -6,
-                "corpus_shift": -6,
-                "serving_mismatch": 12,
-            },
+            "repair_representation": {"representation_drift": 12, "stale_index": -6, "corpus_shift": -6, "serving_mismatch": -6},
+            "rebuild_index": {"representation_drift": -6, "stale_index": 12, "corpus_shift": -6, "serving_mismatch": -6},
+            "refresh_corpus": {"representation_drift": -6, "stale_index": -6, "corpus_shift": 12, "serving_mismatch": -6},
+            "repair_serving": {"representation_drift": -6, "stale_index": -6, "corpus_shift": -6, "serving_mismatch": 12},
             "defer": {c: -1 for c in self.causes},
         }
 
@@ -236,25 +174,17 @@ class LatentQuestionWorld:
         for rendering in self.context.renderings:
             if rendering.rendering_id == rendering_id:
                 return rendering
-        raise ValueError(
-            f"unknown rendering {rendering_id!r} for world {self.context.world_id}"
-        )
+        raise ValueError(f"unknown rendering {rendering_id!r} for world {self.context.world_id}")
 
     def likelihood(self, action_name: str, observation: str, cause: str) -> float:
         p = self.actions[action_name].signal_prob[cause]
         return p if observation == "signal" else 1.0 - p
 
     def observation_prob(self, posterior, action_name, observation):
-        return sum(
-            posterior[c] * self.likelihood(action_name, observation, c)
-            for c in self.causes
-        )
+        return sum(posterior[c] * self.likelihood(action_name, observation, c) for c in self.causes)
 
     def update_posterior(self, posterior, action_name, observation):
-        weights = {
-            c: posterior[c] * self.likelihood(action_name, observation, c)
-            for c in self.causes
-        }
+        weights = {c: posterior[c] * self.likelihood(action_name, observation, c) for c in self.causes}
         z = sum(weights.values())
         return {c: weights[c] / z for c in self.causes} if z else dict(posterior)
 
@@ -264,27 +194,16 @@ class LatentQuestionWorld:
         for observation in self.observations:
             po = self.observation_prob(posterior, action_name, observation)
             if po > 0:
-                expected_h += po * entropy(
-                    self.update_posterior(posterior, action_name, observation)
-                )
+                expected_h += po * entropy(self.update_posterior(posterior, action_name, observation))
         return h0 - expected_h
 
     def best_terminal_action(self, posterior):
         best_action, best_value = None, -1e18
         for action in self.terminal_actions:
-            value = sum(
-                posterior[c] * self.reward_matrix[action][c] for c in self.causes
-            )
+            value = sum(posterior[c] * self.reward_matrix[action][c] for c in self.causes)
             if value > best_value:
                 best_action, best_value = action, value
         return best_action, best_value
 
 
-__all__ = [
-    "CAUSES",
-    "OBSERVATIONS",
-    "PAIR_CONTEXTS",
-    "LatentQuestionContext",
-    "LatentQuestionRendering",
-    "LatentQuestionWorld",
-]
+__all__ = ["CAUSES", "OBSERVATIONS", "PAIR_CONTEXTS", "LatentQuestionContext", "LatentQuestionRendering", "LatentQuestionWorld"]
