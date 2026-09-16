@@ -1,0 +1,1 @@
+PAJ-Eval GitHub Pages serves Probe Player, the participant-facing behavioral surface. The root page must remain directly playable without requiring repository or research-context reading first.
