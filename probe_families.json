@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1",
+  "player": "Probe Player",
+  "families": [
+    {"id":"PF01","slug":"hidden-downstream-constraints","construct":"spontaneous downstream-constraint inspection","status":"seed-plus"},
+    {"id":"PF02","slug":"competing-causal-frames","construct":"maintain and discriminate competing explanations","status":"seed"},
+    {"id":"PF03","slug":"omitted-evidence","construct":"notice decision-relevant evidence outside the foreground","status":"seed"},
+    {"id":"PF04","slug":"anomaly-triage","construct":"allocate attention by decision value rather than salience","status":"seed"},
+    {"id":"PF05","slug":"experiment-selection","construct":"select discriminating tests rather than maximize information volume","status":"seed"},
+    {"id":"PF06","slug":"premature-stopping","construct":"judge whether another investigation can change the decision","status":"seed"},
+    {"id":"PF07","slug":"wrong-problem-detection","construct":"retain epistemic control over an assistant-supplied frame","status":"seed"},
+    {"id":"PF08","slug":"cross-domain-spontaneous-opening","construct":"regenerate useful problem structure after domain and surface shift","status":"seed"}
+  ],
+  "required_growth_gates": ["latent_world_model","counterfactual_twin","surface_variant","omitted_action_audit","no_answer_cue_audit","negative_transfer_world","blind_expert_coherence","preregistered_trace_to_score_mapping"],
+  "locales": ["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru"]
+}
