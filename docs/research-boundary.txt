@@ -1,0 +1,1 @@
+Playable does not mean validated. PF01-PF08 currently expose interaction seeds. Confirmatory claims require the gates documented in PROBE_FAMILIES.md and EVALUATION_LOOP.md.
