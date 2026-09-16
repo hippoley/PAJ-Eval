@@ -1,64 +1,61 @@
 from pathlib import Path
 
-HTML = (Path(__file__).parents[1] / "docs" / "index.html").read_text(encoding="utf-8")
-SPEC = (Path(__file__).parents[1] / "INCEPTION_PLAYGROUND_V1.md").read_text(encoding="utf-8")
+ROOT = Path(__file__).parents[1]
+HTML = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+FAMILIES = (ROOT / "PROBE_FAMILIES.md").read_text(encoding="utf-8")
 
 
-def test_user_knows_how_to_act_without_research_language():
-    assert "按你平时真的会做的方式来" in HTML
-    assert "每个按钮都只是它字面上的现实动作" in HTML
-    assert "没有必经流程" in HTML
-    assert "textarea" not in HTML.lower()
+def test_probe_player_has_ten_locales():
+    for locale in ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru"]:
+        assert f"{locale}:" in HTML or f"'{locale}':" in HTML
+    assert "CHOOSE THE LANGUAGE YOU THINK IN" in HTML
 
 
-def test_frontend_exposes_real_objects_not_latent_variables():
-    for label in ["我的设备", "买家评价", "配送与退换", "收件箱", "公司资料", "日历", "地图", "机场", "酒店"]:
-        assert label in HTML
-    # The participant UI must not offer the latent construct itself as a button.
-    forbidden_buttons = [">兼容性<", ">隐藏成本<", ">未来选择<", ">Look closer<"]
-    for phrase in forbidden_buttons:
-        assert phrase not in HTML
-
-
-def test_behavior_and_inference_are_separate_layers():
-    assert "open_object" in HTML
-    assert "open_detail" in HTML
+def test_all_eight_probe_families_are_playable():
+    for i in range(1, 9):
+        assert f"PF{i:02d}" in HTML
+        assert f"PF{i:02d}" in FAMILIES
+    assert "startPF" in HTML
+    assert "openObj" in HTML
     assert "commit" in HTML
-    assert "const tags=" in HTML
-    assert "function infer()" in HTML
-    assert "当前竞争解释" in HTML
-    assert "系统没有要求你点击" in HTML
 
 
-def test_no_single_required_path():
-    assert "想看什么就打开什么" in HTML
-    assert "觉得信息够了就直接做决定" in HTML
-    assert "直接买" in HTML
-    assert "可以直接回复，也可以自己翻资料" in HTML
+def test_player_does_not_require_essay_or_one_click_path():
+    assert "textarea" not in HTML.lower()
+    assert "There is no required path" in HTML
+    assert "Opening more things is not automatically better" in HTML
+    assert "No quiz" in HTML
 
 
-def test_intervention_is_experiential_and_fades():
-    assert "一个选择，会改变后面还剩下哪些选择" in HTML
-    career = HTML.split('id="career"', 1)[1].split('id="travel"', 1)[0]
-    travel = HTML.split('id="travel"', 1)[1].split('id="done"', 1)[0]
-    assert "一个选择，会改变后面还剩下哪些选择" not in career
-    assert "一个选择，会改变后面还剩下哪些选择" not in travel
+def test_trajectory_is_explicitly_raw_measurement_not_conclusion():
+    assert "The trajectory is only the raw sensor" in HTML
+    for stage in ["Trajectory", "Features", "Construct", "Score", "Counterfactual", "Treatment effect"]:
+        assert stage in HTML
+    assert "Not yet a validated score" in HTML
+    assert "A trajectory is a sensor reading, not a conclusion" in FAMILIES
 
 
-def test_trace_is_local_prototype_not_validated_score():
-    assert "inception-natural-world-v2" in HTML
-    assert "原型推断，不是人格评分" in HTML
-    assert "latent_preview" in HTML
+def test_original_paj_question_remains_the_root():
+    assert "Same task success can hide different future humans" in HTML
+    assert "after AI assistance is removed" in FAMILIES
+    assert "None of them alone is PAJ-Eval" in FAMILIES
 
 
-def test_research_contract_core_invariants_still_hold():
+def test_family_growth_requires_falsification_not_just_more_scenarios():
     required = [
-        "No essay-first elicitation",
-        "target cognitive structure is never named before baseline",
-        "Intervention is minimal",
-        "intervention is then removed",
-        "Transfer worlds change surface and domain",
-        "over-application must be measured",
+        "counterfactual twin",
+        "surface-invariance",
+        "omitted-action audit",
+        "no-answer-cue audit",
+        "overreach or negative-transfer world",
+        "blind expert-coherence check",
+        "preregistered construct/score",
     ]
     for phrase in required:
-        assert phrase in SPEC
+        assert phrase in FAMILIES
+
+
+def test_multilingual_is_measurement_validity_not_decoration():
+    assert "Localization is part of measurement validity, not decoration" in FAMILIES
+    for phrase in ["semantic-equivalence", "cue strength", "action affordances", "Cross-language invariance"]:
+        assert phrase in FAMILIES
