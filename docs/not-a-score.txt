@@ -1,0 +1,1 @@
+A single Probe Player session is not a validated PAJ score.
