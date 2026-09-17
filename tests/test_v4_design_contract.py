@@ -19,6 +19,7 @@ def test_design_contract_preserves_full_instrument():
         "save failed",
         "IndexedDB",
         "Research Session Browser",
+        "server-side idempotency verification",
     ]:
         assert token in text
 
@@ -50,7 +51,6 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         assert token in index
     for token in ["indexedDB.open", "queue.put(item)", "retryAll", "inFlight", "created_at_client"]:
         assert token in transport
-    # Prevent a second embedded catalog/player implementation from drifting again.
     assert "const PF=[" not in index
     assert "const L={" not in index
 
@@ -73,5 +73,8 @@ def test_research_browser_is_present_and_does_not_use_service_role():
 
 def test_synthetic_transport_test_is_part_of_ci():
     workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    test_js = (ROOT / "tests" / "transport.test.js").read_text(encoding="utf-8")
     assert "node --test tests/transport.test.js" in workflow
-    assert (ROOT / "tests" / "transport.test.js").exists()
+    assert "queue commit precedes the first network attempt" in test_js
+    assert "concurrent duplicate submission is coalesced" in test_js
+    assert "retry preserves queue order" in test_js
