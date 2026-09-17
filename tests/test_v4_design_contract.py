@@ -103,7 +103,7 @@ def test_backend_ingestion_is_atomic_and_server_idempotent():
     assert '.from("events").insert' not in edge
 
 
-def test_research_api_is_role_gated_and_replays_ordered_events():
+def test_research_api_is_role_gated_orders_events_and_fails_closed():
     edge = (ROOT / "supabase" / "functions" / "research-sessions" / "index.ts").read_text(encoding="utf-8")
     for token in [
         'sb.auth.getUser(token)',
@@ -112,6 +112,9 @@ def test_research_api_is_role_gated_and_replays_ordered_events():
         'order("seq")',
         'derived_features',
         'evaluations',
+        'error:"invalid_session_id"',
+        'error:"research_read_failed"',
+        'Promise.all([',
     ]:
         assert token in edge
     assert 'Access-Control-Allow-Methods":"GET,OPTIONS"' in edge
