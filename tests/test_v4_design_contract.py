@@ -47,7 +47,7 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         "PAJTransport.createBrowserTransport",
         "client_submission_id",
         "crypto.randomUUID()",
-        "probe-player-v4.1",
+        "probe-player-v4.4",
         "localStorage.setItem('paj_local_trace'",
         "Research Session Browser",
     ]:
@@ -56,6 +56,47 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         assert token in transport
     assert "const PF=[" not in index
     assert "const L={" not in index
+
+
+def test_canonical_player_preserves_golden_natural_world_interaction():
+    index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+    # Interaction should feel like navigating a real application, not pressing
+    # researcher-labelled diagnostic buttons.
+    for token in [
+        "NAVIGABLE MICRO-WORLDS",
+        "renderNav",
+        "renderView",
+        "open_object",
+        "search_query",
+        "HOME HUB LITE",
+        "Buyer reviews",
+        "release.log",
+        "serving B",
+        "Vendor A / critical condition",
+        "Support tickets",
+        "Remaining budget",
+        "Rollback available",
+        "Original request",
+        "Stakeholder note",
+    ]:
+        assert token in index
+    assert "latent cause" not in index.lower()
+    assert "posterior" not in index.lower()
+    assert "oracle" not in index.lower()
+
+
+def test_golden_journey_remains_available_as_non_regression_reference():
+    journey = (ROOT / "docs" / "journey.html").read_text(encoding="utf-8")
+    for token in [
+        "SMART HOME SHOP",
+        "我的设备",
+        "买家评价",
+        "配送与退换",
+        "MAIL / OFFERS",
+        "TRIP PLANNER",
+        "一个选择，会改变后面还剩下哪些选择",
+    ]:
+        assert token in journey
 
 
 def test_live_surface_is_only_a_compatibility_alias():
