@@ -74,6 +74,22 @@ def test_research_browser_is_present_and_does_not_use_service_role():
     assert "SERVICE_ROLE" not in text.upper()
 
 
+def test_research_browser_replays_multiple_probe_runs_and_supports_deep_links():
+    text = (ROOT / "docs" / "research.html").read_text(encoding="utf-8")
+    for token in [
+        "eventsByRun",
+        "featuresByRun",
+        "renderRun",
+        "Run-by-run replay",
+        "session_id",
+        "history.replaceState",
+        "Open session ID",
+        "orphanEvents",
+    ]:
+        assert token in text
+    assert "runs[0]" not in text
+
+
 def test_synthetic_transport_test_is_part_of_ci():
     workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
     test_js = (ROOT / "tests" / "transport.test.js").read_text(encoding="utf-8")
