@@ -82,6 +82,10 @@ The target researcher flow is:
 
 Researcher-only reads are separate from anonymous ingestion. Anonymous participants must not gain SELECT access to research tables.
 
+The researcher API fails closed. A failed read of probe runs, raw events, derived features, or evaluations must surface an error rather than rendering a partial replay as if it were complete.
+
 ## Completion criterion
 
-A release is not called v4-complete merely because a POST succeeds. Completion requires the canonical PF01-PF08 player, complete ten-locale catalog with no English fallback, truthful four-state persistence UI, recoverable queued events, atomic durable server storage, synthetic transport proof in CI, server-side idempotency verification, and a researcher-readable session trajectory.
+A release is not called v4-complete merely because a POST succeeds. Code-complete requires the canonical PF01-PF08 player, complete ten-locale catalog with no English fallback, truthful four-state persistence UI, recoverable queued events, atomic durable server storage, synthetic transport proof in CI, server-side idempotency verification, and a researcher-readable session trajectory.
+
+Operational release additionally requires at least one provisioned researcher account and one authenticated browser replay of a persisted synthetic session. Lack of a researcher credential is an operational blocker, not a reason to weaken the JWT/role boundary.
