@@ -37,17 +37,34 @@ def test_all_ten_locale_catalogs_are_real_and_complete():
         assert text.count(pf + ":[") == 10
 
 
+def test_world_content_is_localized_for_every_supported_locale():
+    text = (ROOT / "docs" / "world-locales.js").read_text(encoding="utf-8")
+    required = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru"]
+    keys = [
+        "bridgeDetail", "priorTraffic", "sourceCreated", "supportTickets",
+        "remainingBudget", "delayedCost", "originalRequest", "stakeholderNote",
+        "drillDown", "checkoutDrop", "releaseCorrelation",
+    ]
+    for code in required:
+        assert f'"{code}":{{' in text
+    for key in keys:
+        assert text.count(key + ':') == 10
+    assert "||" not in text
+
+
 def test_canonical_player_uses_shared_catalog_and_transport():
     index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
     transport = (ROOT / "docs" / "transport.js").read_text(encoding="utf-8")
     for token in [
         'src="locales.js"',
+        'src="world-locales.js"',
         'src="transport.js"',
         "PAJ_LOCALES",
+        "PAJ_WORLD_LOCALES",
         "PAJTransport.createBrowserTransport",
         "client_submission_id",
         "crypto.randomUUID()",
-        "surface_version:'micro-world-v4.5'",
+        "surface_version:'micro-world-v4.6'",
         "localStorage.setItem('paj_local_trace'",
         "Research Session Browser",
     ]:
@@ -60,8 +77,6 @@ def test_canonical_player_uses_shared_catalog_and_transport():
 
 def test_canonical_player_preserves_golden_natural_world_interaction():
     index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
-    # The participant navigates ordinary application surfaces; research variables
-    # remain downstream. Stateful consequences are part of the instrument.
     for token in [
         "NAVIGABLE MICRO-WORLDS",
         "renderNav",
@@ -70,9 +85,6 @@ def test_canonical_player_preserves_golden_natural_world_interaction():
         "search_query",
         "HOME HUB LITE",
         "serving B",
-        "Support tickets",
-        "Original request",
-        "Stakeholder note",
         "add_to_cart",
         "checkout_started",
         "post_consequence_action",
@@ -82,6 +94,9 @@ def test_canonical_player_preserves_golden_natural_world_interaction():
         "budget_after",
         "delayed_check",
         "rollback_remaining",
+        "drilldown",
+        "quality_by_segment",
+        "conversion_mobile_web",
     ]:
         assert token in index
     assert "latent cause" not in index.lower()
