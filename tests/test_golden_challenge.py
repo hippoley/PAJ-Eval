@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKS = (ROOT / "docs" / "challenge-packs.js").read_text(encoding="utf-8")
+DEPTH = (ROOT / "docs" / "challenge-depth.js").read_text(encoding="utf-8")
 HTML = (ROOT / "docs" / "challenge.html").read_text(encoding="utf-8")
 CONTRACT = (ROOT / "GOLDEN_DEPTH_CONTRACT.md").read_text(encoding="utf-8")
 
@@ -83,6 +84,35 @@ def test_each_market_pack_localizes_real_options_not_only_titles():
         assert phrase in PACKS
 
 
+def test_depth_copy_exists_for_every_market_and_changes_real_consequences():
+    for locale in ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru"]:
+        assert f'"{locale}":{{' in DEPTH
+    for token in [
+        "proConsequence",
+        "proLine1",
+        "mobility",
+        "lateNotice",
+        "earlyNotice",
+        "transportExtra",
+        "hotelExtra",
+        "morningExtra",
+    ]:
+        assert DEPTH.count(token + ':') == 10
+    for localized in [
+        "今晚送达这件事变了",
+        "今晚到貨這件事改變了",
+        "Same-day delivery just changed",
+        "今夜届くという条件が変わりました",
+        "오늘 배송 조건이 바뀌었습니다",
+        "La entrega de hoy acaba de cambiar",
+        "La livraison ce soir vient de changer",
+        "Die Lieferung für heute hat sich geändert",
+        "A entrega de hoje mudou",
+        "Условие доставки на сегодня изменилось",
+    ]:
+        assert localized in DEPTH
+
+
 def test_challenge_preserves_full_golden_interaction_shape():
     for token in [
         'id="shop"',
@@ -101,16 +131,40 @@ def test_challenge_preserves_full_golden_interaction_shape():
         assert token in HTML
 
 
+def test_transfer_worlds_have_nested_objects_and_a_revisable_far_transfer_commit():
+    for token in [
+        'class="btn mobility"',
+        "careerDetail(b.dataset.k,'mobility')",
+        "provisional_commit",
+        "renderTravelHold",
+        "arrival_plan",
+        "transport_nested",
+        "hotel_nested",
+        "morning_nested",
+        "switch_time",
+        "finalizeTravel",
+    ]:
+        assert token in HTML
+    assert "travelDraft" in HTML
+    assert "travelExpanded" in HTML
+
+
+def test_seed_consequence_exists_for_both_product_paths():
+    assert "S.consequence=p.kind==='lite'?'bridge':'delivery'" in HTML
+    assert "D.checkout.proConsequence" in HTML
+    assert "D.checkout.proLine1" in HTML
+    assert "affected_devices" in HTML
+    assert "pickup_option" in HTML
+
+
 def test_challenge_is_local_only_and_does_not_pollute_research_backend():
     assert "PAJTransport" not in HTML
     assert "ingest-probe" not in HTML
     assert "supabase" not in HTML.lower()
-    assert "golden-challenge-v1" in HTML
+    assert "golden-challenge-v2" in HTML
 
 
 def test_participant_surface_does_not_name_probe_constructs():
-    # Research explanation may exist behind ?dev=1, but the normal participant
-    # surface must not render PF labels or construct names as ordinary UI copy.
     for forbidden in [
         "PF01",
         "hidden downstream constraints",
