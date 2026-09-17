@@ -8,6 +8,8 @@ The canonical deployment currently uses a Supabase Edge Function named `ingest-p
 
 The deployed database enforces a partial unique index on `sessions.client_submission_id`, and the RPC uses `ON CONFLICT (client_submission_id) ... DO NOTHING`. A retry with the same client id therefore resolves to the already-created session instead of creating a second trajectory.
 
+A deployed-backend verification on 2026-09-17 called the same atomic ingestion RPC twice with one synthetic `client_submission_id`. The first call returned `duplicate=false`; the second returned `duplicate=true` with the **same session id**. A follow-up read confirmed exactly one session, one probe run, and two ordered raw events. The synthetic session was then removed.
+
 Do not place service-role, database, or admin secrets in the browser bundle. The public ingestion Edge Function is the only anonymous write surface.
 
 ## Researcher reads
@@ -18,7 +20,9 @@ Do not place service-role, database, or admin secrets in the browser bundle. The
 app_metadata.role = researcher
 ```
 
-The browser never receives the service-role key. Session detail reads fail closed: if probe runs, events, derived features, or evaluations cannot be read, the API returns `research_read_failed` instead of silently rendering a partial trajectory.
+The browser never receives the service-role key. Session detail reads fail closed: if probe runs, events, derived features, or evaluations cannot be read, the API returns `research_read_failed` instead of silently rendering a partial trajectory. Invalid session identifiers are rejected before querying.
+
+The deployed `research-sessions` function is currently version 2 with JWT verification enabled.
 
 ## Release verification
 
@@ -31,7 +35,7 @@ A deployment is not considered complete until all of the following are true:
 5. That researcher can open `docs/research.html`, list sessions, select the synthetic session, and see the ordered raw trajectory plus versioned derived/evaluation layers.
 6. The temporary synthetic record is removed after verification if it is not intentionally retained as a fixture.
 
-As of the current v4.1 completion branch, items 1–3 are implemented and the deployed backend idempotency rule has been verified directly. The remaining operational gate is provisioning a researcher account and performing the authenticated browser replay smoke test. Do not weaken the researcher role boundary merely to make this smoke test easier.
+Items 1–3 are now verified. The remaining operational gate is items 4–5: at the time of verification there were **zero** Auth accounts with `app_metadata.role = researcher`, so an authenticated browser replay cannot yet be truthfully claimed. Do not weaken the role boundary merely to make this smoke test easier.
 
 ## Local development
 
