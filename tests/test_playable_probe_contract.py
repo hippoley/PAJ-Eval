@@ -22,22 +22,25 @@ def test_all_eight_probe_families_are_playable_from_one_source_of_truth():
         assert pf in FAMILIES
     assert "Object.entries(L().pf)" in HTML
     assert "openWorld(id)" in HTML
-    assert "finish(j,c)" in HTML
+    assert "renderChoices" in HTML
+    assert "finish(i,c)" in HTML
     assert "const PF=[" not in HTML
 
 
 def test_player_does_not_require_essay_or_one_click_path():
-    assert "textarea" not in HTML.lower()
-    assert "No required item" not in HTML  # hint is localized instead of hard-coded
+    # The optional working note may exist, but completion must not depend on it.
+    assert "Working note (optional)" in HTML
+    assert "finish(i,c)" in HTML
     assert "There is no required path" in LOCALES
     assert "No quiz" in LOCALES
-    assert "inspect" in HTML
+    assert "open_object" in HTML
     assert "commit" in HTML
+    assert "note_added" in HTML
 
 
 def test_trajectory_is_explicitly_raw_measurement_not_conclusion():
     assert "The trajectory is only the raw sensor" in LOCALES
-    assert "Raw events are evidence" in HTML
+    assert "Research inference stays downstream of raw behavior" in HTML
     for stage in ["versioned derived_features", "versioned evaluations", "counterfactual validation", "treatment comparison"]:
         assert stage in CONTRACT
     assert "A trajectory is a sensor reading, not a conclusion" in FAMILIES
