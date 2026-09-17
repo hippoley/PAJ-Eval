@@ -29,27 +29,37 @@ def test_all_ten_locale_catalogs_are_real_and_complete():
     required = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru"]
     for code in required:
         assert f'"{code}":{{native:' in text
-    # Every locale must carry every probe family, not only translated shell chrome.
     for pf in [f"PF{i:02d}" for i in range(1, 9)]:
         assert text.count(pf + ":[") == 10
 
 
-def test_live_player_has_truthful_durable_transport():
-    text = (ROOT / "docs" / "live.html").read_text(encoding="utf-8")
+def test_canonical_player_uses_shared_catalog_and_transport():
+    index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+    transport = (ROOT / "docs" / "transport.js").read_text(encoding="utf-8")
     for token in [
-        "indexedDB.open",
+        'src="locales.js"',
+        'src="transport.js"',
+        "PAJ_LOCALES",
+        "PAJTransport.createBrowserTransport",
         "client_submission_id",
         "crypto.randomUUID()",
-        "qPut(payload)",
-        "retryQueue",
         "probe-player-v4.1",
         "localStorage.setItem('paj_local_trace'",
-        "tr().ui.saving",
-        "tr().ui.saved",
-        "tr().ui.failed",
-        "tr().ui.local",
+        "Research Session Browser",
     ]:
-        assert token in text
+        assert token in index
+    for token in ["indexedDB.open", "queue.put(item)", "retryAll", "inFlight", "created_at_client"]:
+        assert token in transport
+    # Prevent a second embedded catalog/player implementation from drifting again.
+    assert "const PF=[" not in index
+    assert "const L={" not in index
+
+
+def test_live_surface_is_only_a_compatibility_alias():
+    text = (ROOT / "docs" / "live.html").read_text(encoding="utf-8")
+    assert "index.html?surface=live" in text
+    assert "indexedDB.open" not in text
+    assert "const ENDPOINT" not in text
 
 
 def test_research_browser_is_present_and_does_not_use_service_role():
@@ -61,6 +71,7 @@ def test_research_browser_is_present_and_does_not_use_service_role():
     assert "SERVICE_ROLE" not in text.upper()
 
 
-def test_live_page_is_not_the_only_player():
-    assert (ROOT / "docs" / "index.html").exists()
-    assert (ROOT / "docs" / "live.html").exists()
+def test_synthetic_transport_test_is_part_of_ci():
+    workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    assert "node --test tests/transport.test.js" in workflow
+    assert (ROOT / "tests" / "transport.test.js").exists()
