@@ -64,7 +64,7 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         "PAJTransport.createBrowserTransport",
         "client_submission_id",
         "crypto.randomUUID()",
-        "surface_version:'micro-world-v4.7'",
+        "surface_version:'micro-world-v4.8'",
         "localStorage.setItem('paj_local_trace'",
         "Research Session Browser",
     ]:
@@ -77,8 +77,6 @@ def test_canonical_player_uses_shared_catalog_and_transport():
 
 def test_participant_surface_hides_research_construct_labels():
     index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
-    # PF ids and construct titles remain in the data model, but the participant
-    # renderer must use a neutral task position, surface name, and natural scene.
     assert "taskLabel(i)" in index
     assert "${C().surfaces[i]}" in index
     assert "${p[2]}" in index
@@ -120,6 +118,25 @@ def test_canonical_player_preserves_golden_natural_world_interaction():
     assert "latent cause" not in index.lower()
     assert "posterior" not in index.lower()
     assert "oracle" not in index.lower()
+
+
+def test_nested_real_world_objects_create_distinct_evidence_events():
+    index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+    for token in [
+        "deviceDetail",
+        "device_compatibility",
+        "ticketDetail",
+        "ticket_sample",
+        "pf08Details",
+        "openPF08Detail",
+        "workspace_detail",
+        "record_r17",
+        "affected_group",
+        "hard_constraint",
+        "external_change",
+    ]:
+        assert token in index
+    assert "open_detail" in index
 
 
 def test_golden_journey_remains_available_as_non_regression_reference():
