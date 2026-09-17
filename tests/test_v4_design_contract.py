@@ -130,7 +130,7 @@ def test_nested_real_world_objects_create_distinct_evidence_events():
         "pf08Details",
         "openPF08Detail",
         "workspace_detail",
-        "record_r17",
+        "record_",
         "affected_group",
         "hard_constraint",
         "external_change",
