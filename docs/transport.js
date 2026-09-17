@@ -19,7 +19,7 @@
       const id=item.client_submission_id;
       if(inFlight.has(id)) return inFlight.get(id);
       const work=(async()=>{
-        // Queue first. A tab close between click and network completion must not erase evidence.
+        // Durable queue commit happens before any network attempt.
         await queue.put(item);
         try{
           const ack=await post(item);
@@ -42,7 +42,7 @@
       for(const item of rows){
         const r=await submit(item);
         out.push(r);
-        if(r.state!=='saved') break; // preserve ordering across outages
+        if(r.state!=='saved') break;
       }
       return out;
     }
@@ -69,12 +69,13 @@
     async function tx(mode,fn){
       const d=await db();
       return new Promise((resolve,reject)=>{
-        const t=d.transaction(storeName,mode);const s=t.objectStore(storeName);let value;
-        try{value=fn(s);}catch(e){reject(e);return;}
-        if(value&&typeof value.onsuccess!=='undefined') value.onsuccess=()=>resolve(value.result);
-        t.oncomplete=()=>{if(!(value&&typeof value.onsuccess!=='undefined')) resolve();};
+        const t=d.transaction(storeName,mode);const s=t.objectStore(storeName);let request,result;
+        try{request=fn(s);}catch(e){reject(e);return;}
+        if(request&&typeof request.onsuccess!=='undefined') request.onsuccess=()=>{result=request.result;};
+        if(request&&typeof request.onerror!=='undefined') request.onerror=()=>reject(request.error);
+        t.oncomplete=()=>resolve(result);
         t.onerror=()=>reject(t.error);
-        if(value&&typeof value.onerror!=='undefined') value.onerror=()=>reject(value.error);
+        t.onabort=()=>reject(t.error||new Error('indexeddb_aborted'));
       });
     }
     return {
