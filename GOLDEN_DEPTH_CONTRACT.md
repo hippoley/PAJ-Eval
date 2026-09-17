@@ -36,8 +36,12 @@ Across the journey there must be:
 
 - at least **1 consequence that changes the remaining option space**;
 - at least **1 post-consequence action**;
+- at least **1 transfer world with a provisional action, an ordinary stateful consequence, and a chance to revise before terminal commitment**;
+- the far-transfer world must not collapse into a static answer card: it must preserve optional evidence, nested evidence, and a reversible pre-commit state;
 - a near transfer and a far transfer;
 - enough ordinary information that a diligent but construct-irrelevant browsing strategy is possible. This is necessary to distinguish targeted transfer from generic conscientiousness.
+
+A seed consequence alone is not sufficient evidence of transfer. The instrument must be able to observe whether the participant spontaneously reconstructs the relevant investigative structure when the vocabulary, objects, and domain have changed.
 
 ## 3. Golden interaction tests
 
@@ -49,6 +53,7 @@ A new design is a regression if any of these become false:
 - Consequences appear as changes in the world, not as researcher narration.
 - A useful path can be omitted.
 - A participant can change course after a consequence.
+- A transfer-world decision can remain provisional long enough for ordinary consequences to become visible.
 - The next domain does not reuse the previous domain's vocabulary as a cue.
 - Raw behavior remains separable from research interpretation.
 
