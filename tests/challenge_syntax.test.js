@@ -42,10 +42,10 @@ test('market packs vary real-world surfaces rather than only language strings', 
   vm.createContext(sandbox);
   new vm.Script(packsSource).runInContext(sandbox);
   const packs = sandbox.window.PAJ_CHALLENGE_PACKS;
-  assert.notEqual(packs.en.travel.title, packs.zh-CN.travel.title);
+  assert.notEqual(packs.en.travel.title, packs['zh-CN'].travel.title);
   assert.notEqual(packs.ja.travel.nav[0], packs.ko.travel.nav[0]);
   assert.notEqual(packs.pt.currency, packs.es.currency);
-  assert.match(packs.zh-TW.travel.title, /高雄/);
+  assert.match(packs['zh-TW'].travel.title, /高雄/);
   assert.match(packs.de.travel.title, /Berlin/);
   assert.match(packs.ru.travel.title, /Москва/);
 });
