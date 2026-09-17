@@ -24,4 +24,4 @@ jobs:
       - name: Python contract tests
         run: pytest -q
       - name: Browser and durable-session JavaScript tests
-        run: node --test tests/transport.test.js tests/player_syntax.test.js
+        run: node --test tests/transport.test.js tests/player_syntax.test.js tests/challenge_syntax.test.js
