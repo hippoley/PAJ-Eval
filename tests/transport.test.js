@@ -7,7 +7,7 @@ function memoryQueue(log=[]){
   return {
     async put(v){log.push('queue:put:'+v.client_submission_id);rows.set(v.client_submission_id,structuredClone(v));},
     async delete(id){log.push('queue:delete:'+id);rows.delete(id);},
-    async all(){return [...rows.values()].map(structuredClone);}
+    async all(){return [...rows.values()].map(v=>structuredClone(v));}
   };
 }
 
