@@ -60,7 +60,7 @@ A static GitHub Pages deployment must never claim server persistence unless an a
 
 The full player commits a browser-side IndexedDB queue entry before the first network attempt. Network failure must not erase the raw trajectory. Retry is idempotent through a stable `client_submission_id`, preserves event/submission ordering, and stops at the first unsent item rather than overtaking it.
 
-Concurrent duplicate submission of the same client id must be coalesced client-side. The ingestion backend must enforce the same idempotency key server-side.
+Concurrent duplicate submission of the same client id must be coalesced client-side. The ingestion backend is independently responsible for enforcing the same idempotency key server-side; browser coalescing is not a substitute for backend uniqueness.
 
 The transport behavior is executable specification: CI runs synthetic tests proving offline retention, same-id retry, duplicate coalescing, and ordered retry.
 
@@ -84,4 +84,4 @@ Researcher-only reads are separate from anonymous ingestion. Anonymous participa
 
 ## Completion criterion
 
-A release is not called v4-complete merely because a POST succeeds. Completion requires the canonical PF01-PF08 player, complete ten-locale catalog with no English fallback, truthful four-state persistence UI, recoverable queued events, durable server storage, synthetic transport proof in CI, and a researcher-readable session trajectory.
+A release is not called v4-complete merely because a POST succeeds. Completion requires the canonical PF01-PF08 player, complete ten-locale catalog with no English fallback, truthful four-state persistence UI, recoverable queued events, durable server storage, synthetic transport proof in CI, server-side idempotency verification, and a researcher-readable session trajectory.
