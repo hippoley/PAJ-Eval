@@ -1,42 +1,83 @@
-# Deployment configuration
+# PAJ-Eval Deployment Configuration
 
-PAJ-Eval separates public source code from deployment ownership. A fork may reuse the instrument code, but it must not inherit the canonical research database or researcher credentials by default.
+PAJ-Eval deliberately separates public source code from deployment ownership. A fork must not silently inherit the canonical research backend.
 
-## Participant ingestion
+## Participant surface
 
-The canonical deployment currently uses a Supabase Edge Function named `ingest-probe`. The browser sends pseudonymous trajectory payloads only after explicit consent. Each payload has a stable `client_submission_id`; the server writes the session, probe run, and ordered raw events through the atomic `ingest_probe_atomic(...)` database function.
+The canonical participant surface is `docs/index.html`. It reads the shared ten-locale catalog from `docs/locales.js` and uses the shared durable browser transport in `docs/transport.js`.
 
-The deployed database enforces a partial unique index on `sessions.client_submission_id`, and the RPC uses `ON CONFLICT (client_submission_id) ... DO NOTHING`. A retry with the same client id therefore resolves to the already-created session instead of creating a second trajectory.
+The transport contract is:
 
-A deployed-backend verification on 2026-09-17 called the same atomic ingestion RPC twice with one synthetic `client_submission_id`. The first call returned `duplicate=false`; the second returned `duplicate=true` with the **same session id**. A follow-up read confirmed exactly one session, one probe run, and two ordered raw events. The synthetic session was then removed.
+1. create a stable `client_submission_id`;
+2. commit the full submission to IndexedDB before the first network attempt;
+3. POST to the deployment-owned ingestion endpoint;
+4. delete the queued item only after an explicit durable acknowledgement containing a `session_id`;
+5. retry queued submissions in original order and reuse the same id;
+6. coalesce concurrent duplicate sends for the same id in the browser.
 
-Do not place service-role, database, or admin secrets in the browser bundle. The public ingestion Edge Function is the only anonymous write surface.
+The public player exposes truthful persistence states rather than claiming persistence simply because a request was attempted.
 
-## Researcher reads
+## Canonical backend
 
-`research-sessions` is a JWT-protected Edge Function. It validates the Supabase user and then requires:
+Current canonical deployment:
+
+- Supabase project: `pwdcgfvarudhqezlzwmx`
+- anonymous ingestion function: `ingest-probe`
+- researcher read function: `research-sessions`
+
+No service-role/database/admin secret belongs in GitHub Pages, the repository, or a participant browser.
+
+## Server-side idempotency and atomicity
+
+The database migration `supabase/migrations/20260917_atomic_probe_ingestion_v2.sql` defines `ingest_probe_atomic(...)`.
+
+The server boundary must independently guarantee what the browser cannot:
+
+- `sessions.client_submission_id` is unique when present;
+- a duplicate submission returns the already-created `session_id` rather than creating a second session;
+- session, probe run, and event writes are one atomic database operation;
+- only the service-role path may execute the ingestion RPC directly.
+
+### Deployed verification — 2026-09-17
+
+A synthetic PF01 submission was executed directly against the deployed RPC using one UUID twice. The first invocation returned `duplicate=false`; the second returned `duplicate=true`; both returned the same session id. A follow-up database read showed exactly one session, one probe run, and two events for that submission. The synthetic session was then deleted after verification.
+
+This verifies deployed server-side idempotency and atomic insertion behavior rather than only repository source text.
+
+## Research Session Browser
+
+`docs/research.html` is researcher-only. It signs in with Supabase Auth and calls the JWT-protected `research-sessions` Edge Function.
+
+Required authorization boundary:
 
 ```text
-app_metadata.role = researcher
+valid Supabase user JWT
+        +
+user.app_metadata.role = researcher
+        ↓
+research-sessions
+        ↓
+session / probe_runs / ordered events / derived_features / evaluations
 ```
 
-The browser never receives the service-role key. Session detail reads fail closed: if probe runs, events, derived features, or evaluations cannot be read, the API returns `research_read_failed` instead of silently rendering a partial trajectory. Invalid session identifiers are rejected before querying.
+The researcher API must fail closed. If probe runs, events, derived features, or evaluations cannot be read successfully, the API returns `research_read_failed` instead of presenting a partial trajectory as complete.
 
-The deployed `research-sessions` function is currently version 2 with JWT verification enabled.
+The browser now supports sessions containing multiple probe runs. Events and derived features are grouped by `probe_run_id`, each run is replayed independently, orphan events are surfaced explicitly, and a session can be opened directly with `research.html?session_id=<uuid>`.
 
-## Release verification
+## Researcher-account operational gate
 
-A deployment is not considered complete until all of the following are true:
+As checked on 2026-09-17, the canonical Supabase project currently has **zero** Auth accounts whose `app_metadata.role = researcher`.
 
-1. CI passes Python contract tests and Node durable-transport tests.
-2. The deployed ingestion RPC has the `client_submission_id` uniqueness rule and atomic session/run/event write.
-3. A synthetic PF01–PF08 submission can be persisted and a duplicate submission returns the same session id without adding a second session or event set.
-4. At least one Supabase Auth account has `app_metadata.role = researcher`.
-5. That researcher can open `docs/research.html`, list sessions, select the synthetic session, and see the ordered raw trajectory plus versioned derived/evaluation layers.
-6. The temporary synthetic record is removed after verification if it is not intentionally retained as a fixture.
+Do not weaken `verify_jwt`, expose database SELECT to anonymous users, or embed a service-role key merely to get through the final smoke test.
 
-Items 1–3 are now verified. The remaining operational gate is items 4–5: at the time of verification there were **zero** Auth accounts with `app_metadata.role = researcher`, so an authenticated browser replay cannot yet be truthfully claimed. Do not weaken the role boundary merely to make this smoke test easier.
+Operational release still requires a deliberately provisioned researcher account, followed by:
 
-## Local development
+1. sign in through `docs/research.html`;
+2. persist one synthetic PF session through the participant ingestion path;
+3. verify the session appears in the session list;
+4. open the session (or deep-link directly to its UUID);
+5. verify the browser replays every probe run and ordered event;
+6. verify derived features/evaluations render as their current versioned layers;
+7. remove the synthetic session if it is only release-test data.
 
-Serve `docs/` from one of the allowed local origins (`http://localhost:8000` or `http://127.0.0.1:8000`) so browser CORS behavior matches production closely. Keep local test trajectories clearly labeled and avoid using real participant identity data.
+Until that authenticated browser replay is performed, the branch can be code-complete but should not be described as operationally released.
