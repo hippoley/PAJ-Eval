@@ -12,11 +12,17 @@ Raw trajectory is the sensor, not the conclusion. Raw events are immutable resea
 
 The complete instrument must support session replay, blinded coding, counterfactual validation, language-invariance analysis, and treatment comparison without rewriting raw participant history.
 
+## One canonical player
+
+PF01-PF08 are one coherent Probe Player. There must not be a second embedded probe catalog or a second persistence implementation in a `live` page. `docs/index.html` is the canonical participant surface; legacy/live URLs may only alias or redirect to it.
+
+The canonical player reads scenario content from the shared locale catalog and persistence behavior from the shared durable transport module. CI guards against reintroducing duplicate embedded catalogs.
+
+Every persisted event carries enough metadata to identify at least instrument/copy version, locale, probe family, world/variant, phase/event type, elapsed time, sequence, and inspected object/terminal action where applicable.
+
 ## Probe coverage
 
-PF01-PF08 remain one coherent Probe Player. `live.html` is a dogfood/transport diagnostic and MUST NOT replace the complete player.
-
-Every persisted event carries enough metadata to identify at least instrument/copy version, locale, probe family, world/variant, phase/event type, elapsed time, and inspected object/terminal action where applicable.
+PF01-PF08 remain available from the canonical player. A dogfood/transport diagnostic MUST NOT replace or narrow the complete instrument.
 
 ## Localization
 
@@ -33,7 +39,7 @@ Supported participant locales:
 - Português
 - Русский
 
-After locale selection, every participant-facing string must come from that locale's complete scenario-level catalog: shell, probe title, situation, inspectable object labels/descriptions, reveals, decisions, navigation, persistence status, consent/error copy, and any participant-visible result copy.
+After locale selection, every participant-facing scenario string must come from that locale's complete scenario-level catalog: probe title, situation, inspectable object labels/descriptions, reveals, decisions, and participant-visible result copy.
 
 No non-English locale may silently fall back to English. CI must fail when a locale is null, structurally incomplete, or missing PF01-PF08.
 
@@ -52,7 +58,11 @@ A static GitHub Pages deployment must never claim server persistence unless an a
 
 ## Offline and retry
 
-The full player keeps a browser-side queue (IndexedDB preferred) before upload. Network failure must not erase the raw trajectory. Retry is idempotent and preserves event ordering.
+The full player commits a browser-side IndexedDB queue entry before the first network attempt. Network failure must not erase the raw trajectory. Retry is idempotent through a stable `client_submission_id`, preserves event/submission ordering, and stops at the first unsent item rather than overtaking it.
+
+Concurrent duplicate submission of the same client id must be coalesced client-side. The ingestion backend is independently responsible for enforcing the same idempotency key server-side; browser coalescing is not a substitute for backend uniqueness.
+
+The transport behavior is executable specification: CI runs synthetic tests proving offline retention, same-id retry, duplicate coalescing, and ordered retry.
 
 ## Deployment isolation
 
@@ -74,4 +84,4 @@ Researcher-only reads are separate from anonymous ingestion. Anonymous participa
 
 ## Completion criterion
 
-A release is not called v4-complete merely because a live POST succeeds. Completion requires the full PF01-PF08 player, complete ten-locale catalog with no English fallback, truthful four-state persistence UI, recoverable queued events, durable server storage, and a researcher-readable session trajectory.
+A release is not called v4-complete merely because a POST succeeds. Completion requires the canonical PF01-PF08 player, complete ten-locale catalog with no English fallback, truthful four-state persistence UI, recoverable queued events, durable server storage, synthetic transport proof in CI, server-side idempotency verification, and a researcher-readable session trajectory.
