@@ -20,6 +20,9 @@ def test_design_contract_preserves_full_instrument():
         "IndexedDB",
         "Research Session Browser",
         "server-side idempotency verification",
+        "Operational release",
+        "authenticated browser replay",
+        "JWT/role boundary",
     ]:
         assert token in text
 
@@ -118,3 +121,16 @@ def test_research_api_is_role_gated_orders_events_and_fails_closed():
     ]:
         assert token in edge
     assert 'Access-Control-Allow-Methods":"GET,OPTIONS"' in edge
+
+
+def test_deployment_doc_keeps_researcher_smoke_gate_explicit():
+    text = (ROOT / "DEPLOYMENT_CONFIG.md").read_text(encoding="utf-8")
+    for token in [
+        "duplicate=false",
+        "duplicate=true",
+        "same session id",
+        "zero",
+        "app_metadata.role = researcher",
+        "research_read_failed",
+    ]:
+        assert token.lower() in text.lower()
