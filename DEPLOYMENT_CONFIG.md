@@ -1,73 +1,38 @@
 # Deployment configuration
 
-PAJ-Eval is an open instrument, not a single shared backend.
+PAJ-Eval separates public source code from deployment ownership. A fork may reuse the instrument code, but it must not inherit the canonical research database or researcher credentials by default.
 
-Each deployment owns its own:
+## Participant ingestion
 
-- Supabase project
-- database
-- Edge Function / ingestion endpoint
-- publishable client key
-- server-side service role secret
-- treatment assignment configuration
-- researcher access policy
+The canonical deployment currently uses a Supabase Edge Function named `ingest-probe`. The browser sends pseudonymous trajectory payloads only after explicit consent. Each payload has a stable `client_submission_id`; the server writes the session, probe run, and ordered raw events through the atomic `ingest_probe_atomic(...)` database function.
 
-A fork MUST NOT send events to the canonical research database unless its operator intentionally configures that endpoint.
+The deployed database enforces a partial unique index on `sessions.client_submission_id`, and the RPC uses `ON CONFLICT (client_submission_id) ... DO NOTHING`. A retry with the same client id therefore resolves to the already-created session instead of creating a second trajectory.
 
-## What may be public
+Do not place service-role, database, or admin secrets in the browser bundle. The public ingestion Edge Function is the only anonymous write surface.
 
-A Supabase **publishable key** is designed to be embedded in public clients. Treat it as an identifier with restricted public capability, not as an administrative secret. Public capability must be constrained by Row Level Security and/or a narrow ingestion Edge Function.
+## Researcher reads
 
-The project URL and ingestion function URL may also be public.
-
-## What must never enter the repository or browser
-
-- `SUPABASE_SERVICE_ROLE_KEY`
-- database password / direct connection string with credentials
-- researcher/admin tokens
-- signing secrets
-- private webhook secrets
-
-Store these only in the managed deployment secret store (for example Supabase Edge Function secrets or GitHub Actions Secrets when needed server-side). They must never be emitted into static GitHub Pages JavaScript.
-
-## Repository pattern
-
-Committed:
-
-- `.env.example`
-- schema / migrations
-- API contracts
-- example deployment configuration with placeholders
-
-Ignored:
-
-- `.env`
-- `.env.*`
-- `config.local.yml`
-- `config.local.yaml`
-- `secrets.yml`
-- `secrets.yaml`
-
-If YAML is preferred locally, use `config.local.yaml` and keep it ignored. Do not put real credentials in a committed YAML file.
-
-## Canonical public research deployment
-
-The official public Probe Player may point to Jialun's research ingestion endpoint. That is a deployment choice, not a library default.
-
-The source default remains `local` / no remote persistence. A deployer must opt in by supplying its own backend configuration.
-
-Conceptually:
+`research-sessions` is a JWT-protected Edge Function. It validates the Supabase user and then requires:
 
 ```text
-upstream PAJ-Eval repo
-       |
-       +-- canonical public deployment -> Jialun's Supabase project
-       |
-       +-- researcher A fork ----------> researcher A's Supabase project
-       |
-       +-- researcher B local ----------> no network / local trace only
+app_metadata.role = researcher
 ```
 
-## Trigger / ingestion isolation
+The browser never receives the service-role key. Session detail reads fail closed: if probe runs, events, derived features, or evaluations cannot be read, the API returns `research_read_failed` instead of silently rendering a partial trajectory.
 
-Any scheduled trigger, webhook, Edge Function, or evaluation worker is deployment-scoped. The canonical deployment invokes canonical infrastructure. A fork invokes the fork owner's configured infrastructure. No personal trigger identifier or secret is hard-coded into the shared source tree.
+## Release verification
+
+A deployment is not considered complete until all of the following are true:
+
+1. CI passes Python contract tests and Node durable-transport tests.
+2. The deployed ingestion RPC has the `client_submission_id` uniqueness rule and atomic session/run/event write.
+3. A synthetic PF01–PF08 submission can be persisted and a duplicate submission returns the same session id without adding a second session or event set.
+4. At least one Supabase Auth account has `app_metadata.role = researcher`.
+5. That researcher can open `docs/research.html`, list sessions, select the synthetic session, and see the ordered raw trajectory plus versioned derived/evaluation layers.
+6. The temporary synthetic record is removed after verification if it is not intentionally retained as a fixture.
+
+As of the current v4.1 completion branch, items 1–3 are implemented and the deployed backend idempotency rule has been verified directly. The remaining operational gate is provisioning a researcher account and performing the authenticated browser replay smoke test. Do not weaken the researcher role boundary merely to make this smoke test easier.
+
+## Local development
+
+Serve `docs/` from one of the allowed local origins (`http://localhost:8000` or `http://127.0.0.1:8000`) so browser CORS behavior matches production closely. Keep local test trajectories clearly labeled and avoid using real participant identity data.
