@@ -25,7 +25,7 @@ pytest -q
 node --test tests/transport.test.js
 ```
 
-The Node tests cover offline retention, same-id retry, concurrent duplicate coalescing, and ordered retry. See [`V4_DESIGN_CONTRACT.md`](V4_DESIGN_CONTRACT.md) for the non-regression contract.
+The Node tests cover offline retention, same-id retry, concurrent duplicate coalescing, and ordered retry. The remaining release gate is to verify the deployed ingestion backend enforces the same `client_submission_id` idempotency rule server-side and that one persisted synthetic session can be replayed through the researcher browser. See [`V4_DESIGN_CONTRACT.md`](V4_DESIGN_CONTRACT.md) for the non-regression contract.
 
 ---
 
