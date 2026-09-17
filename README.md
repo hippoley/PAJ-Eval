@@ -14,6 +14,10 @@
 **Research note:** [Same Task Success, Different Humans](https://thirdstructure.wordpress.com/2026/09/15/same-task-success-different-humans/)  
 **Canonical repository:** `hippoley/PAJ-Eval`
 
+### v4.1 playable instrument branch
+
+PR #12 develops the durable multilingual participant/research transport around the existing measurement work without replacing it. The canonical participant surface is `docs/index.html`; `docs/research.html` is the JWT + researcher-role replay surface. The deployed ingestion backend has been verified for atomic same-id deduplication. The remaining operational release gate is provisioning a researcher account and performing one authenticated browser replay; see [`DEPLOYMENT_CONFIG.md`](DEPLOYMENT_CONFIG.md) and [`V4_DESIGN_CONTRACT.md`](V4_DESIGN_CONTRACT.md).
+
 ---
 
 ## The evaluation object
