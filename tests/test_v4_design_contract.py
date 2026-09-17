@@ -47,7 +47,7 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         "PAJTransport.createBrowserTransport",
         "client_submission_id",
         "crypto.randomUUID()",
-        "probe-player-v4.4",
+        "surface_version:'micro-world-v4.5'",
         "localStorage.setItem('paj_local_trace'",
         "Research Session Browser",
     ]:
@@ -60,8 +60,8 @@ def test_canonical_player_uses_shared_catalog_and_transport():
 
 def test_canonical_player_preserves_golden_natural_world_interaction():
     index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
-    # Interaction should feel like navigating a real application, not pressing
-    # researcher-labelled diagnostic buttons.
+    # The participant navigates ordinary application surfaces; research variables
+    # remain downstream. Stateful consequences are part of the instrument.
     for token in [
         "NAVIGABLE MICRO-WORLDS",
         "renderNav",
@@ -69,15 +69,19 @@ def test_canonical_player_preserves_golden_natural_world_interaction():
         "open_object",
         "search_query",
         "HOME HUB LITE",
-        "Buyer reviews",
-        "release.log",
         "serving B",
-        "Vendor A / critical condition",
         "Support tickets",
-        "Remaining budget",
-        "Rollback available",
         "Original request",
         "Stakeholder note",
+        "add_to_cart",
+        "checkout_started",
+        "post_consequence_action",
+        "compare_generation",
+        "request_missing_source",
+        "experiment_run",
+        "budget_after",
+        "delayed_check",
+        "rollback_remaining",
     ]:
         assert token in index
     assert "latent cause" not in index.lower()
