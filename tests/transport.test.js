@@ -2,14 +2,22 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createTransport}=require('../docs/transport.js');
 
-function memoryQueue(){
+function memoryQueue(log=[]){
   const rows=new Map();
   return {
-    async put(v){rows.set(v.client_submission_id,structuredClone(v));},
-    async delete(id){rows.delete(id);},
+    async put(v){log.push('queue:put:'+v.client_submission_id);rows.set(v.client_submission_id,structuredClone(v));},
+    async delete(id){log.push('queue:delete:'+id);rows.delete(id);},
     async all(){return [...rows.values()].map(structuredClone);}
   };
 }
+
+test('queue commit precedes the first network attempt',async()=>{
+  const log=[];const queue=memoryQueue(log);
+  const t=createTransport({queue,idFactory:()=> 'first-id',post:async p=>{log.push('post:'+p.client_submission_id);return {ok:true,session_id:'s1'};}});
+  const r=await t.submit({events:[]});
+  assert.equal(r.state,'saved');
+  assert.deepEqual(log,['queue:put:first-id','post:first-id','queue:delete:first-id']);
+});
 
 test('offline submission survives and retries with the same id',async()=>{
   const queue=memoryQueue();let online=false;const seen=[];
