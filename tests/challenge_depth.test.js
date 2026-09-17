@@ -56,16 +56,17 @@ test('near transfer has nested mobility evidence separate from contract and team
   assert.match(html, /object:type\+'_'\+k/);
 });
 
-test('far transfer uses provisional action, consequence, revision, and nested evidence', () => {
+test('far transfer uses provisional action, consequence, revision, and generated nested evidence', () => {
   for (const token of [
     'provisional_commit',
     'renderTravelHold',
     'arrival_plan',
     'switch_time',
-    'transport_nested',
-    'hotel_nested',
-    'morning_nested',
     'finalizeTravel',
+    "object:b.dataset.kind+'_nested'",
+    'D.travel.transportExtra',
+    'D.travel.hotelExtra',
+    'D.travel.morningExtra',
   ]) assert.ok(html.includes(token), token);
 });
 
