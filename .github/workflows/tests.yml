@@ -23,5 +23,5 @@ jobs:
           python -m pip install pytest
       - name: Python contract tests
         run: pytest -q
-      - name: Synthetic durable-session transport tests
-        run: node --test tests/transport.test.js
+      - name: Browser and durable-session JavaScript tests
+        run: node --test tests/transport.test.js tests/player_syntax.test.js
