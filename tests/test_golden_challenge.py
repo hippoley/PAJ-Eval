@@ -138,11 +138,12 @@ def test_transfer_worlds_have_nested_objects_and_a_revisable_far_transfer_commit
         "provisional_commit",
         "renderTravelHold",
         "arrival_plan",
-        "transport_nested",
-        "hotel_nested",
-        "morning_nested",
         "switch_time",
         "finalizeTravel",
+        "object:b.dataset.kind+'_nested'",
+        "D.travel.transportExtra",
+        "D.travel.hotelExtra",
+        "D.travel.morningExtra",
     ]:
         assert token in HTML
     assert "travelDraft" in HTML
