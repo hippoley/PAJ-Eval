@@ -64,7 +64,7 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         "PAJTransport.createBrowserTransport",
         "client_submission_id",
         "crypto.randomUUID()",
-        "surface_version:'micro-world-v4.6'",
+        "surface_version:'micro-world-v4.7'",
         "localStorage.setItem('paj_local_trace'",
         "Research Session Browser",
     ]:
@@ -73,6 +73,20 @@ def test_canonical_player_uses_shared_catalog_and_transport():
         assert token in transport
     assert "const PF=[" not in index
     assert "const L={" not in index
+
+
+def test_participant_surface_hides_research_construct_labels():
+    index = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+    # PF ids and construct titles remain in the data model, but the participant
+    # renderer must use a neutral task position, surface name, and natural scene.
+    assert "taskLabel(i)" in index
+    assert "${C().surfaces[i]}" in index
+    assert "${p[2]}" in index
+    assert "p[0]" not in index
+    assert "p[1]" not in index
+    assert 'id="devLinks" class="tiny hidden"' in index
+    assert 'id="doneResearch" class="btn hidden"' in index
+    assert "devMode" in index
 
 
 def test_canonical_player_preserves_golden_natural_world_interaction():
@@ -91,12 +105,16 @@ def test_canonical_player_preserves_golden_natural_world_interaction():
         "compare_generation",
         "request_missing_source",
         "experiment_run",
+        "experimentResult",
         "budget_after",
         "delayed_check",
         "rollback_remaining",
         "drilldown",
         "quality_by_segment",
         "conversion_mobile_web",
+        "state.sourceRequested",
+        "state.idxCompared",
+        "state.pf04Drill",
     ]:
         assert token in index
     assert "latent cause" not in index.lower()
