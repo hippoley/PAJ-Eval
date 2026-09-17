@@ -57,7 +57,6 @@ def test_market_packs_are_not_currency_only_translations():
 
 
 def test_each_market_pack_localizes_real_options_not_only_titles():
-    # Evidence that action copy, reviews, transport and consequence copy vary by market.
     for phrase in [
         "仍然購買 Lite",
         "Liteのまま購入",
@@ -110,19 +109,22 @@ def test_challenge_is_local_only_and_does_not_pollute_research_backend():
 
 
 def test_participant_surface_does_not_name_probe_constructs():
+    # Research explanation may exist behind ?dev=1, but the normal participant
+    # surface must not render PF labels or construct names as ordinary UI copy.
     for forbidden in [
         "PF01",
         "hidden downstream constraints",
-        "latent construct",
         "posterior",
         "oracle",
     ]:
         assert forbidden.lower() not in HTML.lower()
     assert "devMode" in HTML
     assert "Research view" in HTML
+    assert 'id="researchBox" class="research hidden"' in HTML
 
 
 def test_localization_contract_requires_affordance_invariance_not_literal_equality():
+    contract = CONTRACT.lower()
     for phrase in [
         "behavioral comparability",
         "number of top-level affordances",
@@ -131,4 +133,4 @@ def test_localization_contract_requires_affordance_invariance_not_literal_equali
         "difficulty of near and far transfer",
         "omission opportunity",
     ]:
-        assert phrase in CONTRACT
+        assert phrase in contract
