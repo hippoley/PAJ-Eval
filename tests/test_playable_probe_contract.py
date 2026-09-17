@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 HTML = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+JOURNEY = (ROOT / "docs" / "journey.html").read_text(encoding="utf-8")
 LOCALES = (ROOT / "docs" / "locales.js").read_text(encoding="utf-8")
 CONTRACT = (ROOT / "V4_DESIGN_CONTRACT.md").read_text(encoding="utf-8")
 FAMILIES = (ROOT / "PROBE_FAMILIES.md").read_text(encoding="utf-8")
@@ -44,6 +45,15 @@ def test_trajectory_is_explicitly_raw_measurement_not_conclusion():
     for stage in ["versioned derived_features", "versioned evaluations", "counterfactual validation", "treatment comparison"]:
         assert stage in CONTRACT
     assert "A trajectory is a sensor reading, not a conclusion" in FAMILIES
+
+
+def test_golden_journey_is_local_only_until_it_has_its_own_backend_semantics():
+    assert "golden interaction / local-only v4.2" in JOURNEY
+    assert "LOCAL ONLY · NOT UPLOADED" in JOURNEY
+    assert "persistence:'local-only'" in JOURNEY
+    assert "transport.submit" not in JOURNEY
+    assert "ingest-probe" not in JOURNEY
+    assert "probe_family:'PF01'" not in JOURNEY
 
 
 def test_original_paj_question_remains_the_root():
