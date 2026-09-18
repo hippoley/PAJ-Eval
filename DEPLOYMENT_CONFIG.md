@@ -69,15 +69,16 @@ This verifies the deployed database/RPC path and deployed function source versio
 
 ## Formal Golden study flow
 
-The Golden-depth journeys remain ordinary local previews unless the participant enters through `docs/study.html?family=PF01..PF08&locale=<locale>` and explicitly checks the consent box.
+The Golden-depth journeys remain ordinary local previews unless the participant enters through a neutral consent URL such as `docs/study.html?journey=01&locale=<locale>` and explicitly checks the consent box. The participant-facing URL uses journey numbers rather than PF identifiers.
 
 The consented path is:
 
 ```text
-study.html
+study.html?journey=01..08
   → explicit consent
   → sessionStorage consent context + stable client_submission_id
-  → direct journey with ?study=1
+  → run.html?journey=<nn>&study=1
+  → same-origin journey iframe
   → golden-study-bridge.js
   → lazy-load golden-event-normalizer.js + transport.js
   → isolated IndexedDB queue paj-golden-study-queue-v1
@@ -91,9 +92,9 @@ Important boundaries:
 - the study bridge refuses submission without a fresh consent context, matching PF family, locale, and stable UUID;
 - the formal queue is isolated from the canonical player queue so a stale unrelated submission cannot block a study retry;
 - raw family-specific events are retained inside the normalized event envelope rather than flattened away;
-- participant pages still do not expose PF labels or latent construct names.
+- the participant address bar and visible copy use neutral journey identifiers rather than PF labels; latent construct names remain researcher-side only.
 
-The v4 consent-aware migration and updated Edge Functions are now deployed. Formal Golden collection should still remain gated until one consented browser submission is exercised through `study.html` → journey → `ingest-probe`, and the resulting session is replayed through an authenticated researcher account. Database/RPC deployment alone is not the same as a completed browser-level release smoke test.
+The v4 consent-aware migration and updated Edge Functions are now deployed. Formal Golden collection should still remain gated until one consented browser submission is exercised through `study.html` → `run.html` → journey → `ingest-probe`, and the resulting session is replayed through an authenticated researcher account. Database/RPC deployment alone is not the same as a completed browser-level release smoke test.
 
 ## Research Session Browser
 
