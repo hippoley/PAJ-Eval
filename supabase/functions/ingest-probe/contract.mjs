@@ -21,13 +21,16 @@ export function isGoldenAttempt({consent,instrument,studyVersion}){
   return consent===GOLDEN_CONSENT || studyVersion===GOLDEN_STUDY || String(instrument||'').startsWith('golden-');
 }
 
-export function validateGoldenSubmission({locale,consent,instrument,family,world,studyVersion,market,events}){
+export function validateGoldenSubmission({locale,consent,instrument,family,world,studyVersion,market,consentedAtClient,events,nowMs=Date.now()}){
   if(!isGoldenAttempt({consent,instrument,studyVersion})) return null;
   const spec=GOLDEN_SPECS[family];
   if(!spec || instrument!==spec.instrument || world!==spec.world) return 'golden_contract_mismatch';
   if(consent!==GOLDEN_CONSENT) return 'golden_consent_required';
   if(studyVersion!==GOLDEN_STUDY) return 'golden_study_version_required';
   if(MARKET_BY_LOCALE[locale]!==market) return 'golden_market_mismatch';
+  const consentMs=Date.parse(String(consentedAtClient||''));
+  if(!Number.isFinite(consentMs)) return 'golden_consent_timestamp_required';
+  if(consentMs>nowMs+300000 || nowMs-consentMs>14400000) return 'golden_consent_timestamp_stale';
   if(!Array.isArray(events)||events.length<4) return 'golden_trace_too_short';
 
   let lastSeq=0,lastT=-1;
