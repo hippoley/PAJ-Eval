@@ -146,6 +146,7 @@ function enterPending(){
 }
 function finish(){
   log('session_complete',{market:P.market});
+  window.PAJGoldenStudy?.complete({family:'PF08',instrument_version:'golden-pf08-v1',locale,market:P.market,world_variant:'golden-open-workspaces-v1',terminal_action:S.action.far||'',events:S.events});
   $('trace').innerHTML=S.events.filter(e=>e.type!=='session_start').map(e=>'<div>#'+e.seq+' · '+e.t_ms+'ms · '+e.type+' · '+(e.world||e.to_world||'journey')+(e.object?' / '+e.object:'')+(e.relation?' / '+e.relation:'')+(e.action?' / '+e.action:'')+'</div>').join('');
   $('shape').innerHTML=worlds.map(w=>{
     const revisits=Object.values(S.counts[w]).reduce((n,v)=>n+Math.max(0,v-1),0);
