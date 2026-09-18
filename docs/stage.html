@@ -14,7 +14,7 @@
   <div><div class="ey">阶段性可玩版本</div><h1>不是问卷。<br>是八个可以真的进去玩的世界。</h1><p class="lead">这是研发态总入口。直接选一个 Journey 进去体验；参与者页面不会出现 PF 编号、潜变量名称或“正确答案”提示。每条路线都保留普通应用界面、真实后果、改判空间，以及跨世界迁移。</p></div>
   <div class="heroStats"><div class="stat"><b>8</b><span>Golden journeys</span></div><div class="stat"><b>10</b><span>market locales / journey</span></div><div class="stat"><b>3</b><span>worlds / journey</span></div><div class="stat"><b>CI ✓</b><span>source + browser + release gate</span></div></div>
 </section>
-<div class="toolbar"><div class="left"><span class="ey">体验语言</span><select id="locale"></select></div><div class="left"><a class="btn" id="suite" href="challenge-suite.html">总览模式</a><a class="btn primary" id="formal" href="study.html?journey=01&locale=zh-CN">体验正式 consent 流</a></div></div>
+<div class="toolbar"><div class="left"><span class="ey">体验语言</span><select id="locale"></select></div><div class="left"><a class="btn" id="suite" href="challenge-suite.html">总览模式</a><a class="btn primary" id="formal" href="study.html?journey=01&locale=zh-CN&preview=1">查看 consent 流（Stage 不提交）</a></div></div>
 <main id="grid" class="grid"></main>
 
 <section class="section"><div class="ey">FORMAL PIPELINE</div><h2>现在已经接到这里</h2><div class="pipeline">
@@ -50,6 +50,6 @@ const journeys=[
 const sel=document.getElementById('locale'),grid=document.getElementById('grid'),formal=document.getElementById('formal'),suite=document.getElementById('suite');
 for(const [k,v] of locales){const o=document.createElement('option');o.value=k;o.textContent=v;sel.appendChild(o)}
 sel.value=new URLSearchParams(location.search).get('locale')||'zh-CN';
-function render(){const loc=sel.value;grid.innerHTML=journeys.map(([n,t,r,d])=>`<a class="journey" href="run.html?journey=${n}&locale=${encodeURIComponent(loc)}"><div class="num">JOURNEY ${n}</div><h3>${t}</h3><p>${d}</p><div class="route">${r}</div><div class="play">直接进入 →</div></a>`).join('');formal.href='study.html?journey=01&locale='+encodeURIComponent(loc);suite.href='challenge-suite.html?locale='+encodeURIComponent(loc)}
+function render(){const loc=sel.value;grid.innerHTML=journeys.map(([n,t,r,d])=>`<a class="journey" href="run.html?journey=${n}&locale=${encodeURIComponent(loc)}"><div class="num">JOURNEY ${n}</div><h3>${t}</h3><p>${d}</p><div class="route">${r}</div><div class="play">直接进入 →</div></a>`).join('');formal.href='study.html?journey=01&locale='+encodeURIComponent(loc)+'&preview=1';suite.href='challenge-suite.html?locale='+encodeURIComponent(loc)}
 sel.onchange=()=>{history.replaceState(null,'','?locale='+encodeURIComponent(sel.value));render()};render();
 </script></body></html>
