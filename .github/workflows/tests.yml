@@ -24,4 +24,4 @@ jobs:
       - name: Python contract tests
         run: pytest -q
       - name: Browser and durable-session JavaScript tests
-        run: node --test tests/transport.test.js tests/player_syntax.test.js tests/challenge_syntax.test.js tests/challenge_depth.test.js tests/challenge_review.test.js tests/pf02_challenge.test.js tests/pf03_challenge.test.js tests/pf04_challenge.test.js tests/pf05_challenge.test.js tests/pf06_challenge.test.js tests/pf07_challenge.test.js tests/pf08_challenge.test.js tests/golden_suite_contract.test.js tests/challenge_suite.test.js
+        run: node --test tests/transport.test.js tests/player_syntax.test.js tests/challenge_syntax.test.js tests/challenge_depth.test.js tests/challenge_review.test.js tests/pf02_challenge.test.js tests/pf03_challenge.test.js tests/pf04_challenge.test.js tests/pf05_challenge.test.js tests/pf06_challenge.test.js tests/pf07_challenge.test.js tests/pf08_challenge.test.js tests/golden_suite_contract.test.js tests/challenge_suite.test.js tests/golden_event_normalizer.test.js
