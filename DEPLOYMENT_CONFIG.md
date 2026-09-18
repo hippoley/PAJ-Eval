@@ -22,8 +22,8 @@ The public player exposes truthful persistence states rather than claiming persi
 Current canonical deployment:
 
 - Supabase project: `pwdcgfvarudhqezlzwmx`
-- anonymous ingestion function: `ingest-probe`
-- researcher read function: `research-sessions`
+- anonymous ingestion function: `ingest-probe` — ACTIVE v4
+- researcher read function: `research-sessions` — ACTIVE v3
 
 No service-role/database/admin secret belongs in GitHub Pages, the repository, or a participant browser.
 
@@ -40,9 +40,31 @@ The server boundary must independently guarantee what the browser cannot:
 
 ### Deployed verification — 2026-09-17
 
-A synthetic PF01 submission was executed directly against the deployed RPC using one UUID twice. The first invocation returned `duplicate=false`; the second returned `duplicate=true`; both returned the same session id. A follow-up database read showed exactly one session, one probe run, and two events for that submission. The synthetic session was then deleted after verification.
+A synthetic PF01 submission was executed directly against the deployed v2 RPC using one UUID twice. The first invocation returned `duplicate=false`; the second returned `duplicate=true`; both returned the same session id. A follow-up database read showed exactly one session, one probe run, and two events for that submission. The synthetic session was then deleted after verification.
 
-This verifies deployed server-side idempotency and atomic insertion behavior rather than only repository source text.
+### Consent-aware rich-event verification — 2026-09-18
+
+The canonical project now has both current migrations applied:
+
+- `20260918020957 consent_aware_ingestion_v4`;
+- `20260918021248 research_replay_indexes`.
+
+The deployed functions are:
+
+- `ingest-probe` ACTIVE v4, with the existing anonymous-ingestion boundary preserved (`verify_jwt=false`) and origin/payload validation performed in the function body;
+- `research-sessions` ACTIVE v3 with `verify_jwt=true` and the researcher-role check still fail-closed.
+
+A synthetic PF08 record was executed directly against `ingest_probe_atomic_v4(...)` with `golden-consent-v1`, then submitted again with the same client UUID. The duplicate call returned the existing session. A database read verified:
+
+- `consent_version = golden-consent-v1`;
+- `instrument_version = golden-pf08-v1`;
+- `client_schema_version = v4-rich-events`;
+- `probe_family = PF08`;
+- the rich `payload_json` retained `market`, `study_version`, `envelope_version`, `raw_event_type`, and the nested original raw event including relation/omission-style fields.
+
+The synthetic verification session was deleted afterward and a follow-up count returned zero remaining rows for its client submission id.
+
+This verifies the deployed database/RPC path and deployed function source versions. The formal browser HTTP path and authenticated researcher-browser replay are still separate release gates.
 
 
 ## Formal Golden study flow
@@ -71,7 +93,7 @@ Important boundaries:
 - raw family-specific events are retained inside the normalized event envelope rather than flattened away;
 - participant pages still do not expose PF labels or latent construct names.
 
-The repository source now targets the v4 consent-aware RPC. Before formal Golden collection is enabled operationally, deploy the v4 migration and updated `ingest-probe` Edge Function, then run the authenticated researcher replay smoke test. Do not describe the v4 path as deployed merely because these files exist in the branch.
+The v4 consent-aware migration and updated Edge Functions are now deployed. Formal Golden collection should still remain gated until one consented browser submission is exercised through `study.html` → journey → `ingest-probe`, and the resulting session is replayed through an authenticated researcher account. Database/RPC deployment alone is not the same as a completed browser-level release smoke test.
 
 ## Research Session Browser
 
@@ -95,7 +117,7 @@ The browser now supports sessions containing multiple probe runs. Events and der
 
 ## Researcher-account operational gate
 
-As checked on 2026-09-17, the canonical Supabase project currently has **zero** Auth accounts whose `app_metadata.role = researcher`.
+As checked again on 2026-09-18, the canonical Supabase project currently has **zero** Auth accounts whose `app_metadata.role = researcher`.
 
 Do not weaken `verify_jwt`, expose database SELECT to anonymous users, or embed a service-role key merely to get through the final smoke test.
 
