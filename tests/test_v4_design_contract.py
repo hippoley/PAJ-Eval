@@ -249,15 +249,21 @@ def test_deployment_doc_keeps_researcher_smoke_gate_explicit():
         "zero",
         "app_metadata.role = researcher",
         "research_read_failed",
+        "ingest-probe` ACTIVE v4",
+        "research-sessions` ACTIVE v3",
+        "golden-consent-v1",
+        "v4-rich-events",
+        "browser HTTP path",
     ]:
         assert token.lower() in text.lower()
 
 
 def test_golden_backend_preserves_rich_event_payload_without_enabling_preview_submission():
-    migration = (ROOT / "supabase" / "migrations" / "20260918_golden_event_payload_v3.sql").read_text(encoding="utf-8")
+    migration = (ROOT / "supabase" / "migrations" / "20260918_consent_aware_ingestion_v4.sql").read_text(encoding="utf-8")
     edge = (ROOT / "supabase" / "functions" / "ingest-probe" / "index.ts").read_text(encoding="utf-8")
     for token in [
-        "v2-rich-events",
+        "v4-rich-events",
+        "p_consent text",
         "x.e - 'event' - 'target' - 't' - 'seq'",
         "'client_seq'",
         "grant execute on function",
@@ -272,8 +278,20 @@ def test_golden_backend_preserves_rich_event_payload_without_enabling_preview_su
         "e?.t??e?.t_ms",
         "e?.event||e?.type",
         "e?.target??e?.object??e?.action??e?.choice??e?.to_world",
+        "p_consent:consent",
         "client_seq",
     ]:
         assert token in edge
     suite = (ROOT / "tests" / "golden_suite_contract.test.js").read_text(encoding="utf-8")
     assert "participant journeys remain local-only" in suite
+
+
+def test_research_replay_indexes_cover_hot_foreign_key_paths():
+    migration = (ROOT / "supabase" / "migrations" / "20260918_research_replay_indexes.sql").read_text(encoding="utf-8")
+    for token in [
+        "events_probe_run_seq_idx",
+        "events(probe_run_id, seq)",
+        "evaluations_session_id_idx",
+        "evaluations(session_id)",
+    ]:
+        assert token in migration
