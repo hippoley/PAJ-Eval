@@ -22,6 +22,7 @@ test('stage preview exposes all eight neutral journeys and ten locales',()=>{
   for(const locale of ['zh-CN','zh-TW','en','ja','ko','es','fr','de','pt','ru']) assert.ok(s.includes("['"+locale+"'"),locale);
   assert.ok(s.includes('run.html?journey='));
   assert.ok(s.includes('study.html?journey=01'));
+  assert.ok(s.includes("+'&preview=1'"));
 });
 
 test('stage page clearly separates preview from formal participant entry',()=>{
@@ -29,6 +30,7 @@ test('stage page clearly separates preview from formal participant entry',()=>{
   assert.match(html,/这个页面是给我们看研发阶段的/);
   assert.match(html,/真正发给参与者的入口/);
   assert.match(html,/Operational release · BLOCKED/);
+  assert.match(html,/Stage 不提交/);
 });
 
 test('stage page does not turn its dev copy into a participant research surface',()=>{
