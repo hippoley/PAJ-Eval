@@ -85,8 +85,8 @@
     };
   }
 
-  function createBrowserTransport(endpoint){
-    const queue=openBrowserQueue();
+  function createBrowserTransport(endpoint,opts={}){
+    const queue=openBrowserQueue(opts.dbName||'paj-eval-queue-v2',opts.storeName||'submissions');
     const post=async payload=>{
       const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       let j={};try{j=await r.json();}catch{}
