@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
+import { isGoldenAttempt, validateGoldenSubmission } from "./contract.mjs";
 
 const ALLOWED_ORIGINS=new Set(["https://hippoley.github.io","http://localhost:8000","http://127.0.0.1:8000"]);
 const ALLOWED_LOCALES=new Set(["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru"]);
@@ -8,6 +9,7 @@ const reply=(req:Request,x:unknown,s=200)=>new Response(JSON.stringify(x),{statu
 const clean=(v:unknown,n:number)=>typeof v==="string"?v.slice(0,n):"";
 const finiteMs=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)?Math.min(86400000,Math.max(0,Math.trunc(n))):0};
 const safeNumber=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)?Math.max(-1e12,Math.min(1e12,n)):null};
+const SENSITIVE_KEYS=new Set(["query","note","free_text","email","phone","address","message","comment"]);
 
 const sanitizeJson=(value:unknown,depth=0):unknown=>{
   if(depth>4)return null;
@@ -18,7 +20,7 @@ const sanitizeJson=(value:unknown,depth=0):unknown=>{
   if(value&&typeof value==="object"){
     const out:Record<string,unknown>={};
     for(const [k,v] of Object.entries(value as Record<string,unknown>).slice(0,40)){
-      if(!/^[A-Za-z0-9_:-]{1,80}$/.test(k))continue;
+      if(!/^[A-Za-z0-9_:-]{1,80}$/.test(k)||SENSITIVE_KEYS.has(k.toLowerCase()))continue;
       out[k]=sanitizeJson(v,depth+1);
     }
     return out;
@@ -35,9 +37,13 @@ Deno.serve(async(req)=>{
   if(Number.isFinite(len)&&len>131072)return reply(req,{error:"payload_too_large"},413);
   try{
     const body=await req.json();
-    const locale=clean(body?.locale,16), consent=clean(body?.consent_version||"v1",80), instrument=clean(body?.instrument_version||"probe-player-v4.1",80), family=clean(body?.probe_family,16), world=clean(body?.world_variant||"default",100), terminal=clean(body?.terminal_action,160), submission=clean(body?.client_submission_id,36);
+    const locale=clean(body?.locale,16), requestedConsent=clean(body?.consent_version,80), instrument=clean(body?.instrument_version||"probe-player-v4.1",80), family=clean(body?.probe_family,16), world=clean(body?.world_variant||"default",100), terminal=clean(body?.terminal_action,160), submission=clean(body?.client_submission_id,36), studyVersion=clean(body?.study_version,80), market=clean(body?.market,8);
+    const goldenAttempt=isGoldenAttempt({consent:requestedConsent,instrument,studyVersion});
+    const consent=requestedConsent||(!goldenAttempt?"v1":"");
     const raw=body?.events;
     if(!ALLOWED_LOCALES.has(locale)||!/^[A-Za-z0-9_.:-]{1,80}$/.test(consent)||!family||!submission||!Array.isArray(raw)||raw.length<1||raw.length>250)return reply(req,{error:"invalid_payload"},400);
+    const goldenError=validateGoldenSubmission({locale,consent,instrument,family,world,studyVersion,market,events:raw});
+    if(goldenError)return reply(req,{error:goldenError},400);
     if(!/^[0-9a-f-]{36}$/i.test(submission)||!/^PF0[1-8]$/.test(family))return reply(req,{error:"invalid_identifier"},400);
     const events=raw.map((e:any,i:number)=>{
       const safe=(sanitizeJson(e,0)||{}) as Record<string,unknown>;
