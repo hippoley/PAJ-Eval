@@ -94,3 +94,23 @@ test('three-world path replaces ambiguous unlabeled progress bars',()=>{
   assert.ok(html.includes("renderWorldPath('interventionPath','career')"));
   assert.ok(!html.includes('<div class="progress"><span class="on"></span><span></span><span></span><span></span><span></span></div>'));
 });
+
+
+test('contextual Peek keeps the user anchored while inspecting recommended evidence',()=>{
+  for(const token of [
+    'id="peekLayer" class="peekLayer hidden"',
+    'function openPeek(world,i)',
+    'function closePeek()',
+    "peek:true",
+    "el.querySelectorAll('.guideChip').forEach(b=>b.onclick=()=>openPeek(world,Number(b.dataset.i)))",
+    "document.addEventListener('keydown',e=>{if(e.key==='Escape')closePeek()})",
+  ]) assert.ok(html.includes(token),token);
+});
+
+test('product cards have restrained tactile motion with reduced-motion fallback',()=>{
+  assert.ok(html.includes('bindProductMotion()'));
+  assert.ok(html.includes("matchMedia('(prefers-reduced-motion: reduce)').matches"));
+  assert.ok(html.includes('--ry'));
+  assert.ok(html.includes('--rx'));
+  assert.ok(html.includes('@media(prefers-reduced-motion:reduce)'));
+});
