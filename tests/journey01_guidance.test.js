@@ -86,8 +86,9 @@ test('soft guidance stays inside ordinary participant language',()=>{
   }
 });
 
-test('ordinary offer open action is locale-driven',()=>{
-  assert.ok(html.includes('${U.guide.open} →'));
+test('offer opening is native to the inbox row rather than an experiment-style open button',()=>{
+  assert.ok(html.includes('class="mailRow openOfferRow"'));
+  assert.ok(html.includes("document.querySelectorAll('.openOfferRow')"));
   assert.ok(!html.includes('>打开 →</button>'));
 });
 
@@ -133,11 +134,13 @@ test('product visuals expose shoppable evidence hotspots',()=>{
 });
 
 
-test('product focus is direct manipulation rather than another navigation layer',()=>{
+test('product focus becomes a real product-detail page rather than a research focus state',()=>{
   assert.ok(html.includes('function focusProduct(j)'));
+  assert.ok(html.includes('function renderProductDetail(j)'));
+  assert.ok(html.includes('class="productDetail"'));
+  assert.ok(html.includes('class="productDetailVisual"'));
+  assert.ok(html.includes('class="productDetailActions"'));
   assert.ok(html.includes("log('focus_object',{world:'shop'"));
-  assert.ok(html.includes("card.classList.toggle('focused'"));
-  assert.ok(html.includes("card.classList.toggle('deemphasized'"));
   assert.ok(!html.includes('function contextFocus(world)'));
 });
 
