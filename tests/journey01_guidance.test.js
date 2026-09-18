@@ -156,3 +156,17 @@ test('soft guidance does not rank one evidence item as the prescribed next step'
   assert.ok(!html.includes("class=\"contextAction ${done?'done':''} ${isNext?'next':''}\""));
   assert.ok(!html.includes('contextAction.next'));
 });
+
+
+test('focus-before-commit grammar is shared across products offers and flights',()=>{
+  for(const token of [
+    'function focusProduct(j)',
+    'function focusOffer(k)',
+    'function focusFlight(k)',
+    "log('focus_object',{world:'shop'",
+    "log('focus_object',{world:'career'",
+    "log('focus_object',{world:'travel'",
+    'class="mailRow" data-k="A" tabindex="0"',
+    'class="flightRow" data-k="${o.key}" tabindex="0"',
+  ]) assert.ok(html.includes(token),token);
+});
