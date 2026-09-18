@@ -22,7 +22,7 @@ test('Journey 01 guidance pack is valid and covers exactly ten locales',()=>{
 test('every locale has soft guidance and visual decision-map copy',()=>{
   const ui=loadUi();
   for(const [locale,p] of Object.entries(ui)){
-    for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional','open','back','focused']){
+    for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional','open','back','focused','cue']){
       assert.ok(p.guide[key]&&p.guide[key].length>0,locale+' guide '+key);
     }
     for(const key of ['title','sub','opened','missed','decision','consequence','revisions','details','empty','shop','career','travel','stages']){
@@ -102,16 +102,19 @@ test('three-world path replaces ambiguous unlabeled progress bars',()=>{
 });
 
 
-test('contextual evidence stays inside the dedicated rail instead of opening another layer',()=>{
+test('guidance rail and subject canvas are behaviorally distinct',()=>{
   for(const token of [
-    'function openContextDetail(world,i,targetId)',
-    "context:true",
-    'contextDetailContent(world,i)',
-    'contextBack',
-    "el.querySelector('.contextBack').onclick=()=>updateGuide(world,targetId)",
+    'contextLayerTag',
+    'U.guide.cue',
+    'function navigateEvidence(world,i,targetId)',
+    "log('guidance_follow',{world,object:'nav_'+i})",
+    "if(world==='shop'){if(targetId==='checkoutContext')show('shop');shopView(i);return}",
+    "if(world==='career'){careerView(i);return}",
+    'travelView(i);',
   ]) assert.ok(html.includes(token),token);
+  assert.ok(!html.includes('function contextDetailContent(world,i)'));
+  assert.ok(!html.includes('function openContextDetail(world,i,targetId)'));
   assert.ok(!html.includes('id="peekLayer" class="peekLayer hidden"'));
-  assert.ok(!html.includes('function openPeek(world,i)'));
 });
 
 test('product cards have restrained tactile motion with reduced-motion fallback',()=>{
@@ -125,7 +128,7 @@ test('product cards have restrained tactile motion with reduced-motion fallback'
 
 test('product visuals expose shoppable evidence hotspots',()=>{
   assert.ok(html.includes('class="visualHotspot"'));
-  assert.ok(html.includes("openContextDetail('shop',Number(b.dataset.peek))"));
+  assert.ok(html.includes("navigateEvidence('shop',Number(b.dataset.peek))"));
   assert.ok(html.includes('@keyframes hotPulse'));
   assert.ok(html.includes('prefers-reduced-motion:reduce'));
 });
@@ -169,4 +172,12 @@ test('focus-before-commit grammar is shared across products offers and flights',
     'class="mailRow" data-k="A" tabindex="0"',
     'class="flightRow" data-k="${o.key}" tabindex="0"',
   ]) assert.ok(html.includes(token),token);
+});
+
+
+test('visual language makes guidance quieter than the subject canvas',()=>{
+  assert.ok(html.includes('border-left:1px dashed #c8c1b5'));
+  assert.ok(html.includes('background:linear-gradient(180deg,#f4f1ea 0,#eeebe4 100%)'));
+  assert.ok(html.includes('background:var(--paper);box-shadow:14px 0 34px'));
+  assert.ok(html.includes('class="contextLayerTag"'));
 });
