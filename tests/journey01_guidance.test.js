@@ -60,9 +60,10 @@ test('participant result is an interactive state map, not a raw log',()=>{
     'renderDecisionMap()',
     'inspectMapWorld(world)',
     'mapWorldData(world)',
-    'mapNode choice',
-    'mapNode consequence',
-    'mapNode missed',
+    'mapOrb',
+    'mapChoice',
+    'mapOutcome',
+    'mapStat missed',
   ]) assert.ok(html.includes(token),token);
   assert.ok(html.includes('id="rawTraceCard" class="card hidden"'));
   assert.ok(html.includes("if(devMode){$('rawTraceCard').classList.remove('hidden')"));
@@ -136,4 +137,14 @@ test('product focus is direct manipulation rather than another navigation layer'
   assert.ok(html.includes("card.classList.toggle('focused'"));
   assert.ok(html.includes("card.classList.toggle('deemphasized'"));
   assert.ok(html.includes('contextFocus(world)'));
+});
+
+
+test('state graph is overview-first and defers detail to the inspector',()=>{
+  assert.ok(html.includes('class="mapOrb"'));
+  assert.ok(html.includes('class="mapChoice"'));
+  assert.ok(html.includes('class="mapOutcome"'));
+  assert.ok(html.includes('class="mapStats"'));
+  assert.ok(html.includes('class="mapInspector"'));
+  assert.ok(!html.includes('class="mapLane"'));
 });
