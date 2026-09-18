@@ -139,7 +139,7 @@ test('product focus is direct manipulation rather than another navigation layer'
   assert.ok(html.includes("log('focus_object',{world:'shop'"));
   assert.ok(html.includes("card.classList.toggle('focused'"));
   assert.ok(html.includes("card.classList.toggle('deemphasized'"));
-  assert.ok(html.includes('contextFocus(world)'));
+  assert.ok(!html.includes('function contextFocus(world)'));
 });
 
 
@@ -180,4 +180,16 @@ test('visual language makes guidance quieter than the subject canvas',()=>{
   assert.ok(html.includes('background:linear-gradient(180deg,#f4f1ea 0,#eeebe4 100%)'));
   assert.ok(html.includes('background:var(--paper);box-shadow:14px 0 34px'));
   assert.ok(html.includes('class="contextLayerTag"'));
+});
+
+
+test('guidance can collapse without removing the playable subject',()=>{
+  for(const token of [
+    'workspace.guidanceCollapsed',
+    'contextRail.collapsed',
+    'contextCollapsedButton',
+    "el.dataset.collapsed==='1'",
+    "el.dataset.collapsed='1'",
+    "el.dataset.collapsed='0'",
+  ]) assert.ok(html.includes(token),token);
 });
