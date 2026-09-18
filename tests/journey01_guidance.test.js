@@ -39,8 +39,7 @@ test('Journey 01 has one clear hierarchy: navigation, primary canvas, contextual
     'id="checkoutContext" class="contextRail"',
     'grid-template-columns:188px minmax(0,1fr) 282px',
     'contextActions',
-    'contextMeter',
-    'meterTrack',
+    'contextHintNote',
     'guideSpec(world)',
     "indices:[1,2,3]",
     "indices:[1,2,5]",
@@ -192,4 +191,12 @@ test('guidance can collapse without removing the playable subject',()=>{
     "el.dataset.collapsed='1'",
     "el.dataset.collapsed='0'",
   ]) assert.ok(html.includes(token),token);
+});
+
+
+test('guidance is optional context rather than a completion meter',()=>{
+  assert.ok(html.includes('contextHintNote'));
+  assert.ok(!html.includes('contextMeter'));
+  assert.ok(!html.includes('meterTrack'));
+  assert.ok(!html.includes('Math.round((checked/g.indices.length)*100)'));
 });
