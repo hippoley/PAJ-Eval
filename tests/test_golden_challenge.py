@@ -197,7 +197,8 @@ def test_localization_contract_requires_affordance_invariance_not_literal_equali
 
 def test_formal_trace_does_not_record_free_form_search_text():
     assert "query:q" not in HTML
-    assert "query_chars:q.length" in HTML
+    assert "query:value" not in HTML
+    assert "query_chars:value.length" in HTML
 
 
 def test_pf01_uses_real_application_surface_patterns():
@@ -217,7 +218,7 @@ def test_pf01_uses_real_application_surface_patterns():
 
 
 def test_pf01_search_is_free_form_but_does_not_persist_query_text():
-    assert 'id="searchQ"' in HTML
-    assert "searchSuggestion" in HTML
-    assert "query_chars:q.length" in HTML
+    assert 'id="storeSearchQ"' in HTML
+    assert "query_chars:value.length" in HTML
+    assert "query:value" not in HTML
     assert "query:q" not in HTML
