@@ -29,7 +29,7 @@ test('challenge suite offers exactly ten explicit market locales',()=>{
 
 test('showcase clearly separates preview from formal research ingestion',()=>{
   assert.match(html,/Preview mode is local-only/i);
-  assert.match(html,/direct journey link/i);
+  assert.match(html,/consented study link/i);
   assert.match(html,/not connected to canonical research ingestion/i);
   assert.ok(!html.includes('PAJTransport'));
   assert.ok(!html.toLowerCase().includes('supabase'));
