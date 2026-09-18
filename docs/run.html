@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PAJ-Eval · Interactive Task</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#f1efe8;overflow:hidden}#frame{display:block;width:100%;height:100%;border:0;background:#f1efe8}.error{max-width:680px;margin:12vh auto;padding:24px;font:16px/1.6 system-ui,sans-serif;color:#333;background:#fffefa;border:1px solid #ddd9cf;border-radius:18px}
+</style></head>
+<body><div id="error" class="error" hidden>Unable to open this task. Please use the link provided by the researcher.</div><iframe id="frame" title="Interactive task"></iframe>
+<script>
+const ROUTES={'01':'challenge.html','02':'challenge-pf02.html','03':'challenge-pf03.html','04':'challenge-pf04.html','05':'challenge-pf05.html','06':'challenge-pf06.html','07':'challenge-pf07.html','08':'challenge-pf08.html'};
+const LOCALES=new Set(['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru']);
+const p=new URLSearchParams(location.search),journey=p.get('journey')||'',locale=LOCALES.has(p.get('locale'))?p.get('locale'):'en',study=p.get('study')==='1';
+if(!ROUTES[journey]){document.getElementById('frame').hidden=true;document.getElementById('error').hidden=false}
+else{
+  const q=new URLSearchParams({locale});
+  if(study)q.set('study','1');
+  document.getElementById('frame').src=ROUTES[journey]+'?'+q.toString();
+}
+</script></body></html>
