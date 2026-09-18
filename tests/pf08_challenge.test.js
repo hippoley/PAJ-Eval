@@ -87,7 +87,7 @@ test('PF08 captures first opening, revisits, relations and omissions',()=>{
 });
 
 test('PF08 uses a neutral transition rather than a structural intervention',()=>{
-  assert.ok(playerSource.includes('neutral_transition'));
+  assert.ok(playerSource.includes('workspace_transition'));
   assert.ok(!playerSource.includes('minimal_intervention'));
   assert.ok(!html.toLowerCase().includes('intervention'));
 });
