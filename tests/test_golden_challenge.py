@@ -167,8 +167,8 @@ def test_challenge_is_local_only_and_does_not_pollute_research_backend():
 
 
 def test_participant_surface_does_not_name_probe_constructs():
-    visible = re.sub(r"<script[\\s\\S]*?</script>", " ", HTML, flags=re.I)
-    visible = re.sub(r"<style[\\s\\S]*?</style>", " ", visible, flags=re.I)
+    visible = re.sub(r"<script[\s\S]*?</script>", " ", HTML, flags=re.I)
+    visible = re.sub(r"<style[\s\S]*?</style>", " ", visible, flags=re.I)
     visible = re.sub(r"<[^>]+>", " ", visible)
     for forbidden in [
         "PF01",
