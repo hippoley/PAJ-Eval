@@ -5,6 +5,9 @@ async function load(){
   return import('../supabase/functions/ingest-probe/contract.mjs?ts='+Date.now());
 }
 
+const NOW=Date.parse('2026-09-18T02:30:00Z');
+const CONSENTED='2026-09-18T02:20:00Z';
+
 function validEvent(seq,type,t=seq*10){
   return {
     seq,t,event:type,locale:'en',market:'US',study_version:'golden-study-v1',
@@ -24,14 +27,14 @@ test('strict Golden contract accepts a complete PF08 trace',async()=>{
   assert.equal(validateGoldenSubmission({
     locale:'en',consent:'golden-consent-v1',instrument:'golden-pf08-v1',
     family:'PF08',world:'golden-open-workspaces-v1',studyVersion:'golden-study-v1',
-    market:'US',events
+    market:'US',consentedAtClient:CONSENTED,nowMs:NOW,events
   }),null);
 });
 
 test('Golden instrument family world consent and market are bound together',async()=>{
   const {validateGoldenSubmission}=await load();
   const events=[validEvent(1,'session_start'),validEvent(2,'open_object'),validEvent(3,'commit'),validEvent(4,'session_complete')];
-  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-pf08-v1',family:'PF08',world:'golden-open-workspaces-v1',studyVersion:'golden-study-v1',market:'US',events};
+  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-pf08-v1',family:'PF08',world:'golden-open-workspaces-v1',studyVersion:'golden-study-v1',market:'US',consentedAtClient:CONSENTED,nowMs:NOW,events};
   assert.equal(validateGoldenSubmission({...base,family:'PF07'}),'golden_contract_mismatch');
   assert.equal(validateGoldenSubmission({...base,world:'golden-three-world-v1'}),'golden_contract_mismatch');
   assert.equal(validateGoldenSubmission({...base,consent:'v1'}),'golden_consent_required');
@@ -40,7 +43,7 @@ test('Golden instrument family world consent and market are bound together',asyn
 
 test('Golden trace requires normalized envelope raw evidence and terminal shape',async()=>{
   const {validateGoldenSubmission}=await load();
-  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-challenge-v2',family:'PF01',world:'golden-three-world-v1',studyVersion:'golden-study-v1',market:'US'};
+  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-challenge-v2',family:'PF01',world:'golden-three-world-v1',studyVersion:'golden-study-v1',market:'US',consentedAtClient:CONSENTED,nowMs:NOW};
   const ok=[validEvent(1,'session_start'),validEvent(2,'open_object'),validEvent(3,'commit'),validEvent(4,'session_complete')];
   assert.equal(validateGoldenSubmission({...base,events:ok.map((e,i)=>({...e,seq:i+1}))}),null);
   assert.equal(validateGoldenSubmission({...base,events:ok.map((e,i)=>i===1?{...e,envelope_version:'bad'}:e)}),'golden_envelope_required');
@@ -51,12 +54,20 @@ test('Golden trace requires normalized envelope raw evidence and terminal shape'
 
 test('Golden trace rejects sequence time locale and event metadata drift',async()=>{
   const {validateGoldenSubmission}=await load();
-  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-pf06-v1',family:'PF06',world:'golden-three-world-v1',studyVersion:'golden-study-v1',market:'US'};
+  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-pf06-v1',family:'PF06',world:'golden-three-world-v1',studyVersion:'golden-study-v1',market:'US',consentedAtClient:CONSENTED,nowMs:NOW};
   const ok=[validEvent(1,'session_start',0),validEvent(2,'open_object',10),validEvent(3,'commit',20),validEvent(4,'session_complete',30)];
   assert.equal(validateGoldenSubmission({...base,events:ok.map((e,i)=>i===2?{...e,seq:2}:e)}),'golden_sequence_invalid');
   assert.equal(validateGoldenSubmission({...base,events:ok.map((e,i)=>i===2?{...e,t:5}:e)}),'golden_time_invalid');
   assert.equal(validateGoldenSubmission({...base,events:ok.map((e,i)=>i===1?{...e,locale:'fr'}:e)}),'golden_event_locale_mismatch');
   assert.equal(validateGoldenSubmission({...base,events:ok.map((e,i)=>i===1?{...e,market:'FR'}:e)}),'golden_event_market_mismatch');
+});
+
+test('Golden contract rejects missing or stale consent timestamps',async()=>{
+  const {validateGoldenSubmission}=await load();
+  const events=[validEvent(1,'session_start'),validEvent(2,'open_object'),validEvent(3,'commit'),validEvent(4,'session_complete')];
+  const base={locale:'en',consent:'golden-consent-v1',instrument:'golden-pf02-v1',family:'PF02',world:'golden-three-world-v1',studyVersion:'golden-study-v1',market:'US',events,nowMs:NOW};
+  assert.equal(validateGoldenSubmission(base),'golden_consent_timestamp_required');
+  assert.equal(validateGoldenSubmission({...base,consentedAtClient:'2026-09-17T20:00:00Z'}),'golden_consent_timestamp_stale');
 });
 
 test('legacy non-Golden submissions are not forced through the Golden contract',async()=>{
