@@ -30,7 +30,10 @@
       if(!/^PF0[1-8]$/.test(String(family||''))) return null;
       if(!/^[0-9a-f-]{36}$/i.test(String(ctx.client_submission_id||''))) return null;
       if(!Number.isFinite(ctx.issued_at)||Date.now()-ctx.issued_at>MAX_AGE_MS) return null;
-      return {...ctx,family};
+      const consentedAt=ctx.consented_at_client||new Date(ctx.issued_at).toISOString();
+      const consentMs=Date.parse(consentedAt);
+      if(!Number.isFinite(consentMs)||consentMs>Date.now()+300000||Date.now()-consentMs>MAX_AGE_MS) return null;
+      return {...ctx,family,consented_at_client:consentedAt};
     }catch{return null}
   }
   function textFor(locale,key){return (COPY[locale]||COPY.en)[key]}
@@ -96,6 +99,7 @@
         terminal_action:meta.terminal_action||'',
         market:meta.market,
         study_version:'golden-study-v1',
+        consented_at_client:ctx.consented_at_client,
         events
       };
       const result=await getTransport().submit(payload);
