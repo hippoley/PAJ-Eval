@@ -23,6 +23,21 @@
 .visualHotspot{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:7px;border:1px solid #d7d1c6;border-radius:999px;background:rgba(255,255,255,.86);backdrop-filter:blur(8px);padding:5px 8px 5px 5px;cursor:pointer;box-shadow:0 8px 20px #3a32261a}.visualHotspot span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#1d1d1d;color:white;font-size:15px}.visualHotspot em{font-style:normal;font-size:11px;color:#4d4942;max-width:108px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.visualHotspot:hover{border-color:#aaa399;transform:translateY(-1px)}.visualHotspot:after{content:"";position:absolute;left:5px;top:5px;width:24px;height:24px;border:1px solid rgba(29,29,29,.25);border-radius:50%;animation:hotPulse 2.2s ease-out infinite}@keyframes hotPulse{0%{transform:scale(.8);opacity:.65}75%,100%{transform:scale(1.8);opacity:0}}@media(prefers-reduced-motion:reduce){.visualHotspot:after{animation:none}}
 @media(max-width:760px){.peekLayer{grid-template-columns:1fr}.peekScrim{position:absolute;inset:0}.peekPanel{position:absolute;left:8px;right:8px;bottom:8px;height:min(76vh,720px);border:1px solid #c9c3b7;border-radius:18px;animation:peekUp .24s cubic-bezier(.2,.85,.2,1)}@keyframes peekUp{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}}
 @media(prefers-reduced-motion:reduce){.screen:not(.hidden),.peekPanel,.productCard{animation:none!important;transition:none!important;transform:none!important}}
+
+#shop,#checkout{--world-accent:#c95331;--world-accent-soft:#fff1e9;--world-rail:#f4efe7}
+#career{--world-accent:#53678e;--world-accent-soft:#eef1f7;--world-rail:#f0f2f6}
+#travel{--world-accent:#2e746d;--world-accent-soft:#eaf5f2;--world-rail:#eef4f2}
+#shop .workspace,#checkout .workspace,#career .workspace,#travel .workspace{background:var(--paper)}
+#shop .contextRail,#checkout .contextRail,#career .contextRail,#travel .contextRail{background:var(--world-rail)}
+#shop .nav button.active:before,#checkout .nav button.active:before,#career .nav button.active:before,#travel .nav button.active:before{background:var(--world-accent);border-color:var(--world-accent)}
+#shop .contextFlow span.on,#checkout .contextFlow span.on,#career .contextFlow span.on,#travel .contextFlow span.on{background:var(--world-accent)}
+#shop .meterTrack i,#checkout .meterTrack i,#career .meterTrack i,#travel .meterTrack i{background:var(--world-accent)}
+#shop .contextFocus,#checkout .contextFocus,#career .contextFocus,#travel .contextFocus{background:var(--world-accent)}
+#shop .contextAction.done,#checkout .contextAction.done,#career .contextAction.done,#travel .contextAction.done{background:var(--world-accent-soft);border-color:color-mix(in srgb,var(--world-accent) 22%,#ddd)}
+#career .mailDot{background:var(--world-accent)}
+#travel .timeEvent:before{border-color:var(--world-accent)}
+#travel .routeDot{background:var(--world-accent)}
+#shop .visualHotspot span{background:var(--world-accent)}
 </style><script src="challenge-packs.js"></script><script src="challenge-depth.js"></script>\n<script src="journey01-ui.js"></script>\n<script src="golden-study-bridge.js"></script></head>
 <body><div class="app"><header class="top"><div class="row" style="margin:0"><span id="market" class="badge"></span><select id="locale"></select></div></header>
 <section id="intro" class="screen"><div class="hero"><div id="introEy" class="ey"></div><h1 id="introTitle"></h1><p id="introLead" class="lead"></p><button id="startBtn" class="primary"></button><p id="introHelp" class="help"></p><div id="introPath" class="worldPath"></div><div id="localeNote" class="localeNote"></div></div></section>
