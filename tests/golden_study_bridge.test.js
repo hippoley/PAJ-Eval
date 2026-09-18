@@ -66,6 +66,7 @@ test('study launcher writes sessionStorage only after explicit consent click',()
   assert.ok(studyHtml.includes("sessionStorage.setItem('paj_golden_study_v1'"));
   assert.ok(studyHtml.includes("consent_version:'golden-consent-v1'"));
   assert.ok(studyHtml.includes('crypto.randomUUID()'));
+  assert.ok(studyHtml.includes('consented_at_client:new Date(now).toISOString()'));
   assert.ok(studyHtml.includes("location.href='run.html?journey='"));
   assert.ok(!studyHtml.includes('?family=PF'));
   assert.ok(!studyHtml.includes('localStorage.'));
@@ -144,6 +145,7 @@ test('consented completion submits one stable rich payload through the formal qu
   assert.equal(payload.consent_version,'golden-consent-v1');
   assert.equal(payload.probe_family,'PF08');
   assert.equal(payload.market,'US');
+  assert.ok(Date.parse(payload.consented_at_client)>0);
   assert.equal(payload.events[0].raw_event.relation,'rg');
   const stored=JSON.parse(store.get('paj_golden_study_v1'));
   assert.equal(stored.completed,true);
