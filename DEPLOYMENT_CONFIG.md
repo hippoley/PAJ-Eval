@@ -27,9 +27,9 @@ Current canonical deployment:
 
 No service-role/database/admin secret belongs in GitHub Pages, the repository, or a participant browser.
 
-## Server-side idempotency and atomicity
+## Server-side idempotency, consent, and atomicity
 
-The database migration `supabase/migrations/20260917_atomic_probe_ingestion_v2.sql` defines `ingest_probe_atomic(...)`.
+The historical migration `supabase/migrations/20260917_atomic_probe_ingestion_v2.sql` defines the first atomic RPC. The current branch adds `supabase/migrations/20260918_consent_aware_ingestion_v4.sql`, which defines `ingest_probe_atomic_v4(...)` and stores the explicit `consent_version` supplied by the participant flow while preserving rich event payload fields.
 
 The server boundary must independently guarantee what the browser cannot:
 
@@ -43,6 +43,35 @@ The server boundary must independently guarantee what the browser cannot:
 A synthetic PF01 submission was executed directly against the deployed RPC using one UUID twice. The first invocation returned `duplicate=false`; the second returned `duplicate=true`; both returned the same session id. A follow-up database read showed exactly one session, one probe run, and two events for that submission. The synthetic session was then deleted after verification.
 
 This verifies deployed server-side idempotency and atomic insertion behavior rather than only repository source text.
+
+
+## Formal Golden study flow
+
+The Golden-depth journeys remain ordinary local previews unless the participant enters through `docs/study.html?family=PF01..PF08&locale=<locale>` and explicitly checks the consent box.
+
+The consented path is:
+
+```text
+study.html
+  → explicit consent
+  → sessionStorage consent context + stable client_submission_id
+  → direct journey with ?study=1
+  → golden-study-bridge.js
+  → lazy-load golden-event-normalizer.js + transport.js
+  → isolated IndexedDB queue paj-golden-study-queue-v1
+  → ingest-probe
+  → ingest_probe_atomic_v4(...)
+```
+
+Important boundaries:
+
+- preview journeys do not load the durable transport or open IndexedDB;
+- the study bridge refuses submission without a fresh consent context, matching PF family, locale, and stable UUID;
+- the formal queue is isolated from the canonical player queue so a stale unrelated submission cannot block a study retry;
+- raw family-specific events are retained inside the normalized event envelope rather than flattened away;
+- participant pages still do not expose PF labels or latent construct names.
+
+The repository source now targets the v4 consent-aware RPC. Before formal Golden collection is enabled operationally, deploy the v4 migration and updated `ingest-probe` Edge Function, then run the authenticated researcher replay smoke test. Do not describe the v4 path as deployed merely because these files exist in the branch.
 
 ## Research Session Browser
 
@@ -62,7 +91,7 @@ session / probe_runs / ordered events / derived_features / evaluations
 
 The researcher API must fail closed. If probe runs, events, derived features, or evaluations cannot be read successfully, the API returns `research_read_failed` instead of presenting a partial trajectory as complete.
 
-The browser now supports sessions containing multiple probe runs. Events and derived features are grouped by `probe_run_id`, each run is replayed independently, orphan events are surfaced explicitly, and a session can be opened directly with `research.html?session_id=<uuid>`.
+The browser now supports sessions containing multiple probe runs. Events and derived features are grouped by `probe_run_id`, each run is replayed independently, orphan events are surfaced explicitly, and a session can be opened directly with `research.html?session_id=<uuid>`. Each event can also be expanded to inspect its stored `payload_json`, which is required for Golden family-specific fields such as experiment budget, delayed-check timing, objective-artifact state, and PF08 relation/omission traces.
 
 ## Researcher-account operational gate
 
