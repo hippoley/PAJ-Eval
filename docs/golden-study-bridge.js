@@ -14,7 +14,9 @@
     pt:{saving:'Salvando o registro de pesquisa…',saved:'Registro salvo. Você já pode fechar esta página.',queued:'Sem rede. O registro foi enfileirado com segurança e será reenviado quando a conexão voltar.',invalid:'Esta página não é uma sessão formal de pesquisa ativa.'},
     ru:{saving:'Сохраняем запись исследования…',saved:'Запись сохранена. Эту страницу можно закрыть.',queued:'Сети нет. Запись безопасно поставлена в очередь и будет отправлена после восстановления связи.',invalid:'Эта страница не является активной формальной исследовательской сессией.'}
   };
-  let transport=null,activeWork=null;
+  let transport=null,activeWork=null,depsPromise=null;
+  function loadScript(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.async=false;el.onload=()=>resolve();el.onerror=()=>reject(new Error('dependency_load_failed:'+src));document.head.appendChild(el)})}
+  function ensureDeps(){if(depsPromise)return depsPromise;depsPromise=(async()=>{if(!root.PAJGoldenEvents)await loadScript('golden-event-normalizer.js');if(!root.PAJTransport)await loadScript('transport.js')})();return depsPromise}
 
   function readContext(){
     try{
@@ -63,6 +65,7 @@
     activeWork=(async()=>{
       validMeta(meta,ctx);
       setStatus(ctx.locale,'saving');
+      await ensureDeps();
       const normalized=root.PAJGoldenEvents
         ? root.PAJGoldenEvents.normalizeTrace({family:ctx.family,locale:ctx.locale,market:meta.market,instrument_version:meta.instrument_version},meta.events)
         : {events:meta.events.map((e,i)=>({seq:e.seq||i+1,t_ms:e.t_ms??e.t??0,event:e.type||e.event||'unknown',world:e.world||e.screen||null,target:e.object||e.target||e.action||e.choice||null,raw_event:e}))};
@@ -103,6 +106,7 @@
   async function retryConsentedQueue(){
     const ctx=readContext();if(!ctx)return [];
     try{
+      await ensureDeps();
       const results=await getTransport().retryAll();
       const saved=results.find(x=>x.client_submission_id===ctx.client_submission_id&&x.state==='saved');
       if(saved){
