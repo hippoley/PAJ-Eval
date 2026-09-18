@@ -39,4 +39,7 @@ test('research replay still expands raw payload json',()=>{
   assert.ok(source.includes('payload_json'));
   assert.ok(source.includes('JSON.stringify(e.payload_json||{},null,2)'));
   assert.ok(html.includes('app_metadata.role = researcher'));
+  assert.ok(source.includes('consented_at_client'));
+  assert.ok(source.includes('study_version'));
+  assert.ok(source.includes('market'));
 });
