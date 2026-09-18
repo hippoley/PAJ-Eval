@@ -32,6 +32,7 @@
     }catch{return null}
   }
   function textFor(locale,key){return (COPY[locale]||COPY.en)[key]}
+  function lockFormalSurface(ctx){const apply=()=>{const sel=document.getElementById('locale');if(sel){sel.value=ctx.locale;sel.disabled=true;sel.setAttribute('aria-disabled','true')}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',apply,{once:true});else apply()}
   function ensureStatus(){
     let el=document.getElementById('goldenStudyStatus');
     if(el)return el;
@@ -122,6 +123,7 @@
   root.PAJGoldenStudy=api;
   const ctx=readContext();
   if(ctx){
+    lockFormalSurface(ctx);
     window.addEventListener('online',()=>retryConsentedQueue());
     queueMicrotask(()=>retryConsentedQueue());
   }
