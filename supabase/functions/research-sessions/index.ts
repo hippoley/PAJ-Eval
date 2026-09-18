@@ -25,7 +25,7 @@ Deno.serve(async(req)=>{
     const sessionId=url.searchParams.get("session_id");
     if(sessionId){
       if(!UUID.test(sessionId))return json(req,{error:"invalid_session_id"},400);
-      const {data:s,error:se}=await sb.from("sessions").select("session_id,created_at,completed_at,locale,consent_version,instrument_version,assignment_id,treatment_arm,status").eq("session_id",sessionId).single();
+      const {data:s,error:se}=await sb.from("sessions").select("session_id,created_at,completed_at,locale,consent_version,consented_at_client,instrument_version,study_version,market,assignment_id,treatment_arm,status").eq("session_id",sessionId).single();
       if(se||!s)return json(req,{error:"not_found"},404);
 
       const [runsQ,eventsQ,evalsQ]=await Promise.all([
@@ -51,7 +51,7 @@ Deno.serve(async(req)=>{
 
     const rawLimit=Number(url.searchParams.get("limit")||50);
     const limit=Number.isFinite(rawLimit)?Math.min(100,Math.max(1,Math.trunc(rawLimit))):50;
-    const {data,error}=await sb.from("sessions").select("session_id,created_at,completed_at,locale,consent_version,instrument_version,client_schema_version,status").order("created_at",{ascending:false}).limit(limit);
+    const {data,error}=await sb.from("sessions").select("session_id,created_at,completed_at,locale,consent_version,consented_at_client,instrument_version,study_version,market,client_schema_version,status").order("created_at",{ascending:false}).limit(limit);
     if(error){console.error(error);return json(req,{error:"research_read_failed"},500)}
     return json(req,{sessions:data||[]});
   }catch(e){
