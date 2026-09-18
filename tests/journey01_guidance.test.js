@@ -114,3 +114,11 @@ test('product cards have restrained tactile motion with reduced-motion fallback'
   assert.ok(html.includes('--rx'));
   assert.ok(html.includes('@media(prefers-reduced-motion:reduce)'));
 });
+
+
+test('product visuals expose shoppable evidence hotspots',()=>{
+  assert.ok(html.includes('class="visualHotspot"'));
+  assert.ok(html.includes("openPeek('shop',Number(b.dataset.peek))"));
+  assert.ok(html.includes('@keyframes hotPulse'));
+  assert.ok(html.includes('prefers-reduced-motion:reduce'));
+});
