@@ -86,8 +86,7 @@ test('PF02-PF07 preserve seed consequence, intervention, near transfer and far t
     for(const token of ['provisional_action','minimal_intervention','post_consequence_action','session_complete']){
       assert.ok(s.includes(token),f.id+' missing '+token);
     }
-    const consequenceEvent=f.id==='PF02'?'post_action_check':'consequence_exposed';
-    assert.ok(s.includes(consequenceEvent),f.id+' missing '+consequenceEvent);
+    assert.ok(s.includes('consequence_exposed'),f.id+' missing consequence_exposed');
     assert.ok(s.includes("show('far')"),f.id+' missing far transfer');
   }
 });
@@ -123,6 +122,7 @@ test('each PF02-PF08 full pack has six ordinary top-level objects per world',()=
 
 test('golden suite preserves raw behavioral signals needed for downstream replay',()=>{
   const required={
+    PF01:['open_object','open_detail','provisional_commit','consequence_exposed','post_consequence_action','commit','minimal_intervention'],
     PF02:['open_object','open_detail','provisional_action','post_consequence_action','commit'],
     PF03:['open_object','open_detail','request_missing_evidence','provisional_action','commit'],
     PF04:['open_object','open_detail','first_object','provisional_action','commit'],
@@ -131,7 +131,7 @@ test('golden suite preserves raw behavioral signals needed for downstream replay
     PF07:['open_object','open_detail','objective_artifact_opened','provisional_action','commit'],
     PF08:['open_object','open_detail','revisit_object','relation_discovered','omitted','commit'],
   };
-  for(const f of families.filter(x=>x.id!=='PF01')){
+  for(const f of families){
     const s=source(f);
     for(const token of required[f.id]) assert.ok(s.includes(token),f.id+' missing raw signal '+token);
   }
