@@ -62,7 +62,7 @@ test('formal context requires explicit study flag, consent version, family, UUID
 test('study launcher writes sessionStorage only after explicit consent click',()=>{
   assert.ok(studyHtml.includes('id="agree" type="checkbox"'));
   assert.ok(studyHtml.includes("$('begin').disabled=true"));
-  assert.ok(studyHtml.includes("if(!$('agree').checked||!JOURNEYS[journey])return"));
+  assert.ok(studyHtml.includes("if(!$('agree').checked||!JOURNEYS.has(journey))return"));
   assert.ok(studyHtml.includes("sessionStorage.setItem('paj_golden_study_v1'"));
   assert.ok(studyHtml.includes("consent_version:'golden-consent-v1'"));
   assert.ok(studyHtml.includes('crypto.randomUUID()'));
