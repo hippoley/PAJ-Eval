@@ -193,3 +193,8 @@ def test_localization_contract_requires_affordance_invariance_not_literal_equali
         "omission opportunity",
     ]:
         assert phrase in contract
+
+
+def test_formal_trace_does_not_record_free_form_search_text():
+    assert "query:q" not in HTML
+    assert "query_chars:q.length" in HTML
