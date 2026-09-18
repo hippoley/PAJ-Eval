@@ -1,6 +1,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
 const {createTransport}=require('../docs/transport.js');
+const transportSource=fs.readFileSync('docs/transport.js','utf8');
 
 function memoryQueue(log=[]){
   const rows=new Map();
@@ -59,4 +61,11 @@ test('retry preserves queue order and stops after the first failure',async()=>{
   assert.deepEqual(seen,['a','b']);
   assert.deepEqual(out.map(x=>x.state),['saved','queued']);
   assert.deepEqual((await queue.all()).map(x=>x.client_submission_id),['b','c']);
+});
+
+
+test('browser transport supports an isolated IndexedDB queue name',()=>{
+  assert.ok(transportSource.includes("function createBrowserTransport(endpoint,opts={})"));
+  assert.ok(transportSource.includes("opts.dbName||'paj-eval-queue-v2'"));
+  assert.ok(transportSource.includes("opts.storeName||'submissions'"));
 });
