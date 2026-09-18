@@ -29,15 +29,17 @@ const journeys=[
  {id:'07',title:'三个工作区',desc:'AI 方案写得很完整，但原始请求、用户反馈、指标定义和约束仍然散落在工作区里。',route:'PRODUCT → SUPPORT → FIELD SERVICE',worlds:[['PRODUCT','增长方案'],['SUPPORT','客服自动化'],['FIELD SERVICE','上门服务排程']]},
  {id:'08',title:'开放工作区',desc:'不问你“哪里有问题”。只给普通资料，看你自然从哪个对象开始把世界打开。',route:'OPERATIONS → EVENT → FACILITIES',worlds:[['OPERATIONS','没有统一结论'],['EVENT','活动继续推进'],['FACILITIES','设备仍在运行']]}
 ];
-const $=id=>document.getElementById(id);let current=0;
+const $=id=>document.getElementById(id);let current=0;const previewRoutes={'01':'challenge.html','02':'challenge-pf02.html','03':'challenge-pf03.html','04':'challenge-pf04.html','05':'challenge-pf05.html','06':'challenge-pf06.html','07':'challenge-pf07.html','08':'challenge-pf08.html'};
 for(const [k,v] of locales){const o=document.createElement('option');o.value=k;o.textContent=v;$('locale').appendChild(o)}
 $('locale').value=new URLSearchParams(location.search).get('locale')||'zh-CN';
 function journeyUrl(j){return 'run.html?journey='+j.id+'&locale='+encodeURIComponent($('locale').value)}
+function previewUrl(j){return previewRoutes[j.id]+'?locale='+encodeURIComponent($('locale').value)}
 function renderRail(){const html=journeys.map((j,i)=>'<button type="button" class="journeyBtn '+(i===current?'active':'')+'" data-i="'+i+'"><div class="journeyTop"><span class="jnum">JOURNEY '+j.id+'</span><i class="jstate"></i></div><b>'+j.title+'</b><span>'+j.route+'</span></button>').join('');$('journeyList').innerHTML=html;$('mobileRail').innerHTML=html;document.querySelectorAll('.journeyBtn').forEach(b=>b.addEventListener('click',()=>select(Number(b.dataset.i))))}
 function renderInfo(){const j=journeys[current];$('ey').textContent='JOURNEY '+j.id+' / LIVE';$('title').textContent=j.title;$('desc').textContent=j.desc;$('routeLabel').textContent=j.route;$('worlds').innerHTML=j.worlds.map((w,i)=>'<div class="world"><small>0'+(i+1)+'</small><b>'+w[0]+'</b><span>'+w[1]+'</span></div>').join('');$('meta').innerHTML='<span class="chip">'+$('locale').options[$('locale').selectedIndex].text+'</span><span class="chip">local preview</span><span class="chip">no research submit</span>';const u=journeyUrl(j);$('address').textContent=u;$('open').href=u;$('consent').href='study.html?journey='+j.id+'&locale='+encodeURIComponent($('locale').value)+'&preview=1'}
-function loadFrame(){const j=journeys[current],wrap=$('frameWrap');wrap.classList.add('loading');$('frame').src=journeyUrl(j)}
+function fitFrame(){try{const doc=$('frame').contentDocument;if(!doc)return;const h=Math.max(760,Math.min(1180,doc.documentElement.scrollHeight+16));$('frame').style.height=h+'px'}catch{}}
+function loadFrame(){const j=journeys[current],wrap=$('frameWrap');wrap.classList.add('loading');$('frame').src=previewUrl(j)}
 function select(i){current=(i+journeys.length)%journeys.length;renderRail();renderInfo();loadFrame();document.querySelector('.heroRow').classList.remove('flash');void document.querySelector('.heroRow').offsetWidth;document.querySelector('.heroRow').classList.add('flash')}
-$('frame').addEventListener('load',()=>{$('frameWrap').classList.remove('loading')});
+$('frame').addEventListener('load',()=>{$('frameWrap').classList.remove('loading');fitFrame();setTimeout(fitFrame,180)});
 $('locale').addEventListener('change',()=>{history.replaceState(null,'','?locale='+encodeURIComponent($('locale').value));renderInfo();loadFrame()});
 $('reload').addEventListener('click',loadFrame);$('next').addEventListener('click',()=>select(current+1));select(0);
 </script></body></html>
