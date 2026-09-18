@@ -23,6 +23,6 @@ for(const [k,v] of Object.entries(COPY)){const o=document.createElement('option'
 function render(){const c=COPY[locale];$('locale').value=locale;$('title').textContent=c.title;$('lead').textContent=c.lead;$('facts').innerHTML=c.facts.map(x=>'<div class="fact">'+x+'</div>').join('');$('consentText').textContent=c.consent;$('begin').textContent=c.begin;if(!JOURNEYS.has(journey)){$('error').hidden=false;$('error').textContent=c.bad;$('begin').disabled=true}}
 $('locale').onchange=e=>{locale=e.target.value;$('agree').checked=false;$('begin').disabled=true;render()};
 $('agree').onchange=e=>$('begin').disabled=!e.target.checked||!JOURNEYS.has(journey);
-$('begin').onclick=()=>{if(!$('agree').checked||!JOURNEYS.has(journey))return;const ctx={consent_version:'golden-consent-v1',client_submission_id:crypto.randomUUID(),journey,locale,issued_at:Date.now(),completed:false};sessionStorage.setItem('paj_golden_study_v1',JSON.stringify(ctx));location.href='run.html?journey='+encodeURIComponent(journey)+'&locale='+encodeURIComponent(locale)+'&study=1'};
+$('begin').onclick=()=>{if(!$('agree').checked||!JOURNEYS.has(journey))return;const now=Date.now();const ctx={consent_version:'golden-consent-v1',client_submission_id:crypto.randomUUID(),journey,locale,issued_at:now,consented_at_client:new Date(now).toISOString(),completed:false};sessionStorage.setItem('paj_golden_study_v1',JSON.stringify(ctx));location.href='run.html?journey='+encodeURIComponent(journey)+'&locale='+encodeURIComponent(locale)+'&study=1'};
 render();
 </script></body></html>
