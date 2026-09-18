@@ -169,3 +169,28 @@ test('formal completion refuses a family or locale mismatch before submission',a
   await assert.rejects(()=>sandbox.PAJGoldenStudy.complete({family:'PF06',instrument_version:'golden-pf06-v1',locale:'fr',market:'FR',events:[{type:'x'}]}),/study_locale_mismatch/);
   assert.equal(calls,0);
 });
+
+
+test('journey-only consent context derives the internal family without exposing it in the launcher',()=>{
+  const store=new Map();
+  const sandbox={
+    window:null,
+    location:{search:'?study=1&locale=en'},
+    sessionStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
+    document:{readyState:'complete',head:{appendChild(){}},body:{appendChild(){}},createElement:()=>({style:{},dataset:{},hidden:true}),getElementById:()=>null},
+    URLSearchParams,Date,Promise,queueMicrotask:()=>{},addEventListener(){}
+  };
+  sandbox.window=sandbox;
+  vm.createContext(sandbox);
+  new vm.Script(bridgeSource).runInContext(sandbox);
+  store.set(sandbox.PAJGoldenStudy.STUDY_KEY,JSON.stringify({
+    consent_version:'golden-consent-v1',
+    client_submission_id:'55555555-5555-4555-8555-555555555555',
+    journey:'06',locale:'en',issued_at:Date.now(),completed:false
+  }));
+  const ctx=sandbox.PAJGoldenStudy.readContext();
+  assert.equal(ctx.family,'PF06');
+  assert.equal(ctx.journey,'06');
+  assert.ok(!studyHtml.includes("PF06"));
+  assert.ok(!studyHtml.includes("PF01"));
+});
