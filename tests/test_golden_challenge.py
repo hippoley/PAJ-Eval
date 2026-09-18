@@ -198,3 +198,26 @@ def test_localization_contract_requires_affordance_invariance_not_literal_equali
 def test_formal_trace_does_not_record_free_form_search_text():
     assert "query:q" not in HTML
     assert "query_chars:q.length" in HTML
+
+
+def test_pf01_uses_real_application_surface_patterns():
+    for token in [
+        "productGrid",
+        "productVisual",
+        "deviceList",
+        "searchSuggestions",
+        "checkoutFlow",
+        "mailList",
+        "offerSheet",
+        "mapCompare",
+        "travelGrid",
+        "timeline",
+    ]:
+        assert token in HTML
+
+
+def test_pf01_search_is_free_form_but_does_not_persist_query_text():
+    assert 'id="searchQ"' in HTML
+    assert "searchSuggestion" in HTML
+    assert "query_chars:q.length" in HTML
+    assert "query:q" not in HTML
