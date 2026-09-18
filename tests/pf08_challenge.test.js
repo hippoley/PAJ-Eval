@@ -81,7 +81,7 @@ test('PF08 captures first opening, revisits, relations and omissions',()=>{
     "d.includes('record_0')&&d.includes('history_1')",
     "d.includes('external_1')&&d.includes('group_1')",
     "d.includes('limit_0')&&d.includes('record_0')",
-    'omissions',
+    'omitted',
     'relations:[...S.relations[world]]',
   ]) assert.ok(playerSource.includes(token),token);
 });
