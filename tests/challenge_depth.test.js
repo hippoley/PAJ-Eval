@@ -70,6 +70,11 @@ test('PF01 seed exposes consequence on both headline product choices', () => {
   assert.match(html, /affected_devices/);
 });
 
+test('PF01 seed records consequence exposure and a terminal seed commit', () => {
+  assert.ok(html.includes("log('consequence_exposed',{world:'shop'"));
+  assert.ok(html.includes("log('commit',{world:'shop'"));
+});
+
 test('near transfer has nested mobility evidence separate from contract and team', () => {
   assert.match(html, /class="btn mobility"/);
   assert.match(html, /careerDetail\(b\.dataset\.k,'mobility'\)/);
