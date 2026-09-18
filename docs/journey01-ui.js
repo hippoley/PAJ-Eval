@@ -41,6 +41,21 @@ window.PAJ_JOURNEY01_UI={
   map:{title:"Ваш путь решения",sub:"Это не журнал. Откройте каждый этап и посмотрите, что вы изучили, выбрали и что изменилось.",opened:"Вы открыли",missed:"Не открыли",decision:"Вы выбрали",consequence:"Ответ мира",revisions:"Изменения",details:"Глубокие проверки",empty:"Решение принято почти без дополнительной проверки",inspect:"Посмотреть этап",raw:"Сырой трейс",shop:"Покупка",career:"Offer",travel:"Поездка",none:"Нет",choiceOnly:"Здесь не было дополнительного принудительного последствия; выбор просто перешёл в следующий этап.",stages:"3 этапа"}
 }
 };
+const storeLabels={
+  "zh-CN":{search:"搜索商品或家中设备",orders:"订单",account:"我的家",cart:"购物车",add:"加入购物车",cartTitle:"购物车",empty:"购物车还是空的",checkout:"去结算",continue:"继续逛逛",included:"配送信息会在结算时确认"},
+  "zh-TW":{search:"搜尋商品或家中裝置",orders:"訂單",account:"我的家",cart:"購物車",add:"加入購物車",cartTitle:"購物車",empty:"購物車還是空的",checkout:"前往結帳",continue:"繼續瀏覽",included:"配送資訊會在結帳時確認"},
+  "en":{search:"Search products or home devices",orders:"Orders",account:"My home",cart:"Cart",add:"Add to cart",cartTitle:"Your cart",empty:"Your cart is empty",checkout:"Go to checkout",continue:"Continue shopping",included:"Delivery details are confirmed at checkout"},
+  "ja":{search:"商品や家のデバイスを検索",orders:"注文",account:"マイホーム",cart:"カート",add:"カートに追加",cartTitle:"カート",empty:"カートは空です",checkout:"購入手続きへ",continue:"買い物を続ける",included:"配送条件は購入手続きで確認します"},
+  "ko":{search:"상품 또는 집 안 기기 검색",orders:"주문",account:"내 집",cart:"장바구니",add:"장바구니 담기",cartTitle:"장바구니",empty:"장바구니가 비어 있습니다",checkout:"결제하기",continue:"계속 쇼핑",included:"배송 정보는 결제 단계에서 확인됩니다"},
+  "es":{search:"Buscar productos o dispositivos del hogar",orders:"Pedidos",account:"Mi casa",cart:"Carrito",add:"Añadir al carrito",cartTitle:"Tu carrito",empty:"Tu carrito está vacío",checkout:"Ir a pagar",continue:"Seguir comprando",included:"La entrega se confirma al pagar"},
+  "fr":{search:"Rechercher des produits ou appareils",orders:"Commandes",account:"Ma maison",cart:"Panier",add:"Ajouter au panier",cartTitle:"Votre panier",empty:"Votre panier est vide",checkout:"Passer au paiement",continue:"Continuer mes achats",included:"La livraison est confirmée au paiement"},
+  "de":{search:"Produkte oder Heimgeräte suchen",orders:"Bestellungen",account:"Mein Zuhause",cart:"Warenkorb",add:"In den Warenkorb",cartTitle:"Warenkorb",empty:"Dein Warenkorb ist leer",checkout:"Zur Kasse",continue:"Weiter einkaufen",included:"Lieferdetails werden an der Kasse bestätigt"},
+  "pt":{search:"Buscar produtos ou dispositivos da casa",orders:"Pedidos",account:"Minha casa",cart:"Carrinho",add:"Adicionar ao carrinho",cartTitle:"Seu carrinho",empty:"Seu carrinho está vazio",checkout:"Ir para o checkout",continue:"Continuar comprando",included:"A entrega é confirmada no checkout"},
+  "ru":{search:"Поиск товаров или домашних устройств",orders:"Заказы",account:"Мой дом",cart:"Корзина",add:"Добавить в корзину",cartTitle:"Корзина",empty:"Корзина пуста",checkout:"Перейти к оформлению",continue:"Продолжить покупки",included:"Доставка уточняется при оформлении"}
+};
+for(const [locale,labels] of Object.entries(storeLabels)){
+  if(window.PAJ_JOURNEY01_UI[locale])window.PAJ_JOURNEY01_UI[locale].store=labels;
+}
 const cueLabels={
   "zh-CN":"提示层","zh-TW":"提示層","en":"Guidance","ja":"ヒント","ko":"가이드","es":"Guía","fr":"Repères","de":"Hinweise","pt":"Orientação","ru":"Подсказки"
 };
