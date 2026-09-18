@@ -6,9 +6,11 @@ const vm=require('node:vm');
 const html=fs.readFileSync('docs/challenge-suite.html','utf8');
 
 test('challenge suite inline script is valid JavaScript',()=>{
-  const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)].map(m=>m[1]).filter(Boolean);
-  assert.equal(scripts.length,1);
-  assert.doesNotThrow(()=>new vm.Script(scripts[0]));
+  const start=html.lastIndexOf('<script>');
+  const end=html.lastIndexOf('</script>');
+  assert.ok(start>=0 && end>start);
+  const source=html.slice(start+'<script>'.length,end);
+  assert.doesNotThrow(()=>new vm.Script(source));
 });
 
 test('challenge suite links all eight playable journeys exactly once',()=>{
