@@ -76,7 +76,7 @@ test('bridge lazy-loads normalizer and durable transport only inside consented f
   assert.ok(bridgeSource.includes("loadScript('transport.js')"));
   assert.ok(bridgeSource.includes('await ensureDeps()'));
   assert.ok(bridgeSource.indexOf("if(!ctx)return {state:'preview'}") < bridgeSource.indexOf('await ensureDeps()'));
-  assert.ok(bridgeSource.includes('createBrowserTransport(ENDPOINT)'));
+  assert.ok(bridgeSource.includes("createBrowserTransport(ENDPOINT,{dbName:'paj-golden-study-queue-v1'})"));
   assert.ok(bridgeSource.includes('retryAll()'));
 });
 
