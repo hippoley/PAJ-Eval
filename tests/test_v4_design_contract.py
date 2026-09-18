@@ -255,10 +255,10 @@ def test_deployment_doc_keeps_researcher_smoke_gate_explicit():
         "zero",
         "app_metadata.role = researcher",
         "research_read_failed",
-        "ingest-probe` ACTIVE v5",
-        "research-sessions` ACTIVE v3",
+        "ingest-probe` ACTIVE v6",
+        "research-sessions` ACTIVE v4",
         "golden-consent-v1",
-        "v4-rich-events",
+        "v5-study-metadata",
         "browser HTTP path",
     ]:
         assert token.lower() in text.lower()
@@ -311,8 +311,10 @@ def test_release_gate_is_machine_checked_and_currently_blocked_for_operational_r
     gate = json.loads((ROOT / "RELEASE_GATE.json").read_text(encoding="utf-8"))
     workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
     checker = (ROOT / "scripts" / "check_release_gate.py").read_text(encoding="utf-8")
-    assert gate["deployed_backend"]["ingest_probe_version"] >= 5
+    assert gate["deployed_backend"]["ingest_probe_version"] >= 6
+    assert gate["deployed_backend"]["research_sessions_version"] >= 4
     assert gate["deployed_backend"]["strict_golden_edge_contract"] is True
+    assert gate["deployed_backend"]["formal_study_metadata_v5"] is True
     assert gate["release"]["status"] == "blocked"
     assert gate["operational"]["researcher_accounts"] == 0
     assert "researcher_account_missing" in gate["release"]["blockers"]
