@@ -78,6 +78,8 @@ test('bridge lazy-loads normalizer and durable transport only inside consented f
   assert.ok(bridgeSource.indexOf("if(!ctx)return {state:'preview'}") < bridgeSource.indexOf('await ensureDeps()'));
   assert.ok(bridgeSource.includes("createBrowserTransport(ENDPOINT,{dbName:'paj-golden-study-queue-v1'})"));
   assert.ok(bridgeSource.includes('retryAll()'));
+  assert.ok(bridgeSource.includes('lockFormalSurface(ctx)'));
+  assert.ok(bridgeSource.includes("sel.disabled=true"));
 });
 
 test('formal submission carries stable consent and rich normalized raw events',()=>{
