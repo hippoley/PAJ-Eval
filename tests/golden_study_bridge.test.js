@@ -196,3 +196,12 @@ test('journey-only consent context derives the internal family without exposing 
   assert.ok(!studyHtml.includes("PF06"));
   assert.ok(!studyHtml.includes("PF01"));
 });
+
+
+test('preview consent mode never creates a study context',()=>{
+  assert.ok(studyHtml.includes("preview=params.get('preview')==='1'"));
+  assert.ok(studyHtml.includes("if(preview){location.href='run.html?journey='"));
+  const begin=studyHtml.slice(studyHtml.indexOf("$('begin').onclick="),studyHtml.indexOf("render();"));
+  assert.ok(begin.indexOf("if(preview)") < begin.indexOf("sessionStorage.setItem('paj_golden_study_v1'"));
+  assert.ok(studyHtml.includes('不会建立正式研究记录'));
+});
