@@ -71,6 +71,15 @@ test('participant HTML never exposes PF identifiers or researcher construct name
   }
 });
 
+test('all eight journeys are wired to the consent-gated formal study bridge',()=>{
+  for(const f of families){
+    const html=fs.readFileSync(f.html,'utf8');
+    assert.ok(html.includes('golden-study-bridge.js'),f.id+' missing study bridge');
+    assert.ok(!html.includes('src="transport.js"'),f.id+' loads durable transport before consent');
+    assert.ok(source(f).includes('PAJGoldenStudy?.complete'),f.id+' missing completion hook');
+  }
+});
+
 test('golden challenge participant journeys remain local-only until instrument freeze',()=>{
   for(const f of families){
     const s=source(f).toLowerCase();
