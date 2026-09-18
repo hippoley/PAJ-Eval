@@ -13,9 +13,14 @@ test('challenge suite inline script is valid JavaScript',()=>{
   assert.doesNotThrow(()=>new vm.Script(source));
 });
 
-test('challenge suite links all eight playable journeys exactly once',()=>{
-  const expected=['challenge.html','challenge-pf02.html','challenge-pf03.html','challenge-pf04.html','challenge-pf05.html','challenge-pf06.html','challenge-pf07.html','challenge-pf08.html'];
-  for(const path of expected) assert.equal(html.split(path).length-1,1,path);
+test('challenge suite links all eight journeys through neutral participant URLs',()=>{
+  assert.ok(html.includes('run.html?journey='));
+  for(const id of ['01','02','03','04','05','06','07','08']) {
+    assert.ok(html.includes("{n:'"+id+"'"),id);
+  }
+  for(const leaked of ['challenge-pf02.html','challenge-pf03.html','challenge-pf04.html','challenge-pf05.html','challenge-pf06.html','challenge-pf07.html','challenge-pf08.html']) {
+    assert.ok(!html.includes(leaked),leaked);
+  }
 });
 
 test('challenge suite offers exactly ten explicit market locales',()=>{
