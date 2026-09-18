@@ -1,5 +1,6 @@
 (function(root){
   const STUDY_KEY='paj_golden_study_v1';
+  const JOURNEY_FAMILY={'01':'PF01','02':'PF02','03':'PF03','04':'PF04','05':'PF05','06':'PF06','07':'PF07','08':'PF08'};
   const ENDPOINT='https://pwdcgfvarudhqezlzwmx.supabase.co/functions/v1/ingest-probe';
   const MAX_AGE_MS=4*60*60*1000;
   const COPY={
@@ -25,10 +26,11 @@
       if(!raw) return null;
       const ctx=JSON.parse(raw);
       if(!ctx||ctx.consent_version!=='golden-consent-v1') return null;
-      if(!/^PF0[1-8]$/.test(String(ctx.family||''))) return null;
+      const family=ctx.family||JOURNEY_FAMILY[String(ctx.journey||'')];
+      if(!/^PF0[1-8]$/.test(String(family||''))) return null;
       if(!/^[0-9a-f-]{36}$/i.test(String(ctx.client_submission_id||''))) return null;
       if(!Number.isFinite(ctx.issued_at)||Date.now()-ctx.issued_at>MAX_AGE_MS) return null;
-      return ctx;
+      return {...ctx,family};
     }catch{return null}
   }
   function textFor(locale,key){return (COPY[locale]||COPY.en)[key]}
