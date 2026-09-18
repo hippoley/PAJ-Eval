@@ -180,6 +180,8 @@ def test_research_browser_replays_multiple_probe_runs_and_supports_deep_links():
         "history.replaceState",
         "Open session ID",
         "orphanEvents",
+        "payload_json",
+        "consent_version",
     ]:
         assert token in text
     assert "runs[0]" not in text
