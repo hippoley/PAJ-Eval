@@ -122,11 +122,6 @@ function focusProduct(j){
   document.querySelectorAll('.productCard').forEach((card,i)=>{card.classList.toggle('focused',S.focusedProduct===i);card.classList.toggle('deemphasized',S.focusedProduct!==null&&S.focusedProduct!==i)});
   updateGuide('shop');
 }
-function focusOffer(k){
-  S.focusedOffer=S.focusedOffer===k?null:k;if(S.focusedOffer)log('focus_object',{world:'career',object:'offer_'+k});
-  document.querySelectorAll('.mailRow').forEach(row=>{const on=S.focusedOffer===row.dataset.k;row.classList.toggle('focused',on);row.classList.toggle('deemphasized',S.focusedOffer&& !on)});
-  updateGuide('career');
-}
 function focusFlight(k){
   S.focusedFlight=S.focusedFlight===k?null:k;if(S.focusedFlight)log('focus_object',{world:'travel',object:'flight_'+k});
   document.querySelectorAll('.flightRow').forEach(row=>{const on=S.focusedFlight===row.dataset.k;row.classList.toggle('focused',on);row.classList.toggle('deemphasized',S.focusedFlight&& !on)});
