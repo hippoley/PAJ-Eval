@@ -45,7 +45,9 @@ test('stage page does not turn its dev copy into a participant research surface'
 test('stage embeds the real journey instead of a static card catalog',()=>{
   const source=inlineSource();
   assert.ok(html.includes('id="frame" class="frame"'));
-  assert.ok(source.includes("$('frame').src=journeyUrl(j)"));
+  assert.ok(source.includes("$('frame').src=previewUrl(j)"));
+  assert.ok(source.includes("const previewRoutes="));
+  assert.ok(source.includes('fitFrame()'));
   assert.ok(source.includes("$('reload').addEventListener"));
   assert.ok(source.includes("$('next').addEventListener"));
   assert.ok(source.includes("document.querySelectorAll('.journeyBtn')"));
