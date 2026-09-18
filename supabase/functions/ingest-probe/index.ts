@@ -37,12 +37,12 @@ Deno.serve(async(req)=>{
   if(Number.isFinite(len)&&len>131072)return reply(req,{error:"payload_too_large"},413);
   try{
     const body=await req.json();
-    const locale=clean(body?.locale,16), requestedConsent=clean(body?.consent_version,80), instrument=clean(body?.instrument_version||"probe-player-v4.1",80), family=clean(body?.probe_family,16), world=clean(body?.world_variant||"default",100), terminal=clean(body?.terminal_action,160), submission=clean(body?.client_submission_id,36), studyVersion=clean(body?.study_version,80), market=clean(body?.market,8);
+    const locale=clean(body?.locale,16), requestedConsent=clean(body?.consent_version,80), instrument=clean(body?.instrument_version||"probe-player-v4.1",80), family=clean(body?.probe_family,16), world=clean(body?.world_variant||"default",100), terminal=clean(body?.terminal_action,160), submission=clean(body?.client_submission_id,36), studyVersion=clean(body?.study_version,80), market=clean(body?.market,8), consentedAtClient=clean(body?.consented_at_client,40);
     const goldenAttempt=isGoldenAttempt({consent:requestedConsent,instrument,studyVersion});
     const consent=requestedConsent||(!goldenAttempt?"v1":"");
     const raw=body?.events;
     if(!ALLOWED_LOCALES.has(locale)||!/^[A-Za-z0-9_.:-]{1,80}$/.test(consent)||!family||!submission||!Array.isArray(raw)||raw.length<1||raw.length>250)return reply(req,{error:"invalid_payload"},400);
-    const goldenError=validateGoldenSubmission({locale,consent,instrument,family,world,studyVersion,market,events:raw});
+    const goldenError=validateGoldenSubmission({locale,consent,instrument,family,world,studyVersion,market,consentedAtClient,events:raw});
     if(goldenError)return reply(req,{error:goldenError},400);
     if(!/^[0-9a-f-]{36}$/i.test(submission)||!/^PF0[1-8]$/.test(family))return reply(req,{error:"invalid_identifier"},400);
     const events=raw.map((e:any,i:number)=>{
@@ -64,8 +64,9 @@ Deno.serve(async(req)=>{
       };
     });
     const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const {data,error}=await sb.rpc("ingest_probe_atomic_v4",{
-      p_submission:submission,p_locale:locale,p_consent:consent,p_instrument:instrument,p_family:family,p_world:world,p_terminal:terminal,p_events:events
+    const {data,error}=await sb.rpc("ingest_probe_atomic_v5",{
+      p_submission:submission,p_locale:locale,p_consent:consent,p_instrument:instrument,p_family:family,p_world:world,p_terminal:terminal,p_events:events,
+      p_study_version:studyVersion||null,p_market:market||null,p_consented_at_client:consentedAtClient||null
     });
     if(error)throw error;
     const row=Array.isArray(data)?data[0]:data;
