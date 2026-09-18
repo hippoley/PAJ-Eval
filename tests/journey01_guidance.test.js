@@ -85,3 +85,12 @@ test('ordinary offer open action is locale-driven',()=>{
   assert.ok(html.includes('${U.guide.open} →'));
   assert.ok(!html.includes('>打开 →</button>'));
 });
+
+
+test('three-world path replaces ambiguous unlabeled progress bars',()=>{
+  assert.ok(html.includes('id="introPath" class="worldPath"'));
+  assert.ok(html.includes('id="interventionPath" class="worldPath"'));
+  assert.ok(html.includes("renderWorldPath('introPath','shop')"));
+  assert.ok(html.includes("renderWorldPath('interventionPath','career')"));
+  assert.ok(!html.includes('<div class="progress"><span class="on"></span><span></span><span></span><span></span><span></span></div>'));
+});
