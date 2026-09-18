@@ -22,10 +22,10 @@ test('Journey 01 guidance pack is valid and covers exactly ten locales',()=>{
 test('every locale has soft guidance and visual decision-map copy',()=>{
   const ui=loadUi();
   for(const [locale,p] of Object.entries(ui)){
-    for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional']){
+    for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional','open']){
       assert.ok(p.guide[key]&&p.guide[key].length>2,locale+' guide '+key);
     }
-    for(const key of ['title','sub','opened','missed','decision','consequence','revisions','details','empty','shop','career','travel']){
+    for(const key of ['title','sub','opened','missed','decision','consequence','revisions','details','empty','shop','career','travel','stages']){
       assert.ok(p.map[key]&&p.map[key].length>1,locale+' map '+key);
     }
   }
@@ -79,4 +79,9 @@ test('soft guidance stays inside ordinary participant language',()=>{
   for(const forbidden of ['pf01','hidden downstream constraints','posterior','oracle','latent construct']){
     assert.ok(!ui.includes(forbidden),forbidden);
   }
+});
+
+test('ordinary offer open action is locale-driven',()=>{
+  assert.ok(html.includes('${U.guide.open} →'));
+  assert.ok(!html.includes('>打开 →</button>'));
 });
