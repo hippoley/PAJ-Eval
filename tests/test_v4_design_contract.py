@@ -249,7 +249,7 @@ def test_deployment_doc_keeps_researcher_smoke_gate_explicit():
         "zero",
         "app_metadata.role = researcher",
         "research_read_failed",
-        "ingest-probe` ACTIVE v4",
+        "ingest-probe` ACTIVE v5",
         "research-sessions` ACTIVE v3",
         "golden-consent-v1",
         "v4-rich-events",
@@ -280,6 +280,9 @@ def test_golden_backend_preserves_rich_event_payload_without_enabling_preview_su
         "e?.target??e?.object??e?.action??e?.choice??e?.to_world",
         "p_consent:consent",
         "client_seq",
+        "SENSITIVE_KEYS",
+        "validateGoldenSubmission",
+        "goldenError",
     ]:
         assert token in edge
     suite = (ROOT / "tests" / "golden_suite_contract.test.js").read_text(encoding="utf-8")
@@ -295,3 +298,17 @@ def test_research_replay_indexes_cover_hot_foreign_key_paths():
         "evaluations(session_id)",
     ]:
         assert token in migration
+
+
+def test_release_gate_is_machine_checked_and_currently_blocked_for_operational_reasons():
+    import json
+    gate = json.loads((ROOT / "RELEASE_GATE.json").read_text(encoding="utf-8"))
+    workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    checker = (ROOT / "scripts" / "check_release_gate.py").read_text(encoding="utf-8")
+    assert gate["deployed_backend"]["ingest_probe_version"] >= 5
+    assert gate["deployed_backend"]["strict_golden_edge_contract"] is True
+    assert gate["release"]["status"] == "blocked"
+    assert gate["operational"]["researcher_accounts"] == 0
+    assert "researcher_account_missing" in gate["release"]["blockers"]
+    assert "python scripts/check_release_gate.py" in workflow
+    assert "operational_release" in checker
