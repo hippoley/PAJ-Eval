@@ -11,9 +11,10 @@
   "deployed_backend": {
     "consent_aware_ingestion_v4": true,
     "research_replay_indexes": true,
-    "ingest_probe_version": 4,
+    "ingest_probe_version": 5,
     "research_sessions_version": 3,
-    "database_rpc_smoke": true
+    "database_rpc_smoke": true,
+    "strict_golden_edge_contract": true
   },
   "operational": {
     "researcher_accounts": 0,
