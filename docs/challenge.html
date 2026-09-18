@@ -118,12 +118,10 @@ function navigateEvidence(world,i,targetId){
   if(world==='career'){careerView(i);return}
   travelView(i);
 }
-function focusProduct(j){
-  if(S.focusedProduct===j){S.focusedProduct=null}else{S.focusedProduct=j;log('focus_object',{world:'shop',object:'product_'+j})}
-  const grid=document.querySelector('.productGrid');
-  if(grid)grid.style.gridTemplateColumns=S.focusedProduct===0?'1.18fr .82fr':S.focusedProduct===1?'.82fr 1.18fr':'1fr 1fr';
-  document.querySelectorAll('.productCard').forEach((card,i)=>{card.classList.toggle('focused',S.focusedProduct===i);card.classList.toggle('deemphasized',S.focusedProduct!==null&&S.focusedProduct!==i)});
-  updateGuide('shop');
+function focusProduct(j){S.focusedProduct=j;log('focus_object',{world:'shop',object:'product_'+j});renderProductDetail(j)}
+function renderProductDetail(j){
+  const s=P.shop,u=U.store,p=s.products[j],body=`<button type="button" id="productBack" class="productBack">← ${s.nav[0]}</button><section class="productDetail"><div class="productDetailVisual"><div class="hub ${p.kind==='pro'?'pro':''}"></div></div><div class="productDetailInfo"><div class="ey">${s.brand}</div><h2>${p.name}</h2><div class="meta">${p.desc}</div><div class="productDetailPrice">${p.price}</div><div class="quickFacts"><span class="fact">${p.rating}</span><span class="fact">${p.kind==='pro'?'Thread Border Router':'Matter / Wi‑Fi'}</span></div><div class="productDetailSpecs"><div class="productSpec"><small>${s.deviceTitle}</small><b>${s.existing}</b></div><div class="productSpec"><small>${s.deliveryTitle}</small><b>${u.included}</b></div></div><div class="productDetailActions"><button type="button" class="primary addCart" data-j="${j}">${u.add}</button><button type="button" id="productCompat" class="btn">${s.deviceTitle}</button></div></div></section>`;
+  $('shopContent').innerHTML=storeShell(0,body);bindStoreChrome(0);$('productBack').onclick=()=>shopView(0);$('productCompat').onclick=()=>navigateEvidence('shop',1);document.querySelectorAll('.addCart').forEach(b=>b.onclick=()=>addToCart(Number(b.dataset.j)));updateGuide('shop');
 }
 function focusFlight(k){
   S.focusedFlight=S.focusedFlight===k?null:k;if(S.focusedFlight)log('focus_object',{world:'travel',object:'flight_'+k});
@@ -173,7 +171,7 @@ function bindShop(i){
   document.querySelectorAll('.visualHotspot').forEach(b=>b.onclick=e=>{e.stopPropagation();navigateEvidence('shop',Number(b.dataset.peek))});
   document.querySelectorAll('.productCard').forEach(card=>{card.onclick=e=>{if(e.target.closest('button'))return;focusProduct(Number(card.dataset.j))};card.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button')){e.preventDefault();focusProduct(Number(card.dataset.j))}}});
   document.querySelectorAll('.device').forEach(b=>b.onclick=()=>renderDeviceDetail(Number(b.dataset.j)));
-  document.querySelectorAll('.storeSearchResult').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);if(b.dataset.kind==='product'){S.focusedProduct=j;shopView(0);setTimeout(()=>focusProduct(j),0)}else renderDeviceDetail(j)});
+  document.querySelectorAll('.storeSearchResult').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);if(b.dataset.kind==='product')focusProduct(j);else renderDeviceDetail(j)});
 }
 function renderDeviceDetail(j){
   const d=P.shop.devices[j],s=P.shop;log('open_detail',{world:'shop',object:'device_'+j,compatibility:d[2]});
