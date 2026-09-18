@@ -160,16 +160,19 @@ test('soft guidance does not rank one evidence item as the prescribed next step'
 });
 
 
-test('focus-before-commit grammar is shared across products offers and flights',()=>{
+test('realistic subject apps keep inspection separate from commitment',()=>{
   for(const token of [
     'function focusProduct(j)',
-    'function focusOffer(k)',
     'function focusFlight(k)',
     "log('focus_object',{world:'shop'",
     "log('focus_object',{world:'career'",
     "log('focus_object',{world:'travel'",
-    'class="mailRow" data-k="A" tabindex="0"',
+    'class="mailRow openOfferRow"',
     'class="flightRow" data-k="${o.key}" tabindex="0"',
+    'function addToCart(j)',
+    'function chooseProduct(j)',
+    'function careerCommit(k)',
+    'function travelCommit(k)',
   ]) assert.ok(html.includes(token),token);
 });
 
@@ -199,4 +202,39 @@ test('guidance is optional context rather than a completion meter',()=>{
   assert.ok(!html.includes('contextMeter'));
   assert.ok(!html.includes('meterTrack'));
   assert.ok(!html.includes('Math.round((checked/g.indices.length)*100)'));
+});
+
+
+test('subject worlds are rendered as recognizable real applications',()=>{
+  for(const token of [
+    'class="storeApp"',
+    'class="storeTop"',
+    'class="storeSearch"',
+    'class="storeTabs"',
+    'class="cartLayer hidden"',
+    'class="checkoutApp"',
+    'class="checkoutPage"',
+    'class="mailApp"',
+    'class="mailTop"',
+    'class="mailBody"',
+    'class="mailSide"',
+    'class="travelApp"',
+    'class="tripBar"',
+    'class="travelTabs"',
+  ]) assert.ok(html.includes(token),token);
+});
+
+test('shop uses a realistic cart step before checkout consequence exposure',()=>{
+  assert.ok(html.includes('function addToCart(j)'));
+  assert.ok(html.includes("log('cart_add'"));
+  assert.ok(html.includes('function renderCart()'));
+  assert.ok(html.includes("$('cartCheckout').onclick"));
+  assert.ok(html.includes('chooseProduct(j)'));
+});
+
+test('guidance defaults collapsed so it never competes with the subject app',()=>{
+  assert.ok(html.includes("if(!('collapsed' in el.dataset))el.dataset.collapsed='1'"));
+  assert.ok(html.includes('#shop .contextRail.collapsed'));
+  assert.ok(html.includes('#career .contextRail.collapsed'));
+  assert.ok(html.includes('#travel .contextRail.collapsed'));
 });
