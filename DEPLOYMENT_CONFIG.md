@@ -22,7 +22,7 @@ The public player exposes truthful persistence states rather than claiming persi
 Current canonical deployment:
 
 - Supabase project: `pwdcgfvarudhqezlzwmx`
-- anonymous ingestion function: `ingest-probe` — ACTIVE v4
+- anonymous ingestion function: `ingest-probe` — ACTIVE v5
 - researcher read function: `research-sessions` — ACTIVE v3
 
 No service-role/database/admin secret belongs in GitHub Pages, the repository, or a participant browser.
@@ -51,7 +51,7 @@ The canonical project now has both current migrations applied:
 
 The deployed functions are:
 
-- `ingest-probe` ACTIVE v4, with the existing anonymous-ingestion boundary preserved (`verify_jwt=false`) and origin/payload validation performed in the function body;
+- `ingest-probe` ACTIVE v5, with the existing anonymous-ingestion boundary preserved (`verify_jwt=false`), origin/payload validation in the function body, and a strict Golden contract binding locale→market, consent version, instrument version, PF family, world variant, normalized event envelope, monotonic sequence/time, required commit, and terminal `session_complete`;
 - `research-sessions` ACTIVE v3 with `verify_jwt=true` and the researcher-role check still fail-closed.
 
 A synthetic PF08 record was executed directly against `ingest_probe_atomic_v4(...)` with `golden-consent-v1`, then submitted again with the same client UUID. The duplicate call returned the existing session. A database read verified:
@@ -133,3 +133,10 @@ Operational release still requires a deliberately provisioned researcher account
 7. remove the synthetic session if it is only release-test data.
 
 Until that authenticated browser replay is performed, the branch can be code-complete but should not be described as operationally released.
+
+
+## Machine-readable release gate
+
+`RELEASE_GATE.json` is the source of truth for release readiness. CI executes `python scripts/check_release_gate.py` and fails if the source/backend evidence and declared release state disagree.
+
+Current recorded status remains `blocked` because there is still no provisioned researcher account and the consented browser HTTP smoke plus authenticated researcher replay smoke have not been completed. This prevents a green source build from being mistaken for an operational release.
