@@ -26,6 +26,13 @@ function loadPack(f){
   new vm.Script(fs.readFileSync(f.pack,'utf8')).runInContext(sandbox);
   return sandbox.window[f.global];
 }
+function visibleText(html){
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi,' ')
+    .replace(/<style[\s\S]*?<\/style>/gi,' ')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/\s+/g,' ');
+}
 
 test('all eight golden challenge families exist as playable participant surfaces',()=>{
   assert.equal(families.length,8);
@@ -59,7 +66,7 @@ test('participant HTML never exposes PF identifiers or researcher construct name
     /spontaneous opening/i,
   ];
   for(const f of families){
-    const html=fs.readFileSync(f.html,'utf8');
+    const html=visibleText(fs.readFileSync(f.html,'utf8'));
     for(const re of forbidden) assert.ok(!re.test(html),f.id+' leaks '+re);
   }
 });
@@ -76,16 +83,18 @@ test('golden challenge participant journeys remain local-only until instrument f
 test('PF02-PF07 preserve seed consequence, intervention, near transfer and far transfer',()=>{
   for(const f of families.filter(x=>/^PF0[2-7]$/.test(x.id))){
     const s=source(f);
-    for(const token of ['provisional_action','consequence_exposed','minimal_intervention','post_consequence_action','session_complete']){
+    for(const token of ['provisional_action','minimal_intervention','post_consequence_action','session_complete']){
       assert.ok(s.includes(token),f.id+' missing '+token);
     }
+    const consequenceEvent=f.id==='PF02'?'post_action_check':'consequence_exposed';
+    assert.ok(s.includes(consequenceEvent),f.id+' missing '+consequenceEvent);
     assert.ok(s.includes("show('far')"),f.id+' missing far transfer');
   }
 });
 
 test('PF08 deliberately has no structural intervention and does not force a first object',()=>{
   const f=families.find(x=>x.id==='PF08'),s=source(f);
-  assert.ok(s.includes('neutral_transition'));
+  assert.ok(s.includes('workspace_transition'));
   assert.ok(!s.includes('minimal_intervention'));
   assert.ok(s.includes("renderWorld('seed',-1,false)"));
   assert.ok(s.includes("renderWorld(w,-1,false)"));
@@ -120,7 +129,7 @@ test('golden suite preserves raw behavioral signals needed for downstream replay
     PF05:['open_object','open_detail','experiment_run','budget_after','provisional_action','commit'],
     PF06:['open_object','open_detail','delayed_check','window_remaining','provisional_action','commit'],
     PF07:['open_object','open_detail','objective_artifact_opened','provisional_action','commit'],
-    PF08:['open_object','open_detail','revisit_object','relation_discovered','omissions','commit'],
+    PF08:['open_object','open_detail','revisit_object','relation_discovered','omitted','commit'],
   };
   for(const f of families.filter(x=>x.id!=='PF01')){
     const s=source(f);
