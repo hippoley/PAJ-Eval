@@ -22,14 +22,14 @@ The public player exposes truthful persistence states rather than claiming persi
 Current canonical deployment:
 
 - Supabase project: `pwdcgfvarudhqezlzwmx`
-- anonymous ingestion function: `ingest-probe` — ACTIVE v5
-- researcher read function: `research-sessions` — ACTIVE v3
+- anonymous ingestion function: `ingest-probe` — ACTIVE v6
+- researcher read function: `research-sessions` — ACTIVE v4
 
 No service-role/database/admin secret belongs in GitHub Pages, the repository, or a participant browser.
 
 ## Server-side idempotency, consent, and atomicity
 
-The historical migration `supabase/migrations/20260917_atomic_probe_ingestion_v2.sql` defines the first atomic RPC. The current branch adds `supabase/migrations/20260918_consent_aware_ingestion_v4.sql`, which defines `ingest_probe_atomic_v4(...)` and stores the explicit `consent_version` supplied by the participant flow while preserving rich event payload fields.
+The historical migration `supabase/migrations/20260917_atomic_probe_ingestion_v2.sql` defines the first atomic RPC. The current deployed path is `supabase/migrations/20260918_formal_study_metadata_v5.sql`, which defines `ingest_probe_atomic_v5(...)` and persists explicit consent version, client consent timestamp, study version, market, instrument version, family/world metadata, and rich event payloads atomically.
 
 The server boundary must independently guarantee what the browser cannot:
 
@@ -47,12 +47,13 @@ A synthetic PF01 submission was executed directly against the deployed v2 RPC us
 The canonical project now has both current migrations applied:
 
 - `20260918020957 consent_aware_ingestion_v4`;
-- `20260918021248 research_replay_indexes`.
+- `20260918021248 research_replay_indexes`;
+- `formal_study_metadata_v5`.
 
 The deployed functions are:
 
-- `ingest-probe` ACTIVE v5, with the existing anonymous-ingestion boundary preserved (`verify_jwt=false`), origin/payload validation in the function body, and a strict Golden contract binding locale→market, consent version, instrument version, PF family, world variant, normalized event envelope, monotonic sequence/time, required commit, and terminal `session_complete`;
-- `research-sessions` ACTIVE v3 with `verify_jwt=true` and the researcher-role check still fail-closed.
+- `ingest-probe` ACTIVE v6, with the existing anonymous-ingestion boundary preserved (`verify_jwt=false`), origin/payload validation in the function body, and a strict Golden contract binding locale→market, consent version, fresh consent timestamp, instrument version, PF family, world variant, normalized event envelope, monotonic sequence/time, required commit, and terminal `session_complete`;
+- `research-sessions` ACTIVE v4 with `verify_jwt=true`, researcher-role fail-closed authorization, and formal study metadata included in session list/detail responses.
 
 A synthetic PF08 record was executed directly against `ingest_probe_atomic_v4(...)` with `golden-consent-v1`, then submitted again with the same client UUID. The duplicate call returned the existing session. A database read verified:
 
@@ -65,6 +66,21 @@ A synthetic PF08 record was executed directly against `ingest_probe_atomic_v4(..
 The synthetic verification session was deleted afterward and a follow-up count returned zero remaining rows for its client submission id.
 
 This verifies the deployed database/RPC path and deployed function source versions. The formal browser HTTP path and authenticated researcher-browser replay are still separate release gates.
+
+### Formal study metadata verification — 2026-09-18
+
+A synthetic PF06 submission was written through `ingest_probe_atomic_v5(...)` and then repeated with the same client UUID. The duplicate resolved to the existing session rather than creating another run. A database read verified:
+
+- `consent_version = golden-consent-v1`;
+- `consented_at_client` persisted as a timestamp;
+- `instrument_version = golden-pf06-v1`;
+- `study_version = golden-study-v1`;
+- `market = US`;
+- `client_schema_version = v5-study-metadata`;
+- `probe_family = PF06`, `world_variant = golden-three-world-v1`;
+- exactly four original events remained attached to the first run.
+
+The synthetic session was deleted and the follow-up remaining count was zero.
 
 
 ## Formal Golden study flow
@@ -83,7 +99,7 @@ study.html?journey=01..08
   → lazy-load golden-event-normalizer.js + transport.js
   → isolated IndexedDB queue paj-golden-study-queue-v1
   → ingest-probe
-  → ingest_probe_atomic_v4(...)
+  → ingest_probe_atomic_v5(...)
 ```
 
 Important boundaries:
@@ -94,7 +110,7 @@ Important boundaries:
 - raw family-specific events are retained inside the normalized event envelope rather than flattened away;
 - the participant address bar and visible copy use neutral journey identifiers rather than PF labels; latent construct names remain researcher-side only.
 
-The v4 consent-aware migration and updated Edge Functions are now deployed. Formal Golden collection should still remain gated until one consented browser submission is exercised through `study.html` → `run.html` → journey → `ingest-probe`, and the resulting session is replayed through an authenticated researcher account. Database/RPC deployment alone is not the same as a completed browser-level release smoke test.
+The v5 formal-study metadata migration and updated Edge Functions are now deployed. Formal Golden collection should still remain gated until one consented browser submission is exercised through `study.html` → `run.html` → journey → `ingest-probe`, and the resulting session is replayed through an authenticated researcher account. Database/RPC deployment alone is not the same as a completed browser-level release smoke test.
 
 ## Research Session Browser
 
