@@ -5,6 +5,8 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync('docs/challenge-pf02.html','utf8');
 const packsSource = fs.readFileSync('docs/pf02-packs.js','utf8');
+const chromeSource = fs.readFileSync('docs/pf02-chrome.js','utf8');
+const playerSource = fs.readFileSync('docs/pf02-player.js','utf8');
 
 function loadPacks(){
   const sandbox={window:{}};
@@ -13,11 +15,13 @@ function loadPacks(){
   return sandbox.window.PAJ_PF02_PACKS;
 }
 
-test('PF02 packs and player scripts are valid JavaScript',()=>{
+test('PF02 packs, chrome and player scripts are valid JavaScript',()=>{
   assert.doesNotThrow(()=>new vm.Script(packsSource));
-  const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
-  assert.ok(scripts.length>=1);
-  for(const source of scripts) assert.doesNotThrow(()=>new vm.Script(source));
+  assert.doesNotThrow(()=>new vm.Script(chromeSource));
+  assert.doesNotThrow(()=>new vm.Script(playerSource));
+  assert.ok(html.includes('src="pf02-packs.js"'));
+  assert.ok(html.includes('src="pf02-chrome.js"'));
+  assert.ok(html.includes('src="pf02-player.js"'));
 });
 
 test('PF02 exposes exactly the ten explicit markets',()=>{
@@ -83,19 +87,25 @@ test('PF02 journey uses provisional action, partial outcome, revision and transf
     "markDetail('far','room_'",
     'switch_mitigation',
     'session_complete',
-  ]) assert.ok(html.includes(token),token);
+  ]) assert.ok(playerSource.includes(token),token);
 });
 
-test('PF02 action keys are valid for each world',()=>{
-  assert.ok(html.includes("const firstKey=world==='far'?'revert':'rollback'"));
-  assert.ok(html.includes("secondKey=world==='seed'?'repin':world==='near'?'reroute':'schedule'"));
-  assert.ok(!html.includes("$('.x')"));
+test('PF02 action keys are valid for each world and presentation order is randomized',()=>{
+  assert.ok(playerSource.includes("world==='seed'?['rollback','repin','hold']"));
+  assert.ok(playerSource.includes("world==='near'?['rollback','reroute','hold']"));
+  assert.ok(playerSource.includes("['revert','schedule','hold']"));
+  assert.ok(playerSource.includes('resetActionOrders'));
+  assert.ok(playerSource.includes('shuffled(actionKeys(world))'));
+  assert.ok(!playerSource.includes("$('.x')"));
 });
 
 test('PF02 participant journey remains local-only and score-free',()=>{
-  for(const forbidden of ['PAJTransport','ingest-probe','supabase','posterior','oracle','PF02']){
-    assert.ok(!html.toLowerCase().includes(forbidden.toLowerCase()),forbidden);
+  const allCode=(html+'\n'+playerSource+'\n'+chromeSource).toLowerCase();
+  for(const forbidden of ['pajtransport','ingest-probe','supabase','posterior','oracle']){
+    assert.ok(!allCode.includes(forbidden),forbidden);
   }
-  assert.ok(html.includes("instrument:'golden-pf02-v1'"));
+  const participantHtml=html.replace(/<script[^>]*><\/script>/g,'');
+  assert.ok(!participantHtml.toLowerCase().includes('pf02'));
+  assert.ok(playerSource.includes("instrument:'golden-pf02-v1'"));
   assert.ok(html.includes('id="research" class="research hidden"'));
 });
