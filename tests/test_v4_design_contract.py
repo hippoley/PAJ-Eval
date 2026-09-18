@@ -195,18 +195,22 @@ def test_synthetic_transport_test_is_part_of_ci():
 
 
 def test_backend_ingestion_is_atomic_and_server_idempotent():
-    migration = (ROOT / "supabase" / "migrations" / "20260917_atomic_probe_ingestion_v2.sql").read_text(encoding="utf-8")
+    migration = (ROOT / "supabase" / "migrations" / "20260918_consent_aware_ingestion_v4.sql").read_text(encoding="utf-8")
     edge = (ROOT / "supabase" / "functions" / "ingest-probe" / "index.ts").read_text(encoding="utf-8")
     for token in [
-        "ingest_probe_atomic",
+        "ingest_probe_atomic_v4",
+        "p_consent text",
         "on conflict (client_submission_id)",
         "jsonb_array_elements(p_events) with ordinality",
         "grant execute on function",
         "service_role",
+        "v4-rich-events",
     ]:
         assert token in migration.lower()
     for token in [
-        'sb.rpc("ingest_probe_atomic"',
+        'sb.rpc("ingest_probe_atomic_v4"',
+        "p_consent:consent",
+        "consent_version",
         "ALLOWED_LOCALES",
         "payload_too_large",
         "client_submission_id",
