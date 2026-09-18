@@ -46,7 +46,7 @@
   function getTransport(){
     if(!transport){
       if(!root.PAJTransport)throw new Error('transport_unavailable');
-      transport=root.PAJTransport.createBrowserTransport(ENDPOINT);
+      transport=root.PAJTransport.createBrowserTransport(ENDPOINT,{dbName:'paj-golden-study-queue-v1'});
     }
     return transport;
   }
@@ -76,6 +76,8 @@
         target:e.target||'',
         screen:e.world||'',
         locale:ctx.locale,
+        market:meta.market,
+        study_version:'golden-study-v1',
         phase:e.raw_event?.phase||'',
         envelope_version:e.envelope_version||'golden-event-envelope-v1',
         raw_event_type:e.raw_event_type||e.event,
