@@ -17,9 +17,10 @@ def main():
     backend=GATE["deployed_backend"]
     require(backend["consent_aware_ingestion_v4"] is True,"v4 ingestion migration not recorded")
     require(backend["research_replay_indexes"] is True,"replay indexes not recorded")
-    require(backend["ingest_probe_version"]>=5,"ingest-probe version must be >=5")
-    require(backend["research_sessions_version"]>=3,"research-sessions version must be >=3")
+    require(backend["ingest_probe_version"]>=6,"ingest-probe version must be >=6")
+    require(backend["research_sessions_version"]>=4,"research-sessions version must be >=4")
     require(backend.get("strict_golden_edge_contract") is True,"strict Golden edge contract not recorded")
+    require(backend.get("formal_study_metadata_v5") is True,"formal study metadata migration not recorded")
     require(backend["database_rpc_smoke"] is True,"database/RPC smoke not recorded")
 
     op=GATE["operational"]
