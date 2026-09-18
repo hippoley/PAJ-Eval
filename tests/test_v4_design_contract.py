@@ -238,6 +238,9 @@ def test_research_api_is_role_gated_orders_events_and_fails_closed():
         'error:"invalid_session_id"',
         'error:"research_read_failed"',
         'Promise.all([',
+        "consented_at_client",
+        "study_version",
+        "market",
     ]:
         assert token in edge
     assert 'Access-Control-Allow-Methods":"GET,OPTIONS"' in edge
