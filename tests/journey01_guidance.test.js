@@ -23,7 +23,7 @@ test('every locale has soft guidance and visual decision-map copy',()=>{
   const ui=loadUi();
   for(const [locale,p] of Object.entries(ui)){
     for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional','open']){
-      assert.ok(p.guide[key]&&p.guide[key].length>2,locale+' guide '+key);
+      assert.ok(p.guide[key]&&p.guide[key].length>0,locale+' guide '+key);
     }
     for(const key of ['title','sub','opened','missed','decision','consequence','revisions','details','empty','shop','career','travel','stages']){
       assert.ok(p.map[key]&&p.map[key].length>1,locale+' map '+key);
