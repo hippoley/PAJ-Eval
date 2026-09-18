@@ -77,6 +77,7 @@ test('PF02 localization changes operational and physical worlds, not headings on
 test('PF02 journey uses provisional action, partial outcome, revision and transfer',()=>{
   for(const token of [
     'provisional_action',
+    'consequence_exposed',
     'post_action_check',
     'post_consequence_action',
     'minimal_intervention',
