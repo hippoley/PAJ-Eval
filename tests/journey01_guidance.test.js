@@ -148,3 +148,11 @@ test('state graph is overview-first and defers detail to the inspector',()=>{
   assert.ok(html.includes('class="mapInspector"'));
   assert.ok(!html.includes('class="mapLane"'));
 });
+
+
+test('soft guidance does not rank one evidence item as the prescribed next step',()=>{
+  assert.ok(html.includes('contextListLabel'));
+  assert.ok(html.includes('U.guide.recommended'));
+  assert.ok(!html.includes("class=\"contextAction ${done?'done':''} ${isNext?'next':''}\""));
+  assert.ok(!html.includes('contextAction.next'));
+});
