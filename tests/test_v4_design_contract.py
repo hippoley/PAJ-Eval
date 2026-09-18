@@ -245,3 +245,29 @@ def test_deployment_doc_keeps_researcher_smoke_gate_explicit():
         "research_read_failed",
     ]:
         assert token.lower() in text.lower()
+
+
+def test_golden_backend_preserves_rich_event_payload_without_enabling_preview_submission():
+    migration = (ROOT / "supabase" / "migrations" / "20260918_golden_event_payload_v3.sql").read_text(encoding="utf-8")
+    edge = (ROOT / "supabase" / "functions" / "ingest-probe" / "index.ts").read_text(encoding="utf-8")
+    for token in [
+        "v2-rich-events",
+        "x.e - 'event' - 'target' - 't' - 'seq'",
+        "'client_seq'",
+        "grant execute on function",
+        "service_role",
+    ]:
+        assert token.lower() in migration.lower()
+    for token in [
+        "sanitizeJson",
+        "depth>4",
+        ".slice(0,32)",
+        ".slice(0,40)",
+        "e?.t??e?.t_ms",
+        "e?.event||e?.type",
+        "e?.target??e?.object??e?.action??e?.choice??e?.to_world",
+        "client_seq",
+    ]:
+        assert token in edge
+    suite = (ROOT / "tests" / "golden_suite_contract.test.js").read_text(encoding="utf-8")
+    assert "participant journeys remain local-only" in suite
