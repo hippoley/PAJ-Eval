@@ -41,4 +41,10 @@ window.PAJ_JOURNEY01_UI={
   map:{title:"Ваш путь решения",sub:"Это не журнал. Откройте каждый этап и посмотрите, что вы изучили, выбрали и что изменилось.",opened:"Вы открыли",missed:"Не открыли",decision:"Вы выбрали",consequence:"Ответ мира",revisions:"Изменения",details:"Глубокие проверки",empty:"Решение принято почти без дополнительной проверки",inspect:"Посмотреть этап",raw:"Сырой трейс",shop:"Покупка",career:"Offer",travel:"Поездка",none:"Нет",choiceOnly:"Здесь не было дополнительного принудительного последствия; выбор просто перешёл в следующий этап.",stages:"3 этапа"}
 }
 };
+const cueLabels={
+  "zh-CN":"提示层","zh-TW":"提示層","en":"Guidance","ja":"ヒント","ko":"가이드","es":"Guía","fr":"Repères","de":"Hinweise","pt":"Orientação","ru":"Подсказки"
+};
+for(const [locale,label] of Object.entries(cueLabels)){
+  if(window.PAJ_JOURNEY01_UI[locale])window.PAJ_JOURNEY01_UI[locale].guide.cue=label;
+}
 })();
