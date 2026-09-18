@@ -22,7 +22,7 @@ test('Journey 01 guidance pack is valid and covers exactly ten locales',()=>{
 test('every locale has soft guidance and visual decision-map copy',()=>{
   const ui=loadUi();
   for(const [locale,p] of Object.entries(ui)){
-    for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional','open']){
+    for(const key of ['shopTitle','shopSub','careerTitle','careerSub','travelTitle','travelSub','recommended','checked','optional','open','back','focused']){
       assert.ok(p.guide[key]&&p.guide[key].length>0,locale+' guide '+key);
     }
     for(const key of ['title','sub','opened','missed','decision','consequence','revisions','details','empty','shop','career','travel','stages']){
@@ -31,19 +31,24 @@ test('every locale has soft guidance and visual decision-map copy',()=>{
   }
 });
 
-test('Journey 01 uses deterministic soft guidance instead of forced sequencing',()=>{
+test('Journey 01 has one clear hierarchy: navigation, primary canvas, contextual rail',()=>{
   for(const token of [
-    'id="shopGuide" class="guideStrip"',
-    'id="careerGuide" class="guideStrip"',
-    'id="travelGuide" class="guideStrip"',
+    'id="shopContext" class="contextRail"',
+    'id="careerContext" class="contextRail"',
+    'id="travelContext" class="contextRail"',
+    'id="checkoutContext" class="contextRail"',
+    'grid-template-columns:188px minmax(0,1fr) 282px',
+    'contextActions',
+    'contextMeter',
+    'meterTrack',
     'guideSpec(world)',
     "indices:[1,2,3]",
     "indices:[1,2,5]",
     "indices:[2,3,4]",
-    'guideChip',
-    'guideOptional',
-    'guideFlow',
   ]) assert.ok(html.includes(token),token);
+  assert.ok(!html.includes('id="shopGuide" class="guideStrip"'));
+  assert.ok(!html.includes('id="careerGuide" class="guideStrip"'));
+  assert.ok(!html.includes('id="travelGuide" class="guideStrip"'));
   assert.ok(!html.includes('Math.random('));
   assert.ok(!html.includes('shuffled('));
 });
@@ -96,15 +101,16 @@ test('three-world path replaces ambiguous unlabeled progress bars',()=>{
 });
 
 
-test('contextual Peek keeps the user anchored while inspecting recommended evidence',()=>{
+test('contextual evidence stays inside the dedicated rail instead of opening another layer',()=>{
   for(const token of [
-    'id="peekLayer" class="peekLayer hidden"',
-    'function openPeek(world,i)',
-    'function closePeek()',
-    "peek:true",
-    "el.querySelectorAll('.guideChip').forEach(b=>b.onclick=()=>openPeek(world,Number(b.dataset.i)))",
-    "document.addEventListener('keydown',e=>{if(e.key==='Escape')closePeek()})",
+    'function openContextDetail(world,i,targetId)',
+    "context:true",
+    'contextDetailContent(world,i)',
+    'contextBack',
+    "el.querySelector('.contextBack').onclick=()=>updateGuide(world,targetId)",
   ]) assert.ok(html.includes(token),token);
+  assert.ok(!html.includes('id="peekLayer" class="peekLayer hidden"'));
+  assert.ok(!html.includes('function openPeek(world,i)'));
 });
 
 test('product cards have restrained tactile motion with reduced-motion fallback',()=>{
@@ -118,7 +124,16 @@ test('product cards have restrained tactile motion with reduced-motion fallback'
 
 test('product visuals expose shoppable evidence hotspots',()=>{
   assert.ok(html.includes('class="visualHotspot"'));
-  assert.ok(html.includes("openPeek('shop',Number(b.dataset.peek))"));
+  assert.ok(html.includes("openContextDetail('shop',Number(b.dataset.peek))"));
   assert.ok(html.includes('@keyframes hotPulse'));
   assert.ok(html.includes('prefers-reduced-motion:reduce'));
+});
+
+
+test('product focus is direct manipulation rather than another navigation layer',()=>{
+  assert.ok(html.includes('function focusProduct(j)'));
+  assert.ok(html.includes("log('focus_object',{world:'shop'"));
+  assert.ok(html.includes("card.classList.toggle('focused'"));
+  assert.ok(html.includes("card.classList.toggle('deemphasized'"));
+  assert.ok(html.includes('contextFocus(world)'));
 });
