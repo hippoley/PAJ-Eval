@@ -3335,3 +3335,111 @@ body[data-instrument="pf02"][data-world="seed"] .simpleResolution p{color:#c8d8c
     flex-direction:column;
   }
 }
+
+
+/* Ultra-simple decision layer */
+body[data-instrument="pf02"] .flowNudge,
+body[data-instrument="pf02"] .simpleDecision,
+body[data-instrument="pf02"] .simpleResolution,
+body[data-instrument="pf02"] .simpleNext{
+  display:none!important;
+}
+body[data-instrument="pf02"] .instantDecision{
+  margin-top:12px;
+  border-top:1px solid #dfe3df;
+  padding-top:14px;
+}
+body[data-instrument="pf02"] .instantQuestion{
+  margin-bottom:10px;
+  color:#2f3932;
+  font-size:14px;
+  font-weight:700;
+}
+body[data-instrument="pf02"] .instantChoices{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+body[data-instrument="pf02"] .instantChoice{
+  min-height:58px;
+  padding:12px 14px;
+  border:1px solid #d8ddd9;
+  background:#fff;
+  color:#334039;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .14s ease,background .14s ease,border-color .14s ease;
+}
+body[data-instrument="pf02"] .instantChoice:hover{
+  transform:translateY(-1px);
+  background:#f7f9f7;
+  border-color:#bfc7c1;
+}
+body[data-instrument="pf02"] .instantChoice b{
+  font-size:12px;
+  line-height:1.35;
+}
+body[data-instrument="pf02"] .optionalClue{
+  margin-top:8px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:#8a928d;
+  font-size:10px;
+  cursor:pointer;
+}
+body[data-instrument="pf02"] .optionalClue:hover{
+  color:#5e6962;
+  text-decoration:underline;
+}
+body[data-instrument="pf02"] .instantResult{
+  padding:14px 15px;
+  border:1px solid #d9dfda;
+  background:#f2f7f3;
+}
+body[data-instrument="pf02"] .instantResult span{
+  display:block;
+  color:#718078;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .instantResult p{
+  margin:6px 0 0;
+  color:#3d4941;
+  font-size:11px;
+  line-height:1.55;
+}
+body[data-instrument="pf02"] .instantNext{
+  display:flex!important;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:8px;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantDecision{
+  border-color:#2b323a;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantQuestion{
+  color:#edf1f4;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice{
+  border-color:#2c333b;
+  background:#151a20;
+  color:#e7edf2;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice:hover{
+  background:#1b2128;
+  border-color:#3a444f;
+}
+body[data-instrument="pf02"][data-world="seed"] .optionalClue{
+  color:#7f8994;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult{
+  border-color:#31513d;
+  background:#132019;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult p{
+  color:#c8d8ce;
+}
+@media(max-width:760px){
+  body[data-instrument="pf02"] .instantChoices{grid-template-columns:1fr}
+}
