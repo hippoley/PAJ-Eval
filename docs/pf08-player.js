@@ -86,6 +86,7 @@ function resetState(){
   S.first={seed:null,near:null,far:null};S.detail={seed:[],near:[],far:[]};S.relations={seed:[],near:[],far:[]};
   S.action={seed:null,near:null,far:null};resetOrders();
 }
+function decorateScene(world,i){const w=P[world],content=$(world+'Content'),main=content&&content.closest('.main');if(!main||!w)return;let chrome=main.querySelector('.sceneChrome');if(!chrome){chrome=document.createElement('div');chrome.className='sceneChrome';main.insertBefore(chrome,main.querySelector('.crumb')?.nextSibling||main.firstChild)}const modes={"seed":"OPERATIONS","near":"EVENT CTRL","far":"CMMS"};const section=i>=0&&w.nav?w.nav[i]:w.title;chrome.innerHTML='<div class="sceneIdentity"><span class="sceneDot"></span><b>'+w.brand+'</b></div><div class="sceneTrail">'+section+'</div><span class="sceneState">'+modes[world]+'</span>'}
 function startJourney(){
   resetState();log('session_start',{locale,market:P.market});
   log('surface_order',{orders:JSON.parse(JSON.stringify(S.surfaceOrder))});
@@ -123,7 +124,7 @@ function renderActions(world){
     el.querySelectorAll('.worldAction').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));return;
   }
   el.innerHTML='<div class="notice"><b>'+w.consequence[a]+'</b></div><div class="row"><button class="btn inspectCurrent">'+P.post.inspect+'</button><button class="btn switchAction">'+P.post.switch+'</button><button class="primary commitWorld">'+P.post.commit+'</button></div>';
-  el.querySelector('.inspectCurrent').onclick=()=>{log('post_consequence_action',{world,action:'continue_browsing',from:a});S.action[world]=null;renderActions(world)};
+  el.querySelector('.inspectCurrent').onclick=()=>{log('post_consequence_action',{world,action:'continue_browsing',from:a});S.action[world]=null;decorateScene(world,i);renderActions(world)};
   el.querySelector('.switchAction').onclick=()=>{log('post_consequence_action',{world,action:'switch_decision',from:a});S.action[world]=null;renderActions(world)};
   el.querySelector('.commitWorld').onclick=()=>commitWorld(world);
 }
