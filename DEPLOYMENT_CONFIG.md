@@ -1,73 +1,158 @@
-# Deployment configuration
+# PAJ-Eval Deployment Configuration
 
-PAJ-Eval is an open instrument, not a single shared backend.
+PAJ-Eval deliberately separates public source code from deployment ownership. A fork must not silently inherit the canonical research backend.
 
-Each deployment owns its own:
+## Participant surface
 
-- Supabase project
-- database
-- Edge Function / ingestion endpoint
-- publishable client key
-- server-side service role secret
-- treatment assignment configuration
-- researcher access policy
+The canonical participant surface is `docs/index.html`. It reads the shared ten-locale catalog from `docs/locales.js` and uses the shared durable browser transport in `docs/transport.js`.
 
-A fork MUST NOT send events to the canonical research database unless its operator intentionally configures that endpoint.
+The transport contract is:
 
-## What may be public
+1. create a stable `client_submission_id`;
+2. commit the full submission to IndexedDB before the first network attempt;
+3. POST to the deployment-owned ingestion endpoint;
+4. delete the queued item only after an explicit durable acknowledgement containing a `session_id`;
+5. retry queued submissions in original order and reuse the same id;
+6. coalesce concurrent duplicate sends for the same id in the browser.
 
-A Supabase **publishable key** is designed to be embedded in public clients. Treat it as an identifier with restricted public capability, not as an administrative secret. Public capability must be constrained by Row Level Security and/or a narrow ingestion Edge Function.
+The public player exposes truthful persistence states rather than claiming persistence simply because a request was attempted.
 
-The project URL and ingestion function URL may also be public.
+## Canonical backend
 
-## What must never enter the repository or browser
+Current canonical deployment:
 
-- `SUPABASE_SERVICE_ROLE_KEY`
-- database password / direct connection string with credentials
-- researcher/admin tokens
-- signing secrets
-- private webhook secrets
+- Supabase project: `pwdcgfvarudhqezlzwmx`
+- anonymous ingestion function: `ingest-probe` — ACTIVE v6
+- researcher read function: `research-sessions` — ACTIVE v4
 
-Store these only in the managed deployment secret store (for example Supabase Edge Function secrets or GitHub Actions Secrets when needed server-side). They must never be emitted into static GitHub Pages JavaScript.
+No service-role/database/admin secret belongs in GitHub Pages, the repository, or a participant browser.
 
-## Repository pattern
+## Server-side idempotency, consent, and atomicity
 
-Committed:
+The historical migration `supabase/migrations/20260917_atomic_probe_ingestion_v2.sql` defines the first atomic RPC. The current deployed path is `supabase/migrations/20260918_formal_study_metadata_v5.sql`, which defines `ingest_probe_atomic_v5(...)` and persists explicit consent version, client consent timestamp, study version, market, instrument version, family/world metadata, and rich event payloads atomically.
 
-- `.env.example`
-- schema / migrations
-- API contracts
-- example deployment configuration with placeholders
+The server boundary must independently guarantee what the browser cannot:
 
-Ignored:
+- `sessions.client_submission_id` is unique when present;
+- a duplicate submission returns the already-created `session_id` rather than creating a second session;
+- session, probe run, and event writes are one atomic database operation;
+- only the service-role path may execute the ingestion RPC directly.
 
-- `.env`
-- `.env.*`
-- `config.local.yml`
-- `config.local.yaml`
-- `secrets.yml`
-- `secrets.yaml`
+### Deployed verification — 2026-09-17
 
-If YAML is preferred locally, use `config.local.yaml` and keep it ignored. Do not put real credentials in a committed YAML file.
+A synthetic PF01 submission was executed directly against the deployed v2 RPC using one UUID twice. The first invocation returned `duplicate=false`; the second returned `duplicate=true`; both returned the same session id. A follow-up database read showed exactly one session, one probe run, and two events for that submission. The synthetic session was then deleted after verification.
 
-## Canonical public research deployment
+### Consent-aware rich-event verification — 2026-09-18
 
-The official public Probe Player may point to Jialun's research ingestion endpoint. That is a deployment choice, not a library default.
+The canonical project now has both current migrations applied:
 
-The source default remains `local` / no remote persistence. A deployer must opt in by supplying its own backend configuration.
+- `20260918020957 consent_aware_ingestion_v4`;
+- `20260918021248 research_replay_indexes`;
+- `formal_study_metadata_v5`.
 
-Conceptually:
+The deployed functions are:
+
+- `ingest-probe` ACTIVE v6, with the existing anonymous-ingestion boundary preserved (`verify_jwt=false`), origin/payload validation in the function body, and a strict Golden contract binding locale→market, consent version, fresh consent timestamp, instrument version, PF family, world variant, normalized event envelope, monotonic sequence/time, required commit, and terminal `session_complete`;
+- `research-sessions` ACTIVE v4 with `verify_jwt=true`, researcher-role fail-closed authorization, and formal study metadata included in session list/detail responses.
+
+A synthetic PF08 record was executed directly against `ingest_probe_atomic_v4(...)` with `golden-consent-v1`, then submitted again with the same client UUID. The duplicate call returned the existing session. A database read verified:
+
+- `consent_version = golden-consent-v1`;
+- `instrument_version = golden-pf08-v1`;
+- `client_schema_version = v4-rich-events`;
+- `probe_family = PF08`;
+- the rich `payload_json` retained `market`, `study_version`, `envelope_version`, `raw_event_type`, and the nested original raw event including relation/omission-style fields.
+
+The synthetic verification session was deleted afterward and a follow-up count returned zero remaining rows for its client submission id.
+
+This verifies the deployed database/RPC path and deployed function source versions. The formal browser HTTP path and authenticated researcher-browser replay are still separate release gates.
+
+### Formal study metadata verification — 2026-09-18
+
+A synthetic PF06 submission was written through `ingest_probe_atomic_v5(...)` and then repeated with the same client UUID. The duplicate resolved to the existing session rather than creating another run. A database read verified:
+
+- `consent_version = golden-consent-v1`;
+- `consented_at_client` persisted as a timestamp;
+- `instrument_version = golden-pf06-v1`;
+- `study_version = golden-study-v1`;
+- `market = US`;
+- `client_schema_version = v5-study-metadata`;
+- `probe_family = PF06`, `world_variant = golden-three-world-v1`;
+- exactly four original events remained attached to the first run.
+
+The synthetic session was deleted and the follow-up remaining count was zero.
+
+
+## Formal Golden study flow
+
+The Golden-depth journeys remain ordinary local previews unless the participant enters through a neutral consent URL such as `docs/study.html?journey=01&locale=<locale>` and explicitly checks the consent box. The participant-facing URL uses journey numbers rather than PF identifiers.
+
+The consented path is:
 
 ```text
-upstream PAJ-Eval repo
-       |
-       +-- canonical public deployment -> Jialun's Supabase project
-       |
-       +-- researcher A fork ----------> researcher A's Supabase project
-       |
-       +-- researcher B local ----------> no network / local trace only
+study.html?journey=01..08
+  → explicit consent
+  → sessionStorage consent context + stable client_submission_id
+  → run.html?journey=<nn>&study=1
+  → same-origin journey iframe
+  → golden-study-bridge.js
+  → lazy-load golden-event-normalizer.js + transport.js
+  → isolated IndexedDB queue paj-golden-study-queue-v1
+  → ingest-probe
+  → ingest_probe_atomic_v5(...)
 ```
 
-## Trigger / ingestion isolation
+Important boundaries:
 
-Any scheduled trigger, webhook, Edge Function, or evaluation worker is deployment-scoped. The canonical deployment invokes canonical infrastructure. A fork invokes the fork owner's configured infrastructure. No personal trigger identifier or secret is hard-coded into the shared source tree.
+- preview journeys do not load the durable transport or open IndexedDB;
+- the study bridge refuses submission without a fresh consent context, matching PF family, locale, and stable UUID;
+- the formal queue is isolated from the canonical player queue so a stale unrelated submission cannot block a study retry;
+- raw family-specific events are retained inside the normalized event envelope rather than flattened away;
+- the participant address bar and visible copy use neutral journey identifiers rather than PF labels; latent construct names remain researcher-side only.
+
+The v5 formal-study metadata migration and updated Edge Functions are now deployed. Formal Golden collection should still remain gated until one consented browser submission is exercised through `study.html` → `run.html` → journey → `ingest-probe`, and the resulting session is replayed through an authenticated researcher account. Database/RPC deployment alone is not the same as a completed browser-level release smoke test.
+
+## Research Session Browser
+
+`docs/research.html` is researcher-only. It signs in with Supabase Auth and calls the JWT-protected `research-sessions` Edge Function.
+
+Required authorization boundary:
+
+```text
+valid Supabase user JWT
+        +
+user.app_metadata.role = researcher
+        ↓
+research-sessions
+        ↓
+session / probe_runs / ordered events / derived_features / evaluations
+```
+
+The researcher API must fail closed. If probe runs, events, derived features, or evaluations cannot be read successfully, the API returns `research_read_failed` instead of presenting a partial trajectory as complete.
+
+The browser now supports sessions containing multiple probe runs. Events and derived features are grouped by `probe_run_id`, each run is replayed independently, orphan events are surfaced explicitly, and a session can be opened directly with `research.html?session_id=<uuid>`. Each event can also be expanded to inspect its stored `payload_json`, which is required for Golden family-specific fields such as experiment budget, delayed-check timing, objective-artifact state, and PF08 relation/omission traces.
+
+## Researcher-account operational gate
+
+As checked again on 2026-09-18, the canonical Supabase project currently has **zero** Auth accounts whose `app_metadata.role = researcher`.
+
+Do not weaken `verify_jwt`, expose database SELECT to anonymous users, or embed a service-role key merely to get through the final smoke test.
+
+Operational release still requires a deliberately provisioned researcher account, followed by:
+
+1. sign in through `docs/research.html`;
+2. persist one synthetic PF session through the participant ingestion path;
+3. verify the session appears in the session list;
+4. open the session (or deep-link directly to its UUID);
+5. verify the browser replays every probe run and ordered event;
+6. verify derived features/evaluations render as their current versioned layers;
+7. remove the synthetic session if it is only release-test data.
+
+Until that authenticated browser replay is performed, the branch can be code-complete but should not be described as operationally released.
+
+
+## Machine-readable release gate
+
+`RELEASE_GATE.json` is the source of truth for release readiness. CI executes `python scripts/check_release_gate.py` and fails if the source/backend evidence and declared release state disagree.
+
+Current recorded status remains `blocked` because there is still no provisioned researcher account and the consented browser HTTP smoke plus authenticated researcher replay smoke have not been completed. This prevents a green source build from being mistaken for an operational release.

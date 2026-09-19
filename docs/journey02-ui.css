@@ -1,0 +1,964 @@
+
+/* Journey 02 — clean scene-first UI
+   One visual system. No inherited dashboard layers. */
+
+body[data-instrument="pf02"]{
+  --pf-bg:#f3f1ec;
+  --pf-paper:#fbfaf7;
+  --pf-ink:#1f2428;
+  --pf-muted:#777d82;
+  --pf-line:#dedbd4;
+  --pf-soft:#efede7;
+  --pf-accent:#505fef;
+  --pf-green:#4d8b61;
+  --pf-warm:#b7654f;
+  margin:0;
+  background:var(--pf-bg)!important;
+  color:var(--pf-ink)!important;
+}
+
+body[data-instrument="pf02"] .app{
+  max-width:1040px!important;
+  padding:18px 22px 42px!important;
+}
+
+body[data-instrument="pf02"] .top{
+  min-height:36px!important;
+  padding:0!important;
+  margin:0 0 12px!important;
+  border:0!important;
+  justify-content:flex-end!important;
+}
+body[data-instrument="pf02"] .top .pill{display:none!important}
+body[data-instrument="pf02"] .top select{
+  height:30px!important;
+  padding:0 8px!important;
+  border:1px solid var(--pf-line)!important;
+  border-radius:6px!important;
+  background:var(--pf-paper)!important;
+  color:#676d72!important;
+  font-size:11px!important;
+}
+
+body[data-instrument="pf02"] .screen{
+  min-height:calc(100vh - 88px)!important;
+  align-items:center!important;
+}
+body[data-instrument="pf02"] .hidden{display:none!important}
+
+/* Intro */
+body[data-instrument="pf02"] #intro .hero{
+  width:min(760px,100%)!important;
+  margin:auto!important;
+}
+body[data-instrument="pf02"] #intro .ey{
+  color:#8b8e91!important;
+  font-size:10px!important;
+}
+body[data-instrument="pf02"] #intro h1{
+  max-width:720px!important;
+  margin:12px 0 18px!important;
+  color:#1d2226!important;
+  font-size:clamp(42px,6vw,68px)!important;
+  line-height:1.02!important;
+  letter-spacing:-.055em!important;
+}
+body[data-instrument="pf02"] #intro .lead{
+  max-width:690px!important;
+  margin:0 0 24px!important;
+  color:#565c60!important;
+  font-size:18px!important;
+  line-height:1.55!important;
+}
+body[data-instrument="pf02"] #intro .primary{
+  min-height:46px!important;
+  padding:0 18px!important;
+  border-radius:6px!important;
+  background:#1e2429!important;
+  color:#fff!important;
+}
+body[data-instrument="pf02"] #intro .help{
+  max-width:620px!important;
+  margin-top:14px!important;
+  color:#8a8f93!important;
+  font-size:11px!important;
+}
+body[data-instrument="pf02"] #intro .progress,
+body[data-instrument="pf02"] #intro .introMission{display:none!important}
+
+/* Main world shell */
+body[data-instrument="pf02"] .workspace{
+  width:100%!important;
+  min-height:0!important;
+  display:block!important;
+  overflow:visible!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body[data-instrument="pf02"] .nav,
+body[data-instrument="pf02"] .sceneChrome,
+body[data-instrument="pf02"] .missionHud,
+body[data-instrument="pf02"] .signalStrip,
+body[data-instrument="pf02"] .fieldFeed,
+body[data-instrument="pf02"] .crumb{
+  display:none!important;
+}
+body[data-instrument="pf02"] .main{
+  position:relative;
+  min-width:0!important;
+  padding:0!important;
+  color:var(--pf-ink)!important;
+}
+body[data-instrument="pf02"] .actions{
+  margin:12px 0 0!important;
+  padding:0!important;
+  border:0!important;
+}
+
+/* Scene frame */
+body[data-instrument="pf02"] .diegeticScene{
+  width:100%;
+  overflow:hidden;
+  border:1px solid var(--pf-line);
+  border-radius:14px;
+  background:var(--pf-paper);
+  box-shadow:0 18px 50px rgba(28,31,34,.07);
+}
+body[data-instrument="pf02"] .sceneTopline,
+body[data-instrument="pf02"] .nightHeader{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:0 16px;
+  border-bottom:1px solid var(--pf-line);
+  background:#f7f5f0;
+}
+body[data-instrument="pf02"] .sceneTopline span,
+body[data-instrument="pf02"] .nightHeader span{
+  color:#858a8e;
+  font:10px ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+body[data-instrument="pf02"] .sceneTopline b,
+body[data-instrument="pf02"] .nightHeader b{
+  color:#343a3e;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .sceneTopline small,
+body[data-instrument="pf02"] .nightHeader small{
+  margin-left:auto;
+  color:#8e9396;
+  font-size:9px;
+}
+
+/* Act 1 — shared home */
+body[data-instrument="pf02"][data-world="seed"]{
+  background:#111417!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .top select{
+  border-color:#2c3339!important;
+  background:#181d21!important;
+  color:#9da6ad!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .diegeticScene{
+  border-color:#30363c;
+  background:#15191d;
+  box-shadow:0 24px 60px rgba(0,0,0,.26);
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline{
+  border-color:#30363c;
+  background:#191e23;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline>div{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline span{
+  color:#87929a;
+  font:10px ui-monospace,monospace;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline b{
+  color:#edf1f3;
+  font-size:11px;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline small{
+  margin-left:auto;
+  color:#9aa3aa;
+  font-size:10px;
+}
+
+body[data-instrument="pf02"] .homePeople{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1px;
+  background:#2b3238;
+  border-bottom:1px solid #30363c;
+}
+body[data-instrument="pf02"] .personLine{
+  min-height:82px;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  padding:14px 16px;
+  background:#171c20;
+}
+body[data-instrument="pf02"] .personAvatar{
+  display:grid;
+  place-items:center;
+  width:30px;height:30px;
+  border:1px solid #38414a;
+  border-radius:50%;
+  color:#b8c2c9;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .youLine .personAvatar{
+  background:#27315b;
+  border-color:#344276;
+  color:#c7ceff;
+}
+body[data-instrument="pf02"] .mateLine .personAvatar{
+  background:#452f29;
+  border-color:#624138;
+  color:#efb6a3;
+}
+body[data-instrument="pf02"] .guestLine .personAvatar{
+  background:#233a31;
+  border-color:#315244;
+  color:#acd3bc;
+}
+body[data-instrument="pf02"] .personLine p{
+  margin:0;
+  color:#c4ccd1;
+  font-size:11px;
+  line-height:1.5;
+}
+
+body[data-instrument="pf02"] .homeRooms{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  padding:18px;
+  background:#11161a;
+}
+body[data-instrument="pf02"] .homeRoom{
+  position:relative;
+  min-width:0;
+  min-height:220px;
+  padding:18px;
+  border:1px solid #303840;
+  border-radius:12px;
+  background:#191f24;
+  color:#e8edf0;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
+}
+body[data-instrument="pf02"] .homeRoom:hover{
+  transform:translateY(-2px);
+  border-color:#4a555f;
+  background:#1e252b;
+}
+body[data-instrument="pf02"] .homeRoom.kitchen{
+  border-color:#70483d;
+  background:#211916;
+}
+body[data-instrument="pf02"] .homeRoom.kitchen:hover{
+  border-color:#8a594b;
+  background:#261c18;
+}
+body[data-instrument="pf02"] .roomName{
+  display:block;
+  color:#8d98a1;
+  font:9px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .homeRoom strong{
+  display:block;
+  margin-top:26px;
+  color:#f3f6f7;
+  font-size:42px;
+  line-height:1;
+  letter-spacing:-.05em;
+}
+body[data-instrument="pf02"] .homeRoom small{
+  display:block;
+  margin-top:9px;
+  color:#99a4ac;
+  font-size:10px;
+  line-height:1.5;
+}
+body[data-instrument="pf02"] .roomFlag{
+  position:absolute;
+  left:18px;
+  bottom:16px;
+  padding:5px 7px;
+  border:1px solid #70483d;
+  border-radius:999px;
+  background:#2c1d18;
+  color:#dfa38e;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.06em;
+}
+
+body[data-instrument="pf02"] .agentBar{
+  min-height:64px;
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) auto;
+  gap:11px;
+  align-items:center;
+  padding:11px 16px;
+  border-top:1px solid #30363c;
+  background:#171d21;
+}
+body[data-instrument="pf02"] .agentAvatar{
+  display:grid;
+  place-items:center;
+  width:32px;height:32px;
+  border-radius:50%;
+  background:#27315b;
+  color:#c8d0ff;
+  font:9px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .agentBar small{
+  display:block;
+  color:#79848d;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .agentBar b{
+  display:block;
+  margin-top:3px;
+  color:#d4dce1;
+  font-size:10px;
+  line-height:1.4;
+}
+body[data-instrument="pf02"] .agentBar i{
+  padding:5px 7px;
+  border:1px solid #35546a;
+  border-radius:999px;
+  color:#8fb9d2;
+  font:8px ui-monospace,monospace;
+  font-style:normal;
+  letter-spacing:.06em;
+}
+
+/* Act 2 — delivery phone + map */
+body[data-instrument="pf02"][data-world="near"] .diegeticScene{
+  display:grid;
+  grid-template-columns:minmax(320px,.9fr) minmax(360px,1.1fr);
+  gap:0;
+  background:#f8f5ee;
+}
+body[data-instrument="pf02"] .phoneShell{
+  border-right:1px solid #ddd7cc;
+  background:#fffdf9;
+}
+body[data-instrument="pf02"] .phoneHead{
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:0 15px;
+  border-bottom:1px solid #e7e1d7;
+}
+body[data-instrument="pf02"] .phoneHead span{
+  color:#8e847a;
+  font:10px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .phoneHead b{
+  color:#443d37;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .phoneHead i{
+  margin-left:auto;
+  color:#b3aaa0;
+  font-size:8px;
+  font-style:normal;
+  letter-spacing:.18em;
+}
+body[data-instrument="pf02"] .orderHero{
+  padding:18px 16px 15px;
+  border-bottom:1px solid #ece5dc;
+}
+body[data-instrument="pf02"] .orderHero span{
+  display:block;
+  color:#9a9087;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .orderHero strong{
+  display:inline-block;
+  margin-top:5px;
+  color:#2f2a26;
+  font-size:34px;
+  letter-spacing:-.04em;
+}
+body[data-instrument="pf02"] .orderHero small{
+  margin-left:7px;
+  color:#7f756c;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .orderLive{
+  width:100%;
+  min-height:66px;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:10px 15px;
+  border:0;
+  border-bottom:1px solid #ece5dc;
+  background:#fffdf9;
+  text-align:left;
+  cursor:pointer;
+}
+body[data-instrument="pf02"] .orderLive:hover{background:#faf6ef}
+body[data-instrument="pf02"] .orderLive>span{font-size:17px}
+body[data-instrument="pf02"] .orderLive b{
+  display:block;
+  color:#443d37;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .orderLive small{
+  display:block;
+  margin-top:2px;
+  color:#8f857c;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .orderLive>strong{
+  color:#a25f4d;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .orderLive.ok>strong{color:#5c8b67}
+body[data-instrument="pf02"] .chatIncoming{
+  margin:14px;
+  padding:12px 13px;
+  border-radius:10px;
+  background:#f0ece5;
+}
+body[data-instrument="pf02"] .chatIncoming span{
+  display:block;
+  color:#989086;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .chatIncoming b{
+  display:block;
+  margin-top:5px;
+  color:#514941;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .deliveryMapLive{
+  position:relative;
+  min-height:430px;
+  overflow:hidden;
+  background:#e8e5dd;
+}
+body[data-instrument="pf02"] .mapRoad{
+  position:absolute;
+  height:8px;
+  border-radius:999px;
+  background:#f6f4ef;
+  transform-origin:left center;
+}
+body[data-instrument="pf02"] .mapRoad.r1{left:9%;top:31%;width:76%;transform:rotate(14deg)}
+body[data-instrument="pf02"] .mapRoad.r2{left:15%;top:65%;width:68%;transform:rotate(-17deg)}
+body[data-instrument="pf02"] .mapRoad.r3{left:41%;top:12%;width:48%;transform:rotate(63deg)}
+body[data-instrument="pf02"] .pin{
+  position:absolute;
+  z-index:3;
+  display:grid;
+  place-items:center;
+  width:34px;height:34px;
+  border-radius:50%;
+  border:4px solid #fff;
+  box-shadow:0 4px 14px rgba(55,52,47,.16);
+  font-size:9px;
+  font-style:normal;
+}
+body[data-instrument="pf02"] .pin.store{left:16%;top:25%;background:#c9d9cb;color:#476752}
+body[data-instrument="pf02"] .pin.home{right:15%;bottom:18%;background:#d9d0ee;color:#65588b}
+body[data-instrument="pf02"] .pin.rider{left:52%;top:48%;background:#ead7c5;color:#875d3e}
+body[data-instrument="pf02"] .rainPatch{
+  position:absolute;
+  right:10%;
+  top:10%;
+  width:120px;height:90px;
+  border-radius:50%;
+  background:#cfd8dd;
+  opacity:.8;
+}
+body[data-instrument="pf02"] .deliveryMapLive p{
+  position:absolute;
+  left:16px;right:16px;bottom:16px;
+  margin:0;
+  padding:10px 12px;
+  border-radius:9px;
+  background:#f4f1ea;
+  color:#696159;
+  font-size:9px;
+  line-height:1.5;
+}
+
+/* Act 3 — quiet night */
+body[data-instrument="pf02"][data-world="far"]{
+  background:#172019!important;
+}
+body[data-instrument="pf02"][data-world="far"] .top select{
+  border-color:#344238!important;
+  background:#1d2820!important;
+  color:#9aad9f!important;
+}
+body[data-instrument="pf02"][data-world="far"] .diegeticScene{
+  border-color:#334139;
+  background:#1a241d;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);
+}
+body[data-instrument="pf02"][data-world="far"] .nightHeader{
+  border-color:#334139;
+  background:#202b23;
+}
+body[data-instrument="pf02"][data-world="far"] .nightHeader span{color:#819387}
+body[data-instrument="pf02"][data-world="far"] .nightHeader b{color:#e0e9e2}
+body[data-instrument="pf02"][data-world="far"] .nightHeader small{color:#829087}
+body[data-instrument="pf02"] .nightRooms{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;
+  background:#334139;
+}
+body[data-instrument="pf02"] .nightRoom{
+  position:relative;
+  min-height:180px;
+  padding:18px;
+  border:0;
+  background:#1b261f;
+  color:#e2ebe4;
+  text-align:left;
+  cursor:pointer;
+}
+body[data-instrument="pf02"] .nightRoom:hover{background:#202c23}
+body[data-instrument="pf02"] .nightRoom.guestRoom{background:#223126}
+body[data-instrument="pf02"] .nightRoom span{
+  display:block;
+  color:#87998d;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .nightRoom b{
+  display:block;
+  margin-top:14px;
+  color:#f1f5f2;
+  font-size:26px;
+  letter-spacing:-.04em;
+}
+body[data-instrument="pf02"] .nightRoom small{
+  display:block;
+  max-width:180px;
+  margin-top:7px;
+  color:#9cad9f;
+  font-size:10px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .nightRoom i{
+  position:absolute;
+  right:15px;
+  top:15px;
+  color:#607568;
+  font:9px ui-monospace,monospace;
+  font-style:normal;
+}
+body[data-instrument="pf02"] .nightConversation{
+  border-top:1px solid #334139;
+  background:#151d18;
+}
+body[data-instrument="pf02"] .nightConversation>div{
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr);
+  gap:8px;
+  padding:10px 16px;
+  border-bottom:1px solid #28352d;
+}
+body[data-instrument="pf02"] .nightConversation>div:last-child{border-bottom:0}
+body[data-instrument="pf02"] .nightConversation span{
+  color:#63776a;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .nightConversation p{
+  margin:0;
+  color:#aebdb2;
+  font-size:10px;
+  line-height:1.45;
+}
+
+/* Single decision block */
+body[data-instrument="pf02"] .instantDecision{
+  margin-top:12px;
+  padding:16px;
+  border:1px solid var(--pf-line);
+  border-radius:12px;
+  background:var(--pf-paper);
+  box-shadow:0 10px 30px rgba(29,32,34,.04);
+}
+body[data-instrument="pf02"] .instantDecision h3{
+  max-width:760px;
+  margin:0 0 14px!important;
+  color:#252b2f!important;
+  font-size:17px!important;
+  line-height:1.4!important;
+  letter-spacing:-.02em!important;
+}
+body[data-instrument="pf02"] .instantChoices{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+body[data-instrument="pf02"] .instantChoice{
+  min-height:56px;
+  padding:0 14px;
+  border:1px solid var(--pf-line);
+  border-radius:8px;
+  background:#f5f3ee;
+  color:#32383c;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .14s ease,border-color .14s ease,background .14s ease;
+}
+body[data-instrument="pf02"] .instantChoice:hover{
+  transform:translateY(-1px);
+  border-color:#bfc2bd;
+  background:#fff;
+}
+body[data-instrument="pf02"] .instantChoice b{
+  font-size:11px;
+  font-weight:680;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantDecision{
+  border-color:#30363c;
+  background:#181d21;
+  box-shadow:none;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantDecision h3{color:#eef2f4!important}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice{
+  border-color:#323941;
+  background:#1d2328;
+  color:#e4e9ec;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice:hover{
+  border-color:#4a555f;
+  background:#242b31;
+}
+body[data-instrument="pf02"][data-world="far"] .instantDecision{
+  border-color:#334139;
+  background:#1c2720;
+}
+body[data-instrument="pf02"][data-world="far"] .instantDecision h3{color:#e7eee9!important}
+body[data-instrument="pf02"][data-world="far"] .instantChoice{
+  border-color:#39483f;
+  background:#223027;
+  color:#e0e8e2;
+}
+body[data-instrument="pf02"][data-world="far"] .instantChoice:hover{
+  border-color:#52665a;
+  background:#28382d;
+}
+
+/* Result of one choice */
+body[data-instrument="pf02"] .instantResult{
+  padding:15px 16px;
+  border:1px solid #cfdbd1;
+  border-radius:10px;
+  background:#f2f7f3;
+}
+body[data-instrument="pf02"] .instantResult span{
+  color:#6f7c73;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .instantResult p{
+  margin:6px 0 0;
+  color:#3e4941;
+  font-size:11px;
+  line-height:1.58;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult{
+  border-color:#31513c;
+  background:#17231b;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult p{color:#cbd8cf}
+body[data-instrument="pf02"][data-world="far"] .instantResult{
+  border-color:#3a5543;
+  background:#1b2a20;
+}
+body[data-instrument="pf02"][data-world="far"] .instantResult p{color:#c6d5ca}
+
+body[data-instrument="pf02"] .instantNext{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  margin-top:9px;
+}
+body[data-instrument="pf02"] .textUndo{
+  padding:9px 10px;
+  border:0;
+  background:transparent;
+  color:#7b8185;
+  cursor:pointer;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .commitWorld{
+  min-height:40px;
+  padding:0 16px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#20262a!important;
+  color:#fff!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .textUndo{color:#879199}
+body[data-instrument="pf02"][data-world="seed"] .commitWorld{
+  background:#f0f3f5!important;
+  color:#171b1e!important;
+}
+body[data-instrument="pf02"][data-world="far"] .textUndo{color:#819287}
+body[data-instrument="pf02"][data-world="far"] .commitWorld{
+  background:#dfe9e2!important;
+  color:#1c2a20!important;
+}
+
+/* Cue between acts */
+body[data-instrument="pf02"] #cue .moment{
+  width:min(700px,100%);
+  margin:auto;
+  padding:34px 36px;
+  border:1px solid #d7d4cd;
+  border-radius:14px;
+  background:#fbfaf7;
+  text-align:left;
+  box-shadow:0 18px 52px rgba(28,31,34,.06);
+}
+body[data-instrument="pf02"] #cue .ey{
+  color:#8c9194!important;
+  font-size:9px!important;
+}
+body[data-instrument="pf02"] #cue .signal{
+  margin:12px 0 24px!important;
+  color:#282e32!important;
+  font:26px/1.45 Inter,"Noto Sans SC",system-ui,sans-serif!important;
+  letter-spacing:-.035em!important;
+}
+body[data-instrument="pf02"] #cue .primary{
+  min-height:42px!important;
+  padding:0 15px!important;
+  border-radius:7px!important;
+  background:#20262a!important;
+  color:#fff!important;
+}
+body[data-instrument="pf02"] #cue .progress{display:none!important}
+
+/* Done */
+body[data-instrument="pf02"] #done{
+  align-items:flex-start!important;
+  padding:36px 0 52px!important;
+}
+body[data-instrument="pf02"] #done>div{
+  width:min(940px,100%)!important;
+  margin:auto!important;
+}
+body[data-instrument="pf02"] #done h1{
+  margin:8px 0 14px!important;
+  color:#20262a!important;
+  font-size:clamp(38px,5vw,56px)!important;
+  letter-spacing:-.05em!important;
+}
+body[data-instrument="pf02"] #done .lead{
+  max-width:720px!important;
+  color:#62686c!important;
+  font-size:15px!important;
+}
+body[data-instrument="pf02"] #done .summary{
+  display:block!important;
+  margin-top:22px!important;
+}
+body[data-instrument="pf02"] #done .summary>.card:first-child{
+  display:none!important;
+}
+body[data-instrument="pf02"] #done .summary>.card{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  padding:0!important;
+  box-shadow:none!important;
+}
+body[data-instrument="pf02"] .journeyReplay{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+body[data-instrument="pf02"] .replayStage{
+  padding:15px;
+  border:1px solid var(--pf-line);
+  border-radius:10px;
+  background:#fbfaf7;
+}
+body[data-instrument="pf02"] .replayIndex{
+  color:#9a9da0;
+  font:9px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .replayBrand{
+  margin-top:8px;
+  color:#7d8387;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .replayStage h3{
+  margin:5px 0 12px;
+  font-size:13px;
+}
+body[data-instrument="pf02"] .replayLine{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:6px 0;
+  border-top:1px solid #ebe8e2;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .replayLine span{color:#8a8f92}
+body[data-instrument="pf02"] .replayOutcome{
+  display:flex;
+  gap:7px;
+  margin-top:8px;
+}
+body[data-instrument="pf02"] .replayOutcome span{color:#8a8f92}
+body[data-instrument="pf02"] .replayOutcome p{
+  margin:0;
+  color:#5b6266;
+  font-size:9px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .replayArrow,
+body[data-instrument="pf02"] .replayTotals{display:none!important}
+
+body[data-instrument="pf02"] .artifactReveal{
+  margin-top:12px;
+}
+body[data-instrument="pf02"] .artifactRevealBtn{
+  width:100%;
+  min-height:44px;
+  padding:0 14px;
+  border:1px solid var(--pf-line);
+  border-radius:8px;
+  background:#f5f3ee;
+  color:#4a5155;
+  text-align:left;
+  cursor:pointer;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .artifactRevealBtn:hover{background:#fff}
+body[data-instrument="pf02"] .artifactForge{
+  margin-top:12px;
+  padding:16px;
+  border:1px solid var(--pf-line);
+  border-radius:10px;
+  background:#fbfaf7;
+}
+body[data-instrument="pf02"] .artifactForge.hidden{display:none!important}
+body[data-instrument="pf02"] .artifactPipeline,
+body[data-instrument="pf02"] .artifactWorkbench{
+  display:none!important;
+}
+body[data-instrument="pf02"] .artifactHead{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+body[data-instrument="pf02"] .artifactHead span{
+  color:#8a8f92;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .artifactHead h2{
+  margin:4px 0 0!important;
+  font-size:16px!important;
+}
+body[data-instrument="pf02"] .artifactHead>b{
+  color:#4e7d5a;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] #done>.row{
+  margin-top:14px!important;
+}
+body[data-instrument="pf02"] #done>.row .primary,
+body[data-instrument="pf02"] #done>.row .btn{
+  border-radius:7px!important;
+}
+
+/* Hide legacy structures that should never compete with the main flow */
+body[data-instrument="pf02"] .metricGrid,
+body[data-instrument="pf02"] .spark,
+body[data-instrument="pf02"] .commandDeck,
+body[data-instrument="pf02"] .decisionGrid,
+body[data-instrument="pf02"] .decisionDiff,
+body[data-instrument="pf02"] .outcomePanel,
+body[data-instrument="pf02"] .postActionBar,
+body[data-instrument="pf02"] .energyRoomTabs,
+body[data-instrument="pf02"] .energyTimeline,
+body[data-instrument="pf02"] .intervalBtn,
+body[data-instrument="pf02"] .executionOverlay{
+  display:none!important;
+}
+
+/* Secondary detail surfaces still work when explicitly reached */
+body[data-instrument="pf02"] .detailDrawer,
+body[data-instrument="pf02"] .notice,
+body[data-instrument="pf02"] .contextPanel,
+body[data-instrument="pf02"] .generationSurface,
+body[data-instrument="pf02"] .networkBoard,
+body[data-instrument="pf02"] .sliceBoard,
+body[data-instrument="pf02"] .corpusBoard,
+body[data-instrument="pf02"] .releaseRail,
+body[data-instrument="pf02"] .requestBoard,
+body[data-instrument="pf02"] .carrierBoard,
+body[data-instrument="pf02"] .cityBoard,
+body[data-instrument="pf02"] .scheduleBoard{
+  margin-top:12px;
+}
+
+@media(max-width:820px){
+  body[data-instrument="pf02"] .app{padding:12px 14px 30px!important}
+    body[data-instrument="pf02"][data-world="near"] .diegeticScene{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .phoneShell{border-right:0;border-bottom:1px solid #ddd7cc}
+  body[data-instrument="pf02"] .deliveryMapLive{min-height:300px}
+  body[data-instrument="pf02"] .nightRooms{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .nightRoom{min-height:120px}
+  body[data-instrument="pf02"] .instantChoices{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .instantNext{
+    align-items:stretch;
+    flex-direction:column-reverse;
+  }
+  body[data-instrument="pf02"] .journeyReplay{grid-template-columns:1fr}
+}
+
+@media(max-width:520px){
+  body[data-instrument="pf02"] #intro h1{font-size:42px!important}
+  }
+
+@media(max-width:760px){
+  body[data-instrument="pf02"] .homePeople,
+  body[data-instrument="pf02"] .homeRooms{
+    grid-template-columns:1fr;
+  }
+  body[data-instrument="pf02"] .personLine{min-height:68px}
+  body[data-instrument="pf02"] .homeRoom{min-height:150px}
+  body[data-instrument="pf02"] .homeRoom strong{margin-top:16px;font-size:34px}
+  body[data-instrument="pf02"] .agentBar{
+    grid-template-columns:34px minmax(0,1fr);
+  }
+  body[data-instrument="pf02"] .agentBar i{
+    grid-column:1/-1;
+    justify-self:start;
+  }
+}
