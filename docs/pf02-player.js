@@ -60,6 +60,32 @@ function scheduleBoard(w){
     <span class="roomIcon">${String(i+1).padStart(2,'0')}</span><b>${r[0]}</b><small>${r[1]}</small><i>→</i>
   </button>`).join('')}</div><div id="farDetail"></div>`;
 }
+function sceneReaction(world,a){
+  const zh=locale.startsWith('zh');
+  if(!a)return '';
+  if(world==='seed'){
+    const text=a==='repin'
+      ? (zh?'HOME AGENT：廚房窗已按 v12 重算 → 20%。室友沒有再次 override。':'HOME AGENT: kitchen recomputed on v12 → 20%. No new housemate override.')
+      : a==='rollback'
+        ? (zh?'室友：“欸？怎麼又全開了？” 全屋回到雨感之前。':'Housemate: “Why did everything reopen?” Whole home returned to pre-rain state.')
+        : (zh?'18:44 · 你手動把廚房窗推開了一點。Agent 記錄到一次人工 override。':'18:44 · You manually cracked the kitchen window. Agent recorded a human override.');
+    return `<div class="reactionLine"><time>NOW</time><b>${a==='repin'?'HOME AGENT':zh?'現場':'LIVE'}</b><p>${text}</p></div>`;
+  }
+  if(world==='near'){
+    const text=a==='reroute'
+      ? (zh?'19:07 · 即時倉已接單。群聊裡有人回：“那我們慢慢走，你們先弄。”':'19:07 · Instant store accepted. Someone replies: “We’ll walk slowly—you keep setting up.”')
+      : a==='rollback'
+        ? (zh?'19:07 · 你抓起鑰匙準備出門。室友接手了桌上的準備。':'19:07 · You grab your keys. Your housemate takes over the table prep.')
+        : (zh?'19:30 · 門鈴響了。冰塊還沒到。':'19:30 · The doorbell rings. The ice is still not here.');
+    return `<div class="deliveryReaction"><span>↳</span><p>${text}</p></div>`;
+  }
+  const text=a==='schedule'
+    ? (zh?'00:49 · 客房風速降了一檔。朋友回：“這樣可以，謝啦。”':'00:49 · Guest-room fan drops one step. “This works, thanks.”')
+    : a==='revert'
+      ? (zh?'00:49 · 房間全部回到聚會前規則。客房的人又看了一眼溫控器。':'00:49 · Rooms return to pre-party rules. The guest looks at the thermostat again.')
+      : (zh?'01:07 · 客房再次手動調低 1°C。第二次 override。':'01:07 · Guest lowers the setpoint by 1°C again. Second override.');
+  return `<div class="reactionLine"><time>NOW</time><b>${zh?'夜間現場':'NIGHT'}</b><p>${text}</p></div>`;
+}
 function diegeticScene(world){
   const zh=locale.startsWith('zh'),state=S.worldState[world]||{},a=S.action[world];
   if(world==='seed'){
@@ -78,6 +104,7 @@ function diegeticScene(world){
         <div><time>18:40</time><b>${zh?'室友':'Housemate'}</b><p>“${zh?'下雨就都關了吧。':'If it rains, just close them all.'}”</p></div>
         <div class="agentLine"><time>18:41</time><b>HOME AGENT</b><p>${zh?'雨感觸發 → 全屋關窗已執行':'Rain sensor → whole-home close executed'}</p></div>
         <div class="conflictLine"><time>18:42</time><b>${zh?'現場':'LIVE'}</b><p>${zh?'廚房窗 0% · 你的指令沒有生效':'Kitchen 0% · your instruction did not take effect'}</p></div>
+        ${sceneReaction('seed',a)}
       </div>
     </section>`;
   }
@@ -94,6 +121,7 @@ function diegeticScene(world){
         <div><span class="avatar">群</span><p><b>19:04 · ${zh?'朋友群':'Group chat'}</b><br>${zh?'“我們大概 19:30 到，你們開始了嗎？”':'“We should be there around 19:30. Started yet?”'}</p></div>
         <div><span class="avatar store">店</span><p><b>19:05 · ${zh?'便利店':'Store'}</b><br>${zh?'冰塊庫存剩 3 袋，可切即時倉。':'Only 3 bags of ice left; instant inventory available.'}</p></div>
       </div>
+      ${sceneReaction('near',a)}
     </section>`;
   }
   const guestTemp=a==='schedule'?'25°C':a==='revert'?'26°C':'24°C';
@@ -109,6 +137,7 @@ function diegeticScene(world){
       <div><time>00:41</time><b>${zh?'朋友':'Guest'}</b><p>“${zh?'這間有點悶，我可以調低一點嗎？':'It is a little stuffy. Can I turn it down?' }”</p></div>
       <div><time>00:43</time><b>${zh?'室友':'Housemate'}</b><p>“${zh?'夜裡別開窗，外面車太吵。':'Please do not open the window at night. Traffic is too loud.'}”</p></div>
       <div class="agentLine"><time>00:47</time><b>HOME AGENT</b><p>${zh?'未找到「留宿客人」的夜間優先級規則':'No night-priority rule exists for overnight guests'}</p></div>
+      ${sceneReaction('far',a)}
     </div>
   </section>`;
 }
@@ -565,8 +594,10 @@ function takeAction(world,a){
   log('consequence_exposed',{world,action:a,outcome:'partial'});
   log('post_action_check',{world,action:a,outcome:'partial'});
   refreshSignal(world);refreshMissionHud(world);animateWorld(world,'pulse');
-  if(world==='seed'&&S.view.seed===2)renderSeed(2);
-  if(world==='near'&&S.view.near===1)renderNear(1);
+  if(world==='seed'&&S.view.seed===0)renderSeed(0);
+  else if(world==='seed'&&S.view.seed===2)renderSeed(2);
+  if(world==='near'&&S.view.near===0)renderNear(0);
+  else if(world==='near'&&S.view.near===1)renderNear(1);
   if(world==='far'&&S.view.far===0)renderFar(0);
   renderActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world);
 }
