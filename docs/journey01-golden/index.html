@@ -237,6 +237,66 @@ h1,h2,h3{font-weight:680;text-wrap:balance}.btn,.primary{border-radius:8px}.prim
 .mailSide{display:flex;flex-direction:column}
 .visualHotspot:after{animation-duration:4.8s!important;opacity:.22}
 @keyframes hotPulse{0%{transform:scale(.9);opacity:.22}70%,100%{transform:scale(1.35);opacity:0}}
+
+/* Offer inbox row alignment fix */
+.mailListReal{
+  width:100%!important;
+  border:1px solid #e3e6ea!important;
+  border-radius:10px!important;
+  overflow:hidden!important;
+  background:#fff!important;
+}
+.mailListReal .mailRow{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  width:100%!important;
+  min-height:72px!important;
+  display:grid!important;
+  grid-template-columns:8px 38px minmax(150px,.72fr) minmax(260px,1.28fr) 112px!important;
+  gap:13px!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:15px 16px!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid #eceef1!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  outline:0!important;
+  text-align:left!important;
+  color:inherit!important;
+}
+.mailListReal .mailRow:last-child{
+  border-bottom:0!important;
+}
+.mailListReal .mailRow:hover{
+  background:#fafbfc!important;
+}
+.mailListReal .mailRow:focus-visible{
+  background:#f8f9ff!important;
+  box-shadow:inset 3px 0 0 #6768ff!important;
+}
+.mailListReal .mailIdentity{
+  min-width:0!important;
+}
+.mailListReal .mailSnippet{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.mailListReal .mailComp{
+  justify-self:end!important;
+  min-width:96px!important;
+  text-align:right!important;
+  white-space:nowrap!important;
+  font-variant-numeric:tabular-nums!important;
+}
+@media(max-width:900px){
+  .mailListReal .mailRow{
+    grid-template-columns:8px 38px minmax(130px,.8fr) minmax(180px,1.2fr) 100px!important;
+  }
+}
 </style><script src="challenge-packs.js"></script><script src="challenge-depth.js"></script>
 <script src="journey01-ui.js"></script>
 <script src="golden-study-bridge.js"></script><link rel="stylesheet" href="premium-system.css"></head>
