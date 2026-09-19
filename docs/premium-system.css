@@ -397,3 +397,20 @@ body[data-instrument="pf07"] .evidence-far>.card{background:transparent!importan
  body[data-instrument="pf07"] .ruleRow,
  body[data-instrument="pf07"] .scheduleRow{grid-template-columns:1fr!important;gap:6px}
 }
+
+/* --- Journey 06 95-pass: time must feel expensive --- */
+body[data-instrument="pf06"] .recoveryRail{margin:16px 0 18px;padding:13px 0;border-top:1px solid #dce0db;border-bottom:1px solid #dce0db}
+body[data-instrument="pf06"] .recoveryNow{display:flex;justify-content:space-between;align-items:end;margin-bottom:13px}
+body[data-instrument="pf06"] .recoveryNow span{font:11px ui-monospace,monospace;color:#7e858d}
+body[data-instrument="pf06"] .recoveryNow b{font-size:22px;letter-spacing:-.03em}
+body[data-instrument="pf06"] .recoveryTrack{position:relative;height:7px;background:#e6e9e4;margin:0 4px 17px}
+body[data-instrument="pf06"] .recoveryTrack i{display:block;height:100%;background:#cf7b4e;transition:width .22s ease}
+body[data-instrument="pf06"] .recoveryTrack span{position:absolute;top:11px;transform:translateX(-50%);font:9px ui-monospace,monospace;color:#979da4}
+body[data-instrument="pf06"] .recoveryTrack span:first-of-type{transform:none}
+body[data-instrument="pf06"] .recoveryTrack span:last-of-type{transform:translateX(-100%)}
+body[data-instrument="pf06"] .recoveryRail small{font:9px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#92989f}
+body[data-instrument="pf06"] .recoveryConsole{border:1px solid #d8ddd8;border-radius:7px;padding:18px;background:#fff}
+body[data-instrument="pf06"][data-world="far"] .recoveryConsole{background:#f8faf7}
+body[data-instrument="pf06"] .waitAction{display:inline-flex!important;align-items:center;gap:8px}
+body[data-instrument="pf06"] .waitAction small{font:9px ui-monospace,monospace;color:#9a765f}
+body[data-instrument="pf06"] .waitAction:disabled{opacity:.42;cursor:not-allowed}
