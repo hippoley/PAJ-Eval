@@ -1528,3 +1528,60 @@ body[data-instrument="pf02"][data-world="far"] .main{
   body[data-instrument="pf02"] .introMissionGrid>div:last-child,
   body[data-instrument="pf02"] .missionHud>div:last-child{border-bottom:0}
 }
+
+
+/* Live incident clock + ambient ping */
+body[data-instrument="pf02"] .missionPressure em{
+  font-style:normal;
+  color:inherit;
+}
+body[data-instrument="pf02"] .main{
+  position:relative;
+}
+body[data-instrument="pf02"] .systemPingToast{
+  position:absolute;
+  right:24px;
+  top:72px;
+  z-index:20;
+  width:min(330px,calc(100% - 48px));
+  padding:12px 14px;
+  border:1px solid #d9dedb;
+  background:rgba(252,253,251,.96);
+  box-shadow:0 14px 36px rgba(22,28,24,.10);
+  opacity:0;
+  transform:translateY(-8px);
+  pointer-events:none;
+  transition:opacity .2s ease,transform .24s cubic-bezier(.2,.8,.2,1);
+}
+body[data-instrument="pf02"] .systemPingToast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+body[data-instrument="pf02"] .systemPingToast span{
+  display:block;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.1em;
+  color:#8c9490;
+}
+body[data-instrument="pf02"] .systemPingToast b{
+  display:block;
+  margin-top:5px;
+  color:#39423c;
+  font-size:11px;
+  line-height:1.45;
+  font-weight:600;
+}
+body[data-instrument="pf02"][data-world="seed"] .systemPingToast{
+  border-color:#303740;
+  background:rgba(20,25,31,.97);
+  box-shadow:0 16px 42px rgba(0,0,0,.26);
+}
+body[data-instrument="pf02"][data-world="seed"] .systemPingToast span{color:#7f8994}
+body[data-instrument="pf02"][data-world="seed"] .systemPingToast b{color:#dce2e8}
+@media(max-width:760px){
+  body[data-instrument="pf02"] .systemPingToast{
+    right:12px;
+    top:58px;
+    width:calc(100% - 24px);
+  }
+}
