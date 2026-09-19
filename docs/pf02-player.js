@@ -117,6 +117,17 @@ function refreshMissionHud(world){
   const main=$(world+'Content')?.closest('.main'),old=main?.querySelector('.missionHud');
   if(old)old.outerHTML=missionHud(world);
 }
+function renderIntroMission(){
+  let el=document.querySelector('#intro .introMission');
+  if(!el){el=document.createElement('div');el.className='introMission';$('introHelp').insertAdjacentElement('afterend',el)}
+  const zh=locale.startsWith('zh');
+  el.innerHTML=`<div class="introMissionStatus"><span class="liveDot"></span><b>${zh?'LIVE INCIDENT':'LIVE INCIDENT'}</b><small>02:13</small></div>
+    <div class="introMissionGrid">
+      <div><span>${zh?'当前状态':'STATUS'}</span><b>${zh?'生产质量异常，影响仍在扩大':'Production quality degraded and still spreading'}</b></div>
+      <div><span>${zh?'你的角色':'ROLE'}</span><b>${zh?'接管现场，决定先看哪里、何时采取动作':'Take control, choose what to inspect, decide when to act'}</b></div>
+      <div><span>${zh?'约束':'CONSTRAINT'}</span><b>${zh?'没有标准路径；你看到的结果会改变后续世界':'No required path; outcomes change what follows'}</b></div>
+    </div>`;
+}
 function signalStrip(world){
   const w=P[world],opened=S.views[world].length,deep=S.detail[world].length,action=S.action[world],state=S.worldState[world]||{};
   const primary=state.primary||(w.metrics?.[0]?.[1]||'—');
@@ -201,7 +212,7 @@ function bindWorldMicroInteractions(world){
     document.querySelectorAll('.energyRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);S.selection.far=j;markDetail('far','room_'+j);renderWorld('far',0,false)});
   }
 }
-function applyPack(){P=packs[locale];C=chrome[locale];document.documentElement.lang=locale;$('market').textContent=P.market;$('introEy').textContent=P.intro.ey;$('introTitle').textContent=P.intro.title;$('introLead').textContent=P.intro.lead;$('start').textContent=P.intro.start;$('introHelp').textContent=P.intro.help;$('cueEy').textContent=P.cue.ey;$('cueLine').textContent=P.cue.line;$('cueNext').textContent=P.cue.next;$('seedCrumb').textContent=P.seed.crumb;$('nearCrumb').textContent=P.near.crumb;$('farCrumb').textContent=P.far.crumb;$('doneEy').textContent=P.done.ey;$('doneTitle').textContent=P.done.title;$('doneLead').textContent=P.done.lead;$('traceLabel').textContent=C.trace;$('journeyLabel').textContent=C.journey;$('export').textContent=P.done.export;$('again').textContent=P.done.again;renderNav('seed');renderNav('near');renderNav('far')}
+function applyPack(){P=packs[locale];C=chrome[locale];document.documentElement.lang=locale;$('market').textContent=P.market;$('introEy').textContent=P.intro.ey;$('introTitle').textContent=P.intro.title;$('introLead').textContent=P.intro.lead;$('start').textContent=P.intro.start;$('introHelp').textContent=P.intro.help;$('cueEy').textContent=P.cue.ey;$('cueLine').textContent=P.cue.line;$('cueNext').textContent=P.cue.next;$('seedCrumb').textContent=P.seed.crumb;$('nearCrumb').textContent=P.near.crumb;$('farCrumb').textContent=P.far.crumb;$('doneEy').textContent=P.done.ey;$('doneTitle').textContent=P.done.title;$('doneLead').textContent=P.done.lead;$('traceLabel').textContent=C.trace;$('journeyLabel').textContent=C.journey;$('export').textContent=P.done.export;$('again').textContent=P.done.again;renderIntroMission();renderNav('seed');renderNav('near');renderNav('far')}
 function renderNav(world){const w=P[world],el=$(world+'Nav');el.innerHTML=`<div class="brand">${w.brand}</div>`+w.nav.map((n,i)=>`<button data-i="${i}"><span class="navMark"></span><span class="navLabel">${n}</span></button>`).join('');el.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>renderWorld(world,Number(b.dataset.i),true));active(el,S.view[world])}
 function startJourney(){S.started=performance.now();S.events=[];S.views={seed:[],near:[],far:[]};S.detail={seed:[],near:[],far:[]};S.action={seed:null,near:null,far:null};S.view={seed:0,near:0,far:0};S.selection={seed:null,near:null,far:null};S.worldState={seed:{},near:{},far:{}};S.pressure={seed:42,near:48,far:37};S.ping={seed:0,near:0,far:0};delete document.body.dataset.action;resetActionOrders();log('session_start',{locale,market:P.market});log('action_order',{orders:JSON.parse(JSON.stringify(S.actionOrder))});show('seed');renderWorld('seed',0,true)}
 function decorateScene(world,i){
