@@ -65,8 +65,10 @@ test('market-specific late-arrival facts remain aligned in non-generic packs', (
 
 test('PF01 seed exposes consequence on both headline product choices', () => {
   assert.match(html, /p\.kind==='lite'\?'bridge':'delivery'/);
-  assert.match(html, /D\.checkout\.proConsequence/);
-  assert.match(html, /pickup_option/);
+  assert.match(html, /u\.proTitle/);
+  assert.match(html, /tomorrow_delivery/);
+  assert.match(html, /pickup_tonight/);
+  assert.match(html, /alternative_models/);
   assert.match(html, /affected_devices/);
 });
 
