@@ -521,29 +521,53 @@ function decorateScene(world,i){
 }
 function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);if(world==='seed')renderSeed(i);if(world==='near')renderNear(i);if(world==='far')renderFar(i);decorateScene(world,i);renderActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world)}
 function homeLiveScene(){
-  const a=S.action.seed,state=S.worldState.seed||{},zh=locale.startsWith('zh');
+  const a=S.action.seed,zh=locale.startsWith('zh');
   const kitchen=a==='repin'?'20%':a==='rollback'?'45%':'0%';
   const conflict=a==='repin'?1:a==='rollback'?2:a==='hold'?4:3;
-  return `<div class="diegeticScene homeScene">
-    <div class="sceneTopline"><span>18:42 · ${zh?'雨正在下':'RAIN ACTIVE'}</span><b>${zh?conflict+' 个冲突未解决':conflict+' unresolved conflicts'}</b></div>
-    <div class="homeStage">
-      <button class="roomTile living" data-clue="room_living"><span>${zh?'客厅':'LIVING'}</span><small>${zh?'窗 0% · 无人':'window 0% · empty'}</small><i class="roomGlow"></i></button>
-      <button class="roomTile kitchen hot" data-clue="room_kitchen"><span>${zh?'厨房':'KITCHEN'}</span><small>${zh?'窗 '+kitchen+' · 正在做饭':'window '+kitchen+' · cooking'}</small><strong class="windowGauge"><i style="width:${kitchen}"></i></strong></button>
-      <button class="roomTile bedroom" data-clue="room_bedroom"><span>${zh?'卧室':'BEDROOM'}</span><small>${zh?'未授权自动控制':'automation not authorized'}</small><i class="lockMark">⌁</i></button>
-      <div class="rainSensor"><span></span><b>${zh?'雨感 ACTIVE':'RAIN SENSOR ACTIVE'}</b></div>
-      <div class="agentNode"><span>AI</span><b>${zh?'执行：全屋关窗':'Executed: close all windows'}</b></div>
-      <div class="voiceBubble you">${zh?'你：厨房那扇别全关。':'You: Don’t close the kitchen one all the way.'}</div>
-      <div class="voiceBubble mate">${zh?'室友：下雨就都关了。':'Housemate: If it rains, close them all.'}</div>
-      <div class="voiceBubble guest">${zh?'留宿朋友：……':'Guest: …'}</div>
-      <svg class="homeLinks" viewBox="0 0 1000 520" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M500 82 C500 150 500 170 500 220"></path>
-        <path d="M500 220 C350 245 280 280 220 320"></path>
-        <path d="M500 220 C505 270 515 310 520 350"></path>
-        <path d="M500 220 C650 250 740 290 790 335"></path>
-      </svg>
+  const agentText=a==='repin'
+    ? (zh?'厨房窗已按当前家庭规则调整到 20%':'Kitchen window adjusted to 20% under the current home rule')
+    : a==='rollback'
+      ? (zh?'已撤销刚才的全屋关窗':'The whole-home close was reverted')
+      : a==='hold'
+        ? (zh?'状态未改变，等待新的人工动作':'No change; waiting for the next human action')
+        : (zh?'雨感触发后执行了全屋关窗':'Rain automation closed every window');
+  return `<section class="diegeticScene homeScene">
+    <header class="sceneTopline">
+      <div><span>18:42</span><b>${zh?'雨正在下':'RAIN ACTIVE'}</b></div>
+      <small>${conflict} ${zh?'个冲突未解决':'unresolved conflicts'}</small>
+    </header>
+
+    <div class="homePeople">
+      <div class="personLine youLine"><span class="personAvatar">你</span><p>${zh?'“厨房那扇别全关，留一点。”':'“Leave the kitchen window a little open.”'}</p></div>
+      <div class="personLine mateLine"><span class="personAvatar">室</span><p>${zh?'“下雨就都关了吧。”':'“If it rains, close them all.”'}</p></div>
+      <div class="personLine guestLine"><span class="personAvatar">客</span><p>${zh?'没有授权 Agent 自动开窗。':'Has not authorized automatic window opening.'}</p></div>
     </div>
-    <div class="scenePrompt"><span>${zh?'现在发生了什么':'WHAT IS HAPPENING'}</span><p>${P.seed.status}</p></div>
-  </div><div id="seedDetail"></div>`;
+
+    <div class="homeRooms">
+      <button class="homeRoom living" data-clue="room_living">
+        <span class="roomName">${zh?'客厅':'LIVING'}</span>
+        <strong>0%</strong>
+        <small>${zh?'窗户关闭 · 无人':'window closed · empty'}</small>
+      </button>
+      <button class="homeRoom kitchen" data-clue="room_kitchen">
+        <span class="roomName">${zh?'厨房':'KITCHEN'}</span>
+        <strong>${kitchen}</strong>
+        <small>${zh?'正在做饭 · 油烟上升':'cooking · ventilation needed'}</small>
+        <span class="roomFlag">${zh?'你在这里':'YOU ARE HERE'}</span>
+      </button>
+      <button class="homeRoom guest" data-clue="room_bedroom">
+        <span class="roomName">${zh?'客房':'GUEST ROOM'}</span>
+        <strong>0%</strong>
+        <small>${zh?'未授权自动开窗':'automation not authorized'}</small>
+      </button>
+    </div>
+
+    <div class="agentBar">
+      <span class="agentAvatar">AI</span>
+      <div><small>HOME AGENT</small><b>${agentText}</b></div>
+      <i>${zh?'雨感 ACTIVE':'RAIN ACTIVE'}</i>
+    </div>
+  </section><div id="seedDetail"></div>`;
 }
 function deliveryLiveScene(){
   const a=S.action.near,zh=locale.startsWith('zh');
