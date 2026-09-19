@@ -25,7 +25,49 @@ button,select,a{font:inherit}button{color:inherit}.shell{min-height:100vh;displa
 .backHome{margin-top:12px}
 .stagePlayer.hidden,.stageHome.hidden{display:none!important}
 @media(max-width:760px){.homeGrid{grid-template-columns:1fr}.stageHome{padding-top:12px}.stageHome h2{font-size:42px!important}}
-</style><link rel="stylesheet" href="premium-system.css"></head>
+</style><link rel="stylesheet" href="premium-system.css">
+<style id="stage-coherence-pass">
+html,body{background:#eef0ee!important;color:#161a1f!important}
+.topbar{min-height:54px!important;padding:0 18px!important;background:rgba(250,251,249,.94)!important;border-color:#d6dad6!important;box-shadow:none!important}
+.brand .mark{width:8px!important;height:8px!important;background:#e75f3d!important}
+.brand b{font-size:10px!important;letter-spacing:.11em!important}
+.topActions .btn,.topActions select{height:32px!important;padding:0 9px!important;border-radius:5px!important;border-color:#d6dad6!important;background:#fff!important;box-shadow:none!important}
+.topActions .btn.dark{background:#171b20!important;color:#fff!important;border-color:#171b20!important}
+.layout{grid-template-columns:230px minmax(0,1fr)!important}
+.rail{background:#171b20!important;border-color:#292f36!important;padding:16px 10px 24px!important}
+.railHeader{padding:8px 9px 16px!important}
+.railHeader h1{font-size:23px!important;letter-spacing:-.045em!important;color:#f4f6f8!important;margin:7px 0 8px!important}
+.railHeader p{font-size:12px!important;color:#89919c!important}
+.homeRailBtn{color:#8f97a2!important;padding-left:9px!important}
+.journeyList{gap:3px!important}
+.journeyBtn{border-radius:5px!important;padding:10px 9px!important}
+.journeyBtn:hover{background:#22272e!important}
+.journeyBtn.active{background:#2a3038!important;border-color:#343b44!important;box-shadow:inset 2px 0 0 #e75f3d!important}
+.journeyBtn b{color:#eef1f4!important;font-size:13px!important}
+.journeyBtn span{color:#8f97a2!important;font-size:10px!important}
+.jnum{font-size:9px!important}
+.main{padding:18px 20px 28px!important}
+.studio{max-width:1360px!important}
+.stageHome{min-height:calc(100vh - 72px)!important;padding:54px 0 66px!important;justify-content:flex-start!important}
+.stageHome h2{font-size:clamp(46px,6.5vw,78px)!important;line-height:.96!important;letter-spacing:-.055em!important;max-width:920px!important;margin-top:18px!important}
+.stageHome>p{font-size:17px!important;line-height:1.65!important;color:#5f666f!important;max-width:760px!important}
+.homeGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;margin-top:34px!important}
+.homeJourney{min-height:154px!important;border-radius:0!important;border-color:#d4d9d5!important;background:#fafbf9!important;padding:17px 18px!important;box-shadow:none!important}
+.homeJourney:hover{transform:none!important;background:#fff!important;border-color:#aeb5b0!important}
+.homeJourney .num{font-size:9px!important}.homeJourney b{font-size:18px!important;margin-top:12px!important}.homeJourney p{font-size:12px!important;line-height:1.55!important}
+.heroRow{margin:8px 0 16px!important}
+.heroRow h2{font-size:clamp(32px,3.8vw,48px)!important;line-height:1!important}
+.heroRow p{font-size:13px!important;line-height:1.55!important}
+.browser{border-radius:8px!important;border-color:#c9ceca!important;box-shadow:0 14px 38px rgba(24,29,34,.065)!important}
+.browserbar{height:38px!important;background:#f3f4f2!important;border-color:#d9ddda!important}
+.address{border:0!important;background:transparent!important;text-align:left!important;color:#8b929a!important;padding-left:2px!important}
+.dots i{width:7px!important;height:7px!important;background:#c4c9c5!important}
+.iconBtn{border-radius:4px!important}
+.inspector{border-color:#d6dad6!important}
+.backHome{margin-top:10px!important;border-radius:5px!important}
+@media(max-width:760px){.homeGrid{grid-template-columns:1fr!important}.layout{grid-template-columns:1fr!important}.main{padding:12px!important}}
+</style>
+</head>
 <!-- stage-contract-copy: Stage 只是一个试验台 · 真正要打磨的东西 · Stage preview 本身不写正式研究数据 -->
 <body><div class="shell">
 <header class="topbar"><div class="brand"><span class="mark"></span><b>PAJ-EVAL</b><span class="tiny hideSm">playable judgment environments</span></div><div class="topActions"><select id="locale" aria-label="体验语言"></select><button id="inspectorToggle" class="btn" type="button">Inspector</button><a id="open" class="btn dark" href="#" target="_blank" rel="noopener">Open world ↗</a><a id="consent" class="hiddenLink" href="#" aria-hidden="true" tabindex="-1">Consent preview</a></div></header>
