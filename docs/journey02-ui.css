@@ -1821,3 +1821,321 @@ body[data-instrument="pf02"][data-world="seed"] .diffSide.after em{border-color:
   body[data-instrument="pf02"] .diffGrid{grid-template-columns:1fr}
   body[data-instrument="pf02"] .diffArrow{transform:rotate(90deg)}
 }
+
+
+/* Journey 02 command-deck game layer */
+body[data-instrument="pf02"] .actions{
+  margin-top:24px!important;
+  padding-top:0!important;
+  border-top:0!important;
+}
+body[data-instrument="pf02"] .decisionGrid,
+body[data-instrument="pf02"] .decisionCard,
+body[data-instrument="pf02"] .actionHeader,
+body[data-instrument="pf02"] .actionExplain{
+  display:none!important;
+}
+body[data-instrument="pf02"] .commandDeck{
+  display:grid;
+  grid-template-columns:minmax(240px,.82fr) minmax(360px,1.18fr);
+  min-height:340px;
+  border:1px solid #d9ddda;
+  background:#f7f9f7;
+}
+body[data-instrument="pf02"] .commandRail{
+  border-right:1px solid #dfe3df;
+  background:#eef2ef;
+}
+body[data-instrument="pf02"] .commandLabel{
+  padding:14px 15px 12px;
+  border-bottom:1px solid #dfe3df;
+}
+body[data-instrument="pf02"] .commandLabel span,
+body[data-instrument="pf02"] .commandPreviewHead span,
+body[data-instrument="pf02"] .commandRationale span{
+  display:block;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.11em;
+  color:#879089;
+}
+body[data-instrument="pf02"] .commandLabel small{
+  display:block;
+  margin-top:4px;
+  color:#747e77;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .commandChoice{
+  width:100%;
+  min-height:78px;
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) 18px;
+  gap:10px;
+  align-items:center;
+  padding:10px 13px;
+  border:0;
+  border-bottom:1px solid #dfe3df;
+  background:transparent;
+  color:#344038;
+  text-align:left;
+  cursor:pointer;
+  transition:background .16s ease,box-shadow .16s ease;
+}
+body[data-instrument="pf02"] .commandChoice:last-child{border-bottom:0}
+body[data-instrument="pf02"] .commandChoice:hover{
+  background:#f7faf7;
+}
+body[data-instrument="pf02"] .commandChoice.selected{
+  background:#fff;
+  box-shadow:inset 3px 0 0 #5264ff;
+}
+body[data-instrument="pf02"] .commandNo{
+  color:#89928b;
+  font:9px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .commandText b{
+  display:block;
+  font-size:12px;
+  line-height:1.25;
+  color:#2d3831;
+}
+body[data-instrument="pf02"] .commandText small{
+  display:block;
+  margin-top:4px;
+  color:#7b857e;
+  font-size:9px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .commandChoice>i{
+  justify-self:end;
+  color:#9aa29c;
+  font-style:normal;
+  font-size:18px;
+}
+body[data-instrument="pf02"] .commandPreview{
+  position:relative;
+  padding:18px;
+  background:
+    linear-gradient(rgba(255,255,255,.88),rgba(255,255,255,.88)),
+    repeating-linear-gradient(90deg,transparent 0 39px,rgba(66,88,73,.035) 40px);
+}
+body[data-instrument="pf02"] .commandPreviewHead{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:center;
+  padding-bottom:13px;
+  border-bottom:1px solid #e1e5e2;
+}
+body[data-instrument="pf02"] .commandPreviewHead b{
+  font-size:12px;
+  color:#384139;
+}
+body[data-instrument="pf02"] .commandStateGrid{
+  display:grid;
+  grid-template-columns:1fr 38px 1fr;
+  align-items:center;
+  gap:10px;
+  margin-top:22px;
+}
+body[data-instrument="pf02"] .commandState{
+  min-height:120px;
+  padding:14px;
+  border:1px solid #dfe4e0;
+  background:#fafcfb;
+}
+body[data-instrument="pf02"] .commandState.projected{
+  border-color:#b8c9bc;
+  background:#f0f6f1;
+}
+body[data-instrument="pf02"] .commandState span{
+  font:8px ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#909894;
+}
+body[data-instrument="pf02"] .commandState strong{
+  display:block;
+  margin-top:8px;
+  font-size:30px;
+  letter-spacing:-.04em;
+  color:#2d3731;
+}
+body[data-instrument="pf02"] .commandState small{
+  display:block;
+  margin-top:5px;
+  color:#69736d;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .commandState em{
+  display:inline-block;
+  margin-top:12px;
+  padding:3px 6px;
+  border:1px solid #d1d8d2;
+  color:#68736b;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.07em;
+  font-style:normal;
+}
+body[data-instrument="pf02"] .commandState.projected em{
+  border-color:#9eb7a5;
+  color:#4c7858;
+}
+body[data-instrument="pf02"] .commandVector{
+  text-align:center;
+  color:#929b94;
+  font-size:20px;
+}
+body[data-instrument="pf02"] .commandRationale{
+  min-height:74px;
+  margin-top:16px;
+  padding-top:13px;
+  border-top:1px solid #e2e5e3;
+}
+body[data-instrument="pf02"] .commandRationale b{
+  display:block;
+  margin-top:5px;
+  font-size:11px;
+  color:#3a443d;
+}
+body[data-instrument="pf02"] .commandRationale p{
+  margin:5px 0 0;
+  color:#737d76;
+  font-size:10px;
+  line-height:1.5;
+}
+body[data-instrument="pf02"] .executeCommand{
+  position:absolute;
+  right:18px;
+  bottom:18px;
+  min-width:170px;
+  min-height:42px;
+  padding:0 16px;
+  border:0;
+  background:#15191e;
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .15s ease,background .15s ease,opacity .15s ease;
+}
+body[data-instrument="pf02"] .executeCommand:disabled{
+  opacity:.28;
+  cursor:default;
+}
+body[data-instrument="pf02"] .executeCommand:not(:disabled):hover{
+  transform:translateY(-1px);
+  background:#23282f;
+}
+
+/* live field feed */
+body[data-instrument="pf02"] .fieldFeed{
+  margin-top:14px;
+  border:1px solid #d8ddd9;
+  background:#101419;
+  color:#cfd6dc;
+}
+body[data-instrument="pf02"] .fieldFeedHead{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:34px;
+  padding:0 11px;
+  border-bottom:1px solid #252b32;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#7f8a95;
+}
+body[data-instrument="pf02"] .fieldFeedHead small{margin-left:auto}
+body[data-instrument="pf02"] .feedPulse{
+  width:6px;height:6px;border-radius:50%;
+  background:#58b179;
+  box-shadow:0 0 0 4px rgba(88,177,121,.08);
+}
+body[data-instrument="pf02"] .fieldFeedBody{
+  padding:7px 0;
+}
+body[data-instrument="pf02"] .fieldFeedBody>div{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:8px;
+  padding:7px 11px;
+}
+body[data-instrument="pf02"] .fieldFeedBody span{
+  color:#596570;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .fieldFeedBody p{
+  margin:0;
+  color:#b7c0c8;
+  font-size:10px;
+  line-height:1.45;
+}
+
+/* Seed becomes an incident-game command room */
+body[data-instrument="pf02"][data-world="seed"] .commandDeck{
+  border-color:#2b323a;
+  background:#101419;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandRail{
+  border-color:#252c34;
+  background:#0d1116;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandLabel,
+body[data-instrument="pf02"][data-world="seed"] .commandChoice{
+  border-color:#252c34;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandChoice{
+  color:#d9dfe5;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandChoice:hover{background:#151b22}
+body[data-instrument="pf02"][data-world="seed"] .commandChoice.selected{
+  background:#171e26;
+  box-shadow:inset 3px 0 0 #6676ff;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandText b{color:#e8edf2}
+body[data-instrument="pf02"][data-world="seed"] .commandText small,
+body[data-instrument="pf02"][data-world="seed"] .commandLabel small{color:#7f8a95}
+body[data-instrument="pf02"][data-world="seed"] .commandPreview{
+  background:
+    linear-gradient(rgba(20,25,31,.96),rgba(20,25,31,.96)),
+    repeating-linear-gradient(90deg,transparent 0 39px,rgba(255,255,255,.025) 40px);
+}
+body[data-instrument="pf02"][data-world="seed"] .commandPreviewHead,
+body[data-instrument="pf02"][data-world="seed"] .commandRationale{
+  border-color:#293039;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandPreviewHead b,
+body[data-instrument="pf02"][data-world="seed"] .commandRationale b{color:#e0e6eb}
+body[data-instrument="pf02"][data-world="seed"] .commandState{
+  border-color:#2c333b;
+  background:#10151a;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandState.projected{
+  border-color:#355b45;
+  background:#142119;
+}
+body[data-instrument="pf02"][data-world="seed"] .commandState strong{color:#f1f4f6}
+body[data-instrument="pf02"][data-world="seed"] .commandState small,
+body[data-instrument="pf02"][data-world="seed"] .commandRationale p{color:#909aa4}
+body[data-instrument="pf02"][data-world="seed"] .commandState em{border-color:#39414a;color:#8c96a0}
+body[data-instrument="pf02"][data-world="seed"] .commandState.projected em{border-color:#3e7253;color:#77ad89}
+body[data-instrument="pf02"][data-world="seed"] .executeCommand{
+  background:#f0f3f5;
+  color:#11151a;
+}
+body[data-instrument="pf02"][data-world="seed"] .executeCommand:not(:disabled):hover{
+  background:#fff;
+}
+
+/* action resolution overlays the same command surface */
+body[data-instrument="pf02"] .decisionDiff{
+  margin-top:0;
+  border-radius:0!important;
+}
+body[data-instrument="pf02"] .outcomePanel{
+  margin-top:8px;
+}
+
+@media(max-width:900px){
+  body[data-instrument="pf02"] .commandDeck{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .commandRail{border-right:0;border-bottom:1px solid #dfe3df}
+  body[data-instrument="pf02"] .commandPreview{min-height:330px}
+}
