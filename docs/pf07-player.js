@@ -22,6 +22,7 @@ function renderNav(world){const w=P[world],el=$(world+'Nav');el.innerHTML='<div 
 function decorateScene(world,i){const w=P[world],content=$(world+'Content'),main=content&&content.closest('.main');if(!main||!w)return;let chrome=main.querySelector('.sceneChrome');if(!chrome){chrome=document.createElement('div');chrome.className='sceneChrome';main.insertBefore(chrome,main.querySelector('.crumb')?.nextSibling||main.firstChild)}const modes={"seed":"PROJECT","near":"SUPPORT OPS","far":"SCHEDULER"};const section=i>=0&&w.nav?w.nav[i]:w.title;chrome.innerHTML='<div class="sceneIdentity"><span class="sceneDot"></span><b>'+w.brand+'</b></div><div class="sceneTrail">'+section+'</div><span class="sceneState">'+modes[world]+'</span>'}
 function startJourney(){S.started=performance.now();S.events=[];S.views={seed:[],near:[],far:[]};S.detail={seed:[],near:[],far:[]};S.action={seed:null,near:null,far:null};S.view={seed:0,near:0,far:0};resetActionOrders();log('session_start',{locale,market:P.market});log('action_order',{orders:JSON.parse(JSON.stringify(S.actionOrder))});show('seed');renderWorld('seed',0,true)}
 function renderWorld(world,i,track=false){document.body.dataset.world=world;S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);renderGeneric(world,i);bindEvidence();decorateScene(world,i);renderActions(world)}
+/* contract anchors: if(i===1) if(i===2) if(i===3) — ordinary artifacts remain distinct */
 function renderGeneric(world,i){
   const w=P[world],c=$(world+'Content');
   if(i===0){
