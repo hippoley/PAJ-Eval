@@ -23,7 +23,7 @@ function active(el,i){
   });
 }
 function markView(world,i){const key='nav_'+i;if(!S.views[world].includes(key)){S.views[world].push(key);bumpPressure(world,-2,'open_object')}log('open_object',{world,object:key});refreshSignal(world);refreshMissionHud(world);animateWorld(world,'investigate')}
-function markDetail(world,key){S.flowReady[world]=true;if(!S.detail[world].includes(key)){S.detail[world].push(key);bumpPressure(world,-3,'open_detail')}log('open_detail',{world,object:key});refreshSignal(world);refreshMissionHud(world);animateWorld(world,'investigate')}
+function markDetail(world,key){if(!S.detail[world].includes(key)){S.detail[world].push(key);bumpPressure(world,-3,'open_detail')}log('open_detail',{world,object:key});refreshSignal(world);refreshMissionHud(world);animateWorld(world,'investigate')}
 function metrics(rows){return `<div class="metricGrid">${rows.map(r=>`<div class="card metric"><span class="meta">${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>`}
 function spark(values=[85,86,84,87,85,72,68]){return `<div class="spark">${values.map(v=>`<i style="height:${v}%"></i>`).join('')}</div>`}
 function table(head,rows,detailClass='',detailLabel=''){return `<table class="table"><tr>${head.map(x=>`<th>${x}</th>`).join('')}${detailClass?'<th></th>':''}</tr>${rows.map((r,i)=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}${detailClass?`<td><button class="link ${detailClass}" data-j="${i}">${detailLabel||P.seed.open}</button></td>`:''}</tr>`).join('')}</table>`}
@@ -277,23 +277,34 @@ function playExecution(world,a){
   setTimeout(()=>overlay?.remove(),980);
 }
 function commandDeck(world){
-  const w=P[world],order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world),p=S.preview[world],zh=locale.startsWith('zh');
-  if(false){
-    return `<div class="flowNudge">
-      <div><span>01</span><b>${zh?'先看一眼现场':'LOOK AT THE SCENE'}</b><p>${zh?'点一个你最在意的人、房间或订单。只看一个就够。':'Tap one person, room, or order you care about. One is enough.'}</p></div>
-      <button class="skipExplore">${zh?'我已经知道要怎么做 →':'I already know what to do →'}</button>
-    </div>`;
-  }
-  return `<div class="simpleDecision">
-    <div class="simpleDecisionHead"><span>02</span><div><b>${zh?'你要怎么处理？':'WHAT DO YOU DO?'}</b><small>${zh?'选一个。点下去只是预览，不会立刻执行。':'Pick one. The first tap only previews it.'}</small></div></div>
-    <div class="simpleChoices">
-      ${order.map(key=>`<button class="simpleChoice ${p===key?'selected':''}" data-a="${key}"><b>${w.actions[key]}</b></button>`).join('')}
+  const w=P[world],order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world),zh=locale.startsWith('zh');
+  const q=world==='seed'
+    ? (zh?'厨房在做饭，雨感刚把全屋窗户关了。你现在怎么办？':'The kitchen is cooking and rain automation just closed every window. What do you do?')
+    : world==='near'
+      ? (zh?'朋友快到了，但冰块和火锅底料都要迟到。你怎么办？':'Guests are almost here, but the ice and hotpot base are late. What do you do?')
+      : (zh?'所有人都想睡了，但客房闷、室友又不想夜里开窗。你怎么办？':'Everyone wants to sleep, but the guest room is stuffy and your housemate does not want windows open. What do you do?');
+  const plain={
+    seed:{
+      repin:zh?'只开厨房一点':'Open kitchen a little',
+      rollback:zh?'全部恢复到刚才':'Restore everything',
+      hold:zh?'先等等':'Wait a bit'
+    },
+    near:{
+      reroute:zh?'把冰块改派':'Reroute the ice',
+      rollback:zh?'自己去取':'Pick it up myself',
+      hold:zh?'继续等':'Keep waiting'
+    },
+    far:{
+      schedule:zh?'只给客房设临时规则':'Guest-room rule only',
+      revert:zh?'恢复原来的夜间设置':'Restore old night settings',
+      hold:zh?'今晚先不改':'Leave it for tonight'
+    }
+  };
+  return `<div class="instantDecision">
+    <h3>${q}</h3>
+    <div class="instantChoices">
+      ${order.map(key=>`<button class="instantChoice" data-a="${key}"><b>${plain[world][key]}</b></button>`).join('')}
     </div>
-    ${p?`<div class="simplePreview">
-      <p>${evidenceFit(world,p)}</p>
-      <div><span>${zh?'如果执行':'IF EXECUTED'}</span><b>${w.consequence[p]}</b></div>
-      <button class="executeCommand">${zh?'就这么做':'DO IT'}</button>
-    </div>`:''}
   </div>`;
 }
 function previewAction(world,a){
@@ -492,7 +503,7 @@ function bindWorldMicroInteractions(world){
     document.querySelectorAll('.energyRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);S.selection.far=j;markDetail('far','room_'+j);renderWorld('far',0,false)});
   }
 }
-function applyPack(){P=packs[locale];C=chrome[locale];document.documentElement.lang=locale;$('market').textContent=P.market;$('introEy').textContent=P.intro.ey;$('introTitle').textContent=P.intro.title;$('introLead').textContent=P.intro.lead;$('start').textContent=P.intro.start;$('introHelp').textContent=P.intro.help;$('cueEy').textContent=P.cue.ey;$('cueLine').textContent=P.cue.line;$('cueNext').textContent=P.cue.next;$('seedCrumb').textContent=P.seed.crumb;$('nearCrumb').textContent=P.near.crumb;$('farCrumb').textContent=P.far.crumb;$('doneEy').textContent=P.done.ey;$('doneTitle').textContent=P.done.title;$('doneLead').textContent=P.done.lead;$('traceLabel').textContent=C.trace;$('journeyLabel').textContent=C.journey;$('export').textContent=P.done.export;$('again').textContent=P.done.again;renderIntroMission();renderNav('seed');renderNav('near');renderNav('far')}
+function applyPack(){P=packs[locale];C=chrome[locale];document.documentElement.lang=locale;$('market').textContent=P.market;$('introEy').textContent=P.intro.ey;$('introTitle').textContent=P.intro.title;$('introLead').textContent=P.intro.lead;$('start').textContent=P.intro.start;$('introHelp').textContent=P.intro.help;$('cueEy').textContent=P.cue.ey;$('cueLine').textContent=P.cue.line;$('cueNext').textContent=P.cue.next;$('seedCrumb').textContent=P.seed.crumb;$('nearCrumb').textContent=P.near.crumb;$('farCrumb').textContent=P.far.crumb;$('doneEy').textContent=P.done.ey;$('doneTitle').textContent=P.done.title;$('doneLead').textContent=P.done.lead;$('traceLabel').textContent=C.trace;$('journeyLabel').textContent=C.journey;$('export').textContent=P.done.export;$('again').textContent=P.done.again;renderNav('seed');renderNav('near');renderNav('far')}
 function renderNav(world){const w=P[world],el=$(world+'Nav');el.innerHTML=`<div class="brand">${w.brand}</div>`+w.nav.map((n,i)=>`<button data-i="${i}"><span class="navMark"></span><span class="navLabel">${n}</span></button>`).join('');el.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>renderWorld(world,Number(b.dataset.i),true));active(el,S.view[world])}
 function startJourney(){S.started=performance.now();S.events=[];S.views={seed:[],near:[],far:[]};S.detail={seed:[],near:[],far:[]};S.action={seed:null,near:null,far:null};S.view={seed:0,near:0,far:0};S.selection={seed:null,near:null,far:null};S.worldState={seed:{},near:{},far:{}};S.pressure={seed:42,near:48,far:37};S.ping={seed:0,near:0,far:0};S.preview={seed:null,near:null,far:null};S.flowReady={seed:false,near:false,far:false};delete document.body.dataset.action;resetActionOrders();log('session_start',{locale,market:P.market});log('action_order',{orders:JSON.parse(JSON.stringify(S.actionOrder))});show('seed');renderWorld('seed',0,true)}
 function decorateScene(world,i){
@@ -587,40 +598,29 @@ function visibleActionLabel(world,key){
 function renderActions(world){
   const w=P[world],el=$(world+'Actions'),a=S.action[world],zh=locale.startsWith('zh');
   if(!a){
-    const order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world);
-    el.innerHTML=`<div class="instantDecision">
-      <div class="instantQuestion">${zh?'你现在怎么做？':'What do you do?'}</div>
-      <div class="instantChoices">
-        ${order.map(key=>`<button class="instantChoice" data-a="${key}"><b>${visibleActionLabel(world,key)}</b></button>`).join('')}
-      </div>
-      <button class="optionalClue">${zh?'想再看一点现场信息':'Inspect more context'}</button>
-    </div>`;
+    el.innerHTML=commandDeck(world);
     el.querySelectorAll('.instantChoice').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));
-    const more=el.querySelector('.optionalClue');
-    if(more)more.onclick=()=>{
-      const target=world==='seed'?2:world==='near'?5:2;
-      renderWorld(world,target,true);
-    };
     return;
   }
-  const post=w.post;
+  const nextLabel=world==='far'
+    ? (zh?'看看今晚最后留下了什么 →':'See what this night left behind →')
+    : (zh?'继续今晚 →':'Continue the night →');
   el.innerHTML=`<div class="instantResult">
-      <span>${zh?'结果':'RESULT'}</span>
+      <span>${zh?'刚刚发生了':'WHAT HAPPENED'}</span>
       <p>${w.consequence[a]}</p>
     </div>
     <div class="instantNext">
-      <button class="btn switchAction">${zh?'换一个做法':'Try another'}</button>
-      <button class="primary commitWorld">${world==='far'?(zh?'结束今晚':'Finish the night'):(zh?'继续':'Continue')}</button>
+      <button class="textUndo">${zh?'换一个选择':'Choose differently'}</button>
+      <button class="primary commitWorld">${nextLabel}</button>
     </div>`;
-  const sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');
-  sw.onclick=()=>{
+  el.querySelector('.textUndo').onclick=()=>{
     log('post_consequence_action',{world,action:'switch_mitigation',from:a});
     S.action[world]=null;S.preview[world]=null;S.worldState[world]={};
     bumpPressure(world,4,'switch_mitigation');
     delete document.body.dataset.action;
     renderWorld(world,0,false);
   };
-  co.onclick=()=>commitWorld(world);
+  el.querySelector('.commitWorld').onclick=()=>commitWorld(world);
 }
 function takeAction(world,a){
   playExecution(world,a);
@@ -728,7 +728,7 @@ function downloadText(name,text,type='text/plain'){
 }
 function artifactForge(){
   const zh=locale.startsWith('zh'),spec=artifactSpec();
-  return `<section class="artifactForge" data-artifact-id="${spec.id}">
+  return `<section class="artifactReveal"><button class="artifactRevealBtn">${zh?'把今晚保存成规则 / 测试 →':'Save this night as a rule / test →'}</button></section><section class="artifactForge hidden" data-artifact-id="${spec.id}">
     <div class="artifactHead">
       <div><span>${zh?'PROBE → ARTIFACT':'PROBE → ARTIFACT'}</span><h2>${zh?'把這一局變成系統資產':'Turn this play into a system asset'}</h2></div>
       <b>CI READY</b>
@@ -761,7 +761,7 @@ function artifactForge(){
   </section>`;
 }
 function bindArtifactForge(){
-  const root=document.querySelector('.artifactForge');if(!root)return;
+  const root=document.querySelector('.artifactForge');if(!root)return;const reveal=document.querySelector('.artifactRevealBtn');if(reveal)reveal.onclick=()=>{root.classList.remove('hidden');reveal.closest('.artifactReveal')?.classList.add('hidden')};
   const spec=artifactSpec(),code=root.querySelector('.artifactCode'),status=root.querySelector('.artifactStatus b');
   const showKind=kind=>{
     root.querySelectorAll('.artifactTab').forEach(b=>b.classList.toggle('active',b.dataset.kind===kind));
