@@ -134,7 +134,7 @@ def test_challenge_preserves_full_golden_interaction_shape():
 
 def test_transfer_worlds_have_nested_objects_and_a_revisable_far_transfer_commit():
     for token in [
-        'class="btn mobility"',
+        'class="mailAttachment mobility"',
         "careerDetail(b.dataset.k,'mobility')",
         "provisional_commit",
         "renderTravelHold",
