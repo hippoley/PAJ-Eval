@@ -238,8 +238,8 @@ def test_checkout_has_one_decision_problem_per_screen():
         "evidenceLink",
     ]:
         assert token in HTML
-    assert "id="change"" not in HTML
-    assert "id="inspect"" not in HTML
+    assert 'id="change"' not in HTML
+    assert 'id="inspect"' not in HTML
 
 
 def test_checkout_inspection_is_not_counted_as_revision():
