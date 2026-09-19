@@ -171,158 +171,179 @@ body[data-instrument="pf02"][data-world="seed"] .sceneTopline{
   border-color:#30363c;
   background:#191e23;
 }
-body[data-instrument="pf02"][data-world="seed"] .sceneTopline span{color:#808a92}
-body[data-instrument="pf02"][data-world="seed"] .sceneTopline b{color:#e7ecef}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline>div{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline span{
+  color:#87929a;
+  font:10px ui-monospace,monospace;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline b{
+  color:#edf1f3;
+  font-size:11px;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline small{
+  margin-left:auto;
+  color:#9aa3aa;
+  font-size:10px;
+}
 
-body[data-instrument="pf02"] .homeStage{
-  position:relative;
-  height:520px;
+body[data-instrument="pf02"] .homePeople{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:1px;
+  background:#2b3238;
+  border-bottom:1px solid #30363c;
+}
+body[data-instrument="pf02"] .personLine{
+  min-height:82px;
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  padding:14px 16px;
+  background:#171c20;
+}
+body[data-instrument="pf02"] .personAvatar{
+  display:grid;
+  place-items:center;
+  width:30px;height:30px;
+  border:1px solid #38414a;
+  border-radius:50%;
+  color:#b8c2c9;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .youLine .personAvatar{
+  background:#27315b;
+  border-color:#344276;
+  color:#c7ceff;
+}
+body[data-instrument="pf02"] .mateLine .personAvatar{
+  background:#452f29;
+  border-color:#624138;
+  color:#efb6a3;
+}
+body[data-instrument="pf02"] .guestLine .personAvatar{
+  background:#233a31;
+  border-color:#315244;
+  color:#acd3bc;
+}
+body[data-instrument="pf02"] .personLine p{
+  margin:0;
+  color:#c4ccd1;
+  font-size:11px;
+  line-height:1.5;
+}
+
+body[data-instrument="pf02"] .homeRooms{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  padding:18px;
   background:#11161a;
 }
-body[data-instrument="pf02"] .roomTile{
-  position:absolute;
-  z-index:3;
-  display:block;
-  padding:16px;
+body[data-instrument="pf02"] .homeRoom{
+  position:relative;
+  min-width:0;
+  min-height:220px;
+  padding:18px;
   border:1px solid #303840;
-  border-radius:10px;
+  border-radius:12px;
   background:#191f24;
-  color:#e7ecef;
+  color:#e8edf0;
   text-align:left;
   cursor:pointer;
   transition:transform .16s ease,border-color .16s ease,background .16s ease;
 }
-body[data-instrument="pf02"] .roomTile:hover{
+body[data-instrument="pf02"] .homeRoom:hover{
   transform:translateY(-2px);
   border-color:#4a555f;
-  background:#1d242a;
+  background:#1e252b;
 }
-body[data-instrument="pf02"] .roomTile.living{left:6%;bottom:12%;width:27%;height:27%}
-body[data-instrument="pf02"] .roomTile.kitchen{left:38%;bottom:8%;width:28%;height:31%}
-body[data-instrument="pf02"] .roomTile.bedroom{right:5%;bottom:12%;width:24%;height:27%}
-body[data-instrument="pf02"] .roomTile>span{
+body[data-instrument="pf02"] .homeRoom.kitchen{
+  border-color:#70483d;
+  background:#211916;
+}
+body[data-instrument="pf02"] .homeRoom.kitchen:hover{
+  border-color:#8a594b;
+  background:#261c18;
+}
+body[data-instrument="pf02"] .roomName{
   display:block;
-  color:#8b969f;
+  color:#8d98a1;
   font:9px ui-monospace,monospace;
   letter-spacing:.08em;
 }
-body[data-instrument="pf02"] .roomTile>small{
+body[data-instrument="pf02"] .homeRoom strong{
   display:block;
-  margin-top:8px;
-  color:#c0c8ce;
+  margin-top:26px;
+  color:#f3f6f7;
+  font-size:42px;
+  line-height:1;
+  letter-spacing:-.05em;
+}
+body[data-instrument="pf02"] .homeRoom small{
+  display:block;
+  margin-top:9px;
+  color:#99a4ac;
   font-size:10px;
-  line-height:1.45;
+  line-height:1.5;
 }
-body[data-instrument="pf02"] .roomTile.hot{
-  border-color:#6c4439;
-  background:#211916;
-}
-body[data-instrument="pf02"] .windowGauge{
-  display:block;
-  height:5px;
-  margin-top:18px;
-  overflow:hidden;
-  border-radius:999px;
-  background:#2b3035;
-}
-body[data-instrument="pf02"] .windowGauge i{
-  display:block;
-  height:100%;
-  background:#db8063;
-}
-body[data-instrument="pf02"] .lockMark{
+body[data-instrument="pf02"] .roomFlag{
   position:absolute;
-  right:14px;
-  top:14px;
-  color:#7f8991;
-  font-style:normal;
-}
-body[data-instrument="pf02"] .rainSensor{
-  position:absolute;
-  z-index:4;
-  top:28px;
-  left:50%;
-  transform:translateX(-50%);
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:7px 10px;
-  border:1px solid #33404a;
+  left:18px;
+  bottom:16px;
+  padding:5px 7px;
+  border:1px solid #70483d;
   border-radius:999px;
-  background:#172028;
-}
-body[data-instrument="pf02"] .rainSensor span{
-  width:7px;height:7px;border-radius:50%;background:#5ea5ce;
-}
-body[data-instrument="pf02"] .rainSensor b{
-  color:#a9c7d8;
+  background:#2c1d18;
+  color:#dfa38e;
   font:8px ui-monospace,monospace;
+  letter-spacing:.06em;
 }
-body[data-instrument="pf02"] .agentNode{
-  position:absolute;
-  z-index:4;
-  left:50%;
-  top:42%;
-  transform:translate(-50%,-50%);
-  width:180px;
-  padding:13px 14px;
-  border:1px solid #3a4450;
-  border-radius:10px;
-  background:#1b2228;
-  text-align:center;
+
+body[data-instrument="pf02"] .agentBar{
+  min-height:64px;
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) auto;
+  gap:11px;
+  align-items:center;
+  padding:11px 16px;
+  border-top:1px solid #30363c;
+  background:#171d21;
 }
-body[data-instrument="pf02"] .agentNode span{
+body[data-instrument="pf02"] .agentAvatar{
   display:grid;
   place-items:center;
-  width:30px;height:30px;
-  margin:0 auto 8px;
+  width:32px;height:32px;
   border-radius:50%;
-  background:#27305a;
-  color:#c2caff;
+  background:#27315b;
+  color:#c8d0ff;
   font:9px ui-monospace,monospace;
 }
-body[data-instrument="pf02"] .agentNode b{
-  color:#d6dde2;
+body[data-instrument="pf02"] .agentBar small{
+  display:block;
+  color:#79848d;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .agentBar b{
+  display:block;
+  margin-top:3px;
+  color:#d4dce1;
   font-size:10px;
+  line-height:1.4;
 }
-body[data-instrument="pf02"] .voiceBubble{
-  position:absolute;
-  z-index:5;
-  max-width:210px;
-  padding:9px 11px;
-  border-radius:10px;
-  background:#252c32;
-  color:#d7dde1;
-  font-size:10px;
-  line-height:1.45;
-  box-shadow:0 8px 22px rgba(0,0,0,.18);
-}
-body[data-instrument="pf02"] .voiceBubble.you{left:8%;top:18%}
-body[data-instrument="pf02"] .voiceBubble.mate{right:8%;top:19%}
-body[data-instrument="pf02"] .voiceBubble.guest{right:12%;bottom:3%;opacity:.62}
-body[data-instrument="pf02"] .homeLinks{
-  position:absolute;
-  z-index:1;
-  inset:0;
-  width:100%;height:100%;
-  pointer-events:none;
-}
-body[data-instrument="pf02"] .homeLinks path{
-  fill:none;
-  stroke:#313a42;
-  stroke-width:1.4;
-}
-body[data-instrument="pf02"] .scenePrompt{
-  padding:14px 16px;
-  border-top:1px solid #2d343a;
-  background:#151a1f;
-}
-body[data-instrument="pf02"] .scenePrompt span{display:none}
-body[data-instrument="pf02"] .scenePrompt p{
-  margin:0;
-  color:#aeb7bd;
-  font-size:11px;
-  line-height:1.55;
+body[data-instrument="pf02"] .agentBar i{
+  padding:5px 7px;
+  border:1px solid #35546a;
+  border-radius:999px;
+  color:#8fb9d2;
+  font:8px ui-monospace,monospace;
+  font-style:normal;
+  letter-spacing:.06em;
 }
 
 /* Act 2 — delivery phone + map */
@@ -908,14 +929,7 @@ body[data-instrument="pf02"] .scheduleBoard{
 
 @media(max-width:820px){
   body[data-instrument="pf02"] .app{padding:12px 14px 30px!important}
-  body[data-instrument="pf02"] .homeStage{height:560px}
-  body[data-instrument="pf02"] .roomTile.living{left:5%;bottom:8%;width:42%;height:23%}
-  body[data-instrument="pf02"] .roomTile.kitchen{left:28%;bottom:35%;width:45%;height:25%}
-  body[data-instrument="pf02"] .roomTile.bedroom{right:5%;bottom:8%;width:42%;height:23%}
-  body[data-instrument="pf02"] .voiceBubble.you{left:5%;top:14%}
-  body[data-instrument="pf02"] .voiceBubble.mate{right:5%;top:25%}
-  body[data-instrument="pf02"] .agentNode{top:48%}
-  body[data-instrument="pf02"][data-world="near"] .diegeticScene{grid-template-columns:1fr}
+    body[data-instrument="pf02"][data-world="near"] .diegeticScene{grid-template-columns:1fr}
   body[data-instrument="pf02"] .phoneShell{border-right:0;border-bottom:1px solid #ddd7cc}
   body[data-instrument="pf02"] .deliveryMapLive{min-height:300px}
   body[data-instrument="pf02"] .nightRooms{grid-template-columns:1fr}
@@ -930,9 +944,21 @@ body[data-instrument="pf02"] .scheduleBoard{
 
 @media(max-width:520px){
   body[data-instrument="pf02"] #intro h1{font-size:42px!important}
-  body[data-instrument="pf02"] .homeStage{height:600px}
-  body[data-instrument="pf02"] .roomTile.living{left:4%;bottom:5%;width:44%}
-  body[data-instrument="pf02"] .roomTile.bedroom{right:4%;bottom:5%;width:44%}
-  body[data-instrument="pf02"] .roomTile.kitchen{left:14%;bottom:33%;width:72%}
-  body[data-instrument="pf02"] .voiceBubble{max-width:170px;font-size:9px}
+  }
+
+@media(max-width:760px){
+  body[data-instrument="pf02"] .homePeople,
+  body[data-instrument="pf02"] .homeRooms{
+    grid-template-columns:1fr;
+  }
+  body[data-instrument="pf02"] .personLine{min-height:68px}
+  body[data-instrument="pf02"] .homeRoom{min-height:150px}
+  body[data-instrument="pf02"] .homeRoom strong{margin-top:16px;font-size:34px}
+  body[data-instrument="pf02"] .agentBar{
+    grid-template-columns:34px minmax(0,1fr);
+  }
+  body[data-instrument="pf02"] .agentBar i{
+    grid-column:1/-1;
+    justify-self:start;
+  }
 }
