@@ -11,7 +11,15 @@ const S={started:0,events:[],views:{seed:[],near:[],far:[]},detail:{seed:[],near
 const now=()=>Math.round(performance.now()-S.started);
 const log=(type,data={})=>S.events.push({seq:S.events.length+1,t_ms:now(),type,...data});
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));$(id).classList.remove('hidden');scrollTo(0,0)}
-function active(el,i){el.querySelectorAll('button[data-i]').forEach(b=>b.classList.toggle('active',Number(b.dataset.i)===i))}
+function active(el,i){
+  const world=(el.id||'').replace('Nav','');
+  el.querySelectorAll('button[data-i]').forEach(b=>{
+    const n=Number(b.dataset.i),key='nav_'+n;
+    b.classList.toggle('active',n===i);
+    b.classList.toggle('visited',!!S.views[world]?.includes(key));
+    b.classList.toggle('deep',S.detail[world]?.some(x=>x.includes('_'+n)||x===key));
+  });
+}
 function markView(world,i){const key='nav_'+i;if(!S.views[world].includes(key))S.views[world].push(key);log('open_object',{world,object:key});refreshSignal(world)}
 function markDetail(world,key){if(!S.detail[world].includes(key))S.detail[world].push(key);log('open_detail',{world,object:key});refreshSignal(world)}
 function metrics(rows){return `<div class="metricGrid">${rows.map(r=>`<div class="card metric"><span class="meta">${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>`}
@@ -108,7 +116,7 @@ function bindWorldMicroInteractions(world){
   }
 }
 function applyPack(){P=packs[locale];C=chrome[locale];document.documentElement.lang=locale;$('market').textContent=P.market;$('introEy').textContent=P.intro.ey;$('introTitle').textContent=P.intro.title;$('introLead').textContent=P.intro.lead;$('start').textContent=P.intro.start;$('introHelp').textContent=P.intro.help;$('cueEy').textContent=P.cue.ey;$('cueLine').textContent=P.cue.line;$('cueNext').textContent=P.cue.next;$('seedCrumb').textContent=P.seed.crumb;$('nearCrumb').textContent=P.near.crumb;$('farCrumb').textContent=P.far.crumb;$('doneEy').textContent=P.done.ey;$('doneTitle').textContent=P.done.title;$('doneLead').textContent=P.done.lead;$('traceLabel').textContent=C.trace;$('journeyLabel').textContent=C.journey;$('export').textContent=P.done.export;$('again').textContent=P.done.again;renderNav('seed');renderNav('near');renderNav('far')}
-function renderNav(world){const w=P[world],el=$(world+'Nav');el.innerHTML=`<div class="brand">${w.brand}</div>`+w.nav.map((n,i)=>`<button data-i="${i}">${n}</button>`).join('');el.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>renderWorld(world,Number(b.dataset.i),true));active(el,S.view[world])}
+function renderNav(world){const w=P[world],el=$(world+'Nav');el.innerHTML=`<div class="brand">${w.brand}</div>`+w.nav.map((n,i)=>`<button data-i="${i}"><span class="navMark"></span><span class="navLabel">${n}</span></button>`).join('');el.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>renderWorld(world,Number(b.dataset.i),true));active(el,S.view[world])}
 function startJourney(){S.started=performance.now();S.events=[];S.views={seed:[],near:[],far:[]};S.detail={seed:[],near:[],far:[]};S.action={seed:null,near:null,far:null};S.view={seed:0,near:0,far:0};S.selection={seed:null,near:null,far:null};S.worldState={seed:{},near:{},far:{}};delete document.body.dataset.action;resetActionOrders();log('session_start',{locale,market:P.market});log('action_order',{orders:JSON.parse(JSON.stringify(S.actionOrder))});show('seed');renderWorld('seed',0,true)}
 function decorateScene(world,i){
   document.body.dataset.world=world;
@@ -142,7 +150,7 @@ function takeAction(world,a){
   if(world==='far'&&S.view.far===0)renderFar(0);
   renderActions(world);bindWorldMicroInteractions(world);
 }
-function commitWorld(world){log('commit',{world,action:S.action[world],views:[...S.views[world]],details:[...S.detail[world]]});if(world==='seed'){show('cue');return}if(world==='near'){show('far');renderWorld('far',0,true);return}finish()}
+function commitWorld(world){delete document.body.dataset.action;log('commit',{world,action:S.action[world],views:[...S.views[world]],details:[...S.detail[world]]});if(world==='seed'){show('cue');return}if(world==='near'){show('far');renderWorld('far',0,true);return}finish()}
 function finish(){
   log('session_complete',{market:P.market});
   window.PAJGoldenStudy?.complete({family:'PF02',instrument_version:'golden-pf02-v1',locale,market:P.market,world_variant:'golden-three-world-v1',terminal_action:S.action.far||'',events:S.events});
@@ -157,5 +165,5 @@ function finish(){
   show('done');
 }
 function exportTrace(){const payload={instrument:'golden-pf02-v1',locale,market:P.market,events:S.events,views:S.views,details:S.detail,actions:S.action,world_state:S.worldState,action_order:S.actionOrder};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=`paj-pf02-${P.market}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
-Object.entries(packs).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.native;$('locale').appendChild(o)});$('locale').value=locale;$('locale').onchange=e=>{locale=e.target.value;P=packs[locale];C=chrome[locale];history.replaceState(null,'',`?locale=${encodeURIComponent(locale)}${dev?'&dev=1':''}`);S.view={seed:0,near:0,far:0};applyPack();show('intro')};$('start').onclick=startJourney;$('cueNext').onclick=()=>{log('minimal_intervention',{dose:'one_sentence'});show('near');renderWorld('near',0,true)};$('export').onclick=exportTrace;$('again').onclick=()=>location.reload();applyPack();
+Object.entries(packs).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.native;$('locale').appendChild(o)});$('locale').value=locale;$('locale').onchange=e=>{locale=e.target.value;P=packs[locale];C=chrome[locale];history.replaceState(null,'',`?locale=${encodeURIComponent(locale)}${dev?'&dev=1':''}`);S.view={seed:0,near:0,far:0};S.worldState={seed:{},near:{},far:{}};delete document.body.dataset.action;applyPack();show('intro')};$('start').onclick=startJourney;$('cueNext').onclick=()=>{log('minimal_intervention',{dose:'one_sentence'});show('near');renderWorld('near',0,true)};$('export').onclick=exportTrace;$('again').onclick=()=>location.reload();applyPack();
 })();
