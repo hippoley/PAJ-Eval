@@ -51,6 +51,7 @@ function markDetail(world,key){
 function addRelation(world,key){
   if(S.relations[world].includes(key))return;
   S.relations[world].push(key);
+  refreshRelationStrip(world);
   log('relation_discovered',{world,relation:key,evidence_count:S.detail[world].length});
 }
 function maybeRelations(world){
@@ -60,6 +61,8 @@ function maybeRelations(world){
   if(d.includes('external_1')&&d.includes('group_1'))addRelation(world,'eg');
   if(d.includes('limit_0')&&d.includes('record_0'))addRelation(world,'lr');
 }
+function relationStrip(world){const w=P[world],rels=S.relations[world];const items=rels.map(k=>w.relation?.[k]||k);return '<div id="'+world+'Relations" class="relationStrip '+(items.length?'hasRelations':'')+'">'+(items.length?items.map(x=>'<span>↳ '+x+'</span>').join(''):'<span>·</span>')+'</div>'}
+function refreshRelationStrip(world){const el=$(world+'Relations');if(el)el.outerHTML=relationStrip(world)}
 function detailList(world,items,prefix){
   return '<div class="card">'+items.map((x,i)=>'<div class="object"><span>'+x+'</span><button class="link detailBtn" data-world="'+world+'" data-key="'+prefix+'_'+i+'" data-text="'+String(x).replace(/"/g,'&quot;')+'">⋯</button></div>').join('')+'</div>';
 }
@@ -98,13 +101,13 @@ function renderWorld(world,i,track=false){document.body.dataset.world=world;
 }
 function renderGeneric(world,i){
   const w=P[world],c=$(world+'Content');
-  if(i===-1){c.innerHTML='<h2>'+w.title+'</h2><p class="lead">'+w.status+'</p><div class="card"><span class="meta">'+P.intro[4]+'</span></div>';return}
-  if(i===0)c.innerHTML='<h2>'+w.nav[0]+'</h2>'+recordGrid(world,w.records)+'<div id="'+world+'Detail"></div>';
-  if(i===1)c.innerHTML='<h2>'+w.nav[1]+'</h2>'+detailList(world,w.history,'history')+'<div id="'+world+'Detail"></div>';
-  if(i===2)c.innerHTML='<h2>'+w.nav[2]+'</h2>'+detailList(world,w.groups,'group')+'<div id="'+world+'Detail"></div>';
-  if(i===3)c.innerHTML='<h2>'+w.nav[3]+'</h2>'+detailList(world,w.limits,'limit')+'<div id="'+world+'Detail"></div>';
-  if(i===4)c.innerHTML='<h2>'+w.nav[4]+'</h2>'+detailList(world,w.outside,'external')+'<div id="'+world+'Detail"></div>';
-  if(i===5)c.innerHTML='<h2>'+w.nav[5]+'</h2>'+detailList(world,w.notes,'note')+'<div id="'+world+'Detail"></div>';
+  if(i===-1){c.innerHTML='<h2>'+w.title+'</h2><p class="lead">'+w.status+'</p>'+relationStrip(world)+'<div class="card"><span class="meta">'+P.intro[4]+'</span></div>';return}
+  if(i===0)c.innerHTML='<h2>'+w.nav[0]+'</h2>'+relationStrip(world)+recordGrid(world,w.records)+'<div id="'+world+'Detail"></div>';
+  if(i===1)c.innerHTML='<h2>'+w.nav[1]+'</h2>'+relationStrip(world)+detailList(world,w.history,'history')+'<div id="'+world+'Detail"></div>';
+  if(i===2)c.innerHTML='<h2>'+w.nav[2]+'</h2>'+relationStrip(world)+detailList(world,w.groups,'group')+'<div id="'+world+'Detail"></div>';
+  if(i===3)c.innerHTML='<h2>'+w.nav[3]+'</h2>'+relationStrip(world)+detailList(world,w.limits,'limit')+'<div id="'+world+'Detail"></div>';
+  if(i===4)c.innerHTML='<h2>'+w.nav[4]+'</h2>'+relationStrip(world)+detailList(world,w.outside,'external')+'<div id="'+world+'Detail"></div>';
+  if(i===5)c.innerHTML='<h2>'+w.nav[5]+'</h2>'+relationStrip(world)+detailList(world,w.notes,'note')+'<div id="'+world+'Detail"></div>';
 }
 function bindEvidence(world){
   document.querySelectorAll('.recordBtn').forEach(b=>b.onclick=()=>{
