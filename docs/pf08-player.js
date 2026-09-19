@@ -1,5 +1,6 @@
 (()=>{
 const $=id=>document.getElementById(id);
+document.body.dataset.instrument='pf08';
 const packs=window.PAJ_PF08_PACKS;
 const q=new URLSearchParams(location.search);
 const dev=q.get('dev')==='1';
@@ -91,7 +92,7 @@ function startJourney(){
   log('action_order',{orders:JSON.parse(JSON.stringify(S.actionOrder))});
   show('seed');renderNav('seed');renderWorld('seed',-1,false);
 }
-function renderWorld(world,i,track=false){
+function renderWorld(world,i,track=false){document.body.dataset.world=world;
   S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);renderGeneric(world,i);bindEvidence(world);renderActions(world);
 }
 function renderGeneric(world,i){
