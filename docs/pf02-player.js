@@ -319,9 +319,9 @@ function renderIntroMission(){
   const zh=locale.startsWith('zh');
   el.innerHTML=`<div class="introMissionStatus"><span class="liveDot"></span><b>${zh?'LIVE INCIDENT':'LIVE INCIDENT'}</b><small>02:13</small></div>
     <div class="introMissionGrid">
-      <div><span>${zh?'当前状态':'STATUS'}</span><b>${zh?'生产质量异常，影响仍在扩大':'Production quality degraded and still spreading'}</b></div>
-      <div><span>${zh?'你的角色':'ROLE'}</span><b>${zh?'接管现场，决定先看哪里、何时采取动作':'Take control, choose what to inspect, decide when to act'}</b></div>
-      <div><span>${zh?'约束':'CONSTRAINT'}</span><b>${zh?'没有标准路径；你看到的结果会改变后续世界':'No required path; outcomes change what follows'}</b></div>
+      <div><span>${zh?'当前状态':'STATUS'}</span><b>${zh?'朋友快到了，家里的 Agent、权限和人的意图已经开始互相打架':'Guests are arriving soon, and agent rules, authority, and human intent are already colliding'}</b></div>
+      <div><span>${zh?'你的角色':'ROLE'}</span><b>${zh?'把这个晚上撑过去：先看谁、先信谁、先改哪里':'Get the night through: decide who to inspect, trust, and change first'}</b></div>
+      <div><span>${zh?'约束':'CONSTRAINT'}</span><b>${zh?'没有标准答案；人的 override、沉默和让步都会留下证据':'No single correct path; overrides, silence, and concessions all become evidence'}</b></div>
     </div>`;
 }
 function signalStrip(world){
@@ -435,9 +435,7 @@ function takeAction(world,a){
   S.action[world]=a;S.preview[world]=null;document.body.dataset.action=a;
   const w=P[world],state=S.worldState[world]||{};
   state.action=a;state.note=w.consequence[a];
-  if(world==='seed')state.primary=a==='repin'?'−3.2%':a==='rollback'?'−5.4%':'−7.1%';
-  else if(world==='near')state.primary=a==='reroute'?'+5.8%':a==='rollback'?'+6.7%':'+10.1%';
-  else state.primary=a==='revert'?'+11%':a==='schedule'?'+14%':'+22%';
+  state.primary=stateAfter(world,a).primary;
   S.worldState[world]=state;
   bumpPressure(world,a==='hold'?8:-10,'action_'+a);
   log('provisional_action',{world,action:a});
@@ -452,17 +450,17 @@ function takeAction(world,a){
 function commitWorld(world){delete document.body.dataset.action;log('commit',{world,action:S.action[world],views:[...S.views[world]],details:[...S.detail[world]]});if(world==='seed'){
     const t=uiCopy(),a=S.action.seed;
     $('cueLine').textContent=locale.startsWith('zh')
-      ? (a==='hold'?'你选择先观察。症状没有自己消失；下一个世界会把“等待”的代价放大。':'你刚让一个系统暂时稳定下来。下一个世界没有相同界面，但同样要求你分开“同时发生”和“真正驱动”。')
-      : (a==='hold'?'You chose to wait. The symptom did not resolve itself; the next world makes the cost of waiting larger.':'You stabilized one system. The next world looks different, but still asks you to separate coincidence from cause.');
+      ? (a==='hold'?'你没有替任何人做决定。两分钟后，冲突变成了手动 override。门铃还没响，但新的问题已经来了。':'家里暂时安静下来了。厨房窗、室友和 Agent 都停在一个可以继续生活的状态。然后你看了一眼手机：两单东西要迟到。')
+      : (a==='hold'?'You let the conflict sit. Two minutes later it became a manual override. Then your phone lights up: the deliveries are slipping.':'The home settles into a workable state. Then your phone lights up: two critical deliveries are slipping.');
     show('cue');return
   }
   if(world==='near'){
     const a=S.action.near;
     const line=locale.startsWith('zh')
-      ? (a==='reroute'?'改道让一部分网络恢复了，但不是所有节点。现在进入一个更安静、也更容易被忽略的系统。':'物流网络暂时停在一个不完全确定的状态。现在进入一个更安静、也更容易被忽略的系统。')
-      : (a==='reroute'?'Rerouting restored part of the network, not all of it. Now enter a quieter system where drift is easier to miss.':'The delivery network remains only partially explained. Now enter a quieter system where drift is easier to miss.');
+      ? (a==='reroute'?'冰块和饮料终于有了着落。朋友开始进门，餐桌也慢慢热起来。几个小时后，真正难处理的不是配送，而是谁能在这个家里舒服地睡下。':'配送问题没有完全解决，但人已经到了。几个小时后，客厅安静下来，新的冲突从“东西没到”变成了“谁的夜间规则算数”。')
+      : (a==='reroute'?'Drinks and ice are finally covered. Hours later, the harder question is no longer delivery—it is whose night rule gets to shape the home.':'The deliveries remain imperfect, but the guests are here. Hours later, the conflict shifts from missing items to whose night rule counts.');
     $('cueEy').textContent=locale.startsWith('zh')?'第二次转场':'SECOND TRANSFER';
-    $('cueLine').textContent=line;$('cueNext').textContent=locale.startsWith('zh')?'进入家庭能源系统 →':'Enter home energy →';
+    $('cueLine').textContent=line;$('cueNext').textContent=locale.startsWith('zh')?'进入这个夜晚的最后一段 →':'Enter the final part of the night →';
     show('cue');pendingNextWorld='far';return
   }
   finish()}
@@ -520,14 +518,14 @@ function runbookMarkdown(spec){
     ...(spec.evidence.length?spec.evidence.map(x=>'- '+x):['- overview_only']),
     '',
     '## Decision Path',
-    '- Retrieval: '+spec.actions.seed,
+    '- Shared home: '+spec.actions.seed,
     '- Delivery: '+spec.actions.near,
-    '- Energy: '+spec.actions.far,
+    '- Night rule: '+spec.actions.far,
     '',
     '## Expected terminal states',
-    '- Retrieval: '+spec.expected.seed.status+' ('+spec.expected.seed.primary+')',
+    '- Shared home: '+spec.expected.seed.status+' ('+spec.expected.seed.primary+')',
     '- Delivery: '+spec.expected.near.status+' ('+spec.expected.near.primary+')',
-    '- Energy: '+spec.expected.far.status+' ('+spec.expected.far.primary+')',
+    '- Night rule: '+spec.expected.far.status+' ('+spec.expected.far.primary+')',
   ].join('\n');
 }
 function downloadText(name,text,type='text/plain'){
