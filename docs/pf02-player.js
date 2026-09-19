@@ -1,5 +1,6 @@
 (()=>{
 const $=id=>document.getElementById(id);
+document.body.dataset.instrument='pf02';
 const packs=window.PAJ_PF02_PACKS;
 const chrome=window.PAJ_PF02_CHROME;
 const q=new URLSearchParams(location.search);
