@@ -1331,3 +1331,200 @@ body[data-instrument="pf02"] .detailDrawer p{
   body[data-instrument="pf02"] .corpusMetric{border-right:0;border-bottom:1px solid #2b323a}
   body[data-instrument="pf02"] .corpusMetric:last-child{border-bottom:0}
 }
+
+
+/* Immersive mission layer */
+body[data-instrument="pf02"] #intro .introMission{
+  margin-top:30px;
+  width:min(860px,100%);
+  border:1px solid #d7ddd9;
+  background:rgba(255,255,255,.64);
+  backdrop-filter:blur(8px);
+}
+body[data-instrument="pf02"] .introMissionStatus{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:38px;
+  padding:0 14px;
+  border-bottom:1px solid #dfe3e0;
+  font:9px ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#687078;
+}
+body[data-instrument="pf02"] .introMissionStatus small{margin-left:auto;color:#92989d}
+body[data-instrument="pf02"] .liveDot{
+  width:7px;height:7px;border-radius:50%;
+  background:#4c9b67;
+  box-shadow:0 0 0 4px rgba(76,155,103,.09);
+}
+body[data-instrument="pf02"] .introMissionGrid{
+  display:grid;
+  grid-template-columns:1.2fr .9fr 1fr;
+}
+body[data-instrument="pf02"] .introMissionGrid>div{
+  min-height:92px;
+  padding:14px 16px;
+  border-right:1px solid #e2e5e3;
+}
+body[data-instrument="pf02"] .introMissionGrid>div:last-child{border-right:0}
+body[data-instrument="pf02"] .introMissionGrid span{
+  display:block;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#959ba0;
+}
+body[data-instrument="pf02"] .introMissionGrid b{
+  display:block;
+  margin-top:7px;
+  font-size:11px;
+  line-height:1.55;
+  font-weight:580;
+  color:#3f464c;
+}
+
+body[data-instrument="pf02"] .missionHud{
+  display:grid;
+  grid-template-columns:1.4fr .8fr 1.2fr;
+  margin:0 0 18px;
+  border:1px solid currentColor;
+  border-color:#d9ddda;
+  background:rgba(255,255,255,.72);
+  overflow:hidden;
+}
+body[data-instrument="pf02"] .missionHud>div{
+  min-height:66px;
+  padding:11px 13px;
+  border-right:1px solid #e2e5e2;
+}
+body[data-instrument="pf02"] .missionHud>div:last-child{border-right:0}
+body[data-instrument="pf02"] .missionHud span{
+  display:block;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#8c9399;
+}
+body[data-instrument="pf02"] .missionHud b{
+  display:block;
+  margin-top:5px;
+  font-size:11px;
+  line-height:1.45;
+  font-weight:610;
+  color:#364039;
+}
+body[data-instrument="pf02"] .missionPressure b{
+  margin-top:6px;
+  font:9px ui-monospace,monospace;
+  letter-spacing:.04em;
+  color:#687068;
+}
+body[data-instrument="pf02"] .pressureBar{
+  height:4px;
+  margin-top:9px;
+  overflow:hidden;
+  background:#e8ebe8;
+}
+body[data-instrument="pf02"] .pressureBar i{
+  display:block;
+  height:100%;
+  width:0;
+  background:#78947f;
+  transition:width .35s cubic-bezier(.2,.8,.2,1),background .25s ease;
+}
+body[data-instrument="pf02"] .missionHud[data-pressure^="7"] .pressureBar i,
+body[data-instrument="pf02"] .missionHud[data-pressure^="8"] .pressureBar i,
+body[data-instrument="pf02"] .missionHud[data-pressure^="9"] .pressureBar i{
+  background:#c66b4e;
+}
+body[data-instrument="pf02"] .missionHud[data-pressure^="5"] .pressureBar i,
+body[data-instrument="pf02"] .missionHud[data-pressure^="6"] .pressureBar i{
+  background:#c49a54;
+}
+
+body[data-instrument="pf02"][data-world="seed"] .missionHud{
+  border-color:#2b323a;
+  background:#14191f;
+}
+body[data-instrument="pf02"][data-world="seed"] .missionHud>div{border-color:#2b323a}
+body[data-instrument="pf02"][data-world="seed"] .missionHud span{color:#798490}
+body[data-instrument="pf02"][data-world="seed"] .missionHud b{color:#dce2e8}
+body[data-instrument="pf02"][data-world="seed"] .pressureBar{background:#252c34}
+body[data-instrument="pf02"][data-world="seed"] .missionPressure b{color:#9aa4ae}
+
+@keyframes pf02-investigate{
+  0%{opacity:.78;transform:translateY(2px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+@keyframes pf02-world-mutate{
+  0%{filter:brightness(1);transform:scale(1)}
+  38%{filter:brightness(1.055);transform:scale(1.003)}
+  100%{filter:brightness(1);transform:scale(1)}
+}
+body[data-instrument="pf02"] .worldInvestigate{
+  animation:pf02-investigate .24s ease both;
+}
+body[data-instrument="pf02"] .worldMutate{
+  animation:pf02-world-mutate .42s cubic-bezier(.2,.8,.2,1) both;
+}
+body[data-instrument="pf02"] .generationRow,
+body[data-instrument="pf02"] .networkNode,
+body[data-instrument="pf02"] .energyBars i{
+  transition:background .22s ease,border-color .22s ease,box-shadow .22s ease,height .32s cubic-bezier(.2,.8,.2,1),opacity .22s ease;
+}
+
+/* chapter transfer */
+body[data-instrument="pf02"] #cue{
+  position:relative;
+  overflow:hidden;
+}
+body[data-instrument="pf02"] #cue:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 18% 24%,rgba(92,103,255,.12),transparent 28%),
+    linear-gradient(135deg,#0f1217,#191d23 58%,#111419);
+}
+body[data-instrument="pf02"] #cue .moment{
+  position:relative;
+  z-index:1;
+}
+body[data-instrument="pf02"] #cue .moment:before{
+  content:"CHAPTER TRANSFER";
+  display:block;
+  margin-bottom:26px;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.18em;
+  color:#6e7883;
+}
+body[data-instrument="pf02"] #cue .progress{opacity:.45}
+
+/* world-specific ambient cues */
+body[data-instrument="pf02"][data-world="seed"] .main{
+  background:
+    linear-gradient(rgba(255,255,255,.01),rgba(255,255,255,.01)),
+    repeating-linear-gradient(0deg,transparent 0 31px,rgba(255,255,255,.012) 32px),
+    #11151a!important;
+}
+body[data-instrument="pf02"][data-world="near"] .main{
+  background:
+    radial-gradient(circle at 82% 18%,rgba(92,132,102,.055),transparent 24%),
+    #f7f8f6!important;
+}
+body[data-instrument="pf02"][data-world="far"] .main{
+  background:
+    radial-gradient(circle at 78% 12%,rgba(81,143,99,.08),transparent 28%),
+    #eef3ef!important;
+}
+
+@media(max-width:820px){
+  body[data-instrument="pf02"] .introMissionGrid,
+  body[data-instrument="pf02"] .missionHud{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .introMissionGrid>div,
+  body[data-instrument="pf02"] .missionHud>div{
+    border-right:0;
+    border-bottom:1px solid #e2e5e2;
+  }
+  body[data-instrument="pf02"] .introMissionGrid>div:last-child,
+  body[data-instrument="pf02"] .missionHud>div:last-child{border-bottom:0}
+}
