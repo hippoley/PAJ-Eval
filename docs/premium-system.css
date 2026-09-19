@@ -432,3 +432,11 @@ body[data-instrument="pf03"] .evidenceStrip b:first-of-type{color:#2f7a57}
  body[data-instrument="pf02"] .signalStrip i,
  body[data-instrument="pf03"] .evidenceStrip i{display:none}
 }
+
+/* --- Journey 08 95-pass: discovered relations become part of the workspace --- */
+body[data-instrument="pf08"] .relationStrip{display:flex;gap:7px;flex-wrap:wrap;min-height:30px;margin:10px 0 14px;padding:7px 0;border-top:1px solid #dde2dd;border-bottom:1px solid #dde2dd;color:#a0a6ad;font:10px ui-monospace,monospace}
+body[data-instrument="pf08"] .relationStrip span{padding:4px 7px;border-radius:999px;border:1px dashed #d9ded9;background:transparent}
+body[data-instrument="pf08"] .relationStrip.hasRelations span{color:#2f6650;border-style:solid;border-color:#afc8b9;background:#eef6f0;animation:relationIn .2s ease}
+body[data-instrument="pf08"][data-world="near"] .relationStrip.hasRelations span{color:#76532f;border-color:#d7c0a8;background:#fff6e9}
+body[data-instrument="pf08"][data-world="far"] .relationStrip.hasRelations span{color:#315840;border-color:#b8cabc;background:#eaf1eb}
+@keyframes relationIn{from{opacity:.25;transform:translateY(3px)}to{opacity:1;transform:none}}
