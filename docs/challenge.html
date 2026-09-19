@@ -216,6 +216,21 @@ h1,h2,h3{font-weight:680;text-wrap:balance}.btn,.primary{border-radius:8px}.prim
 }
 
 .detailReader .mailReaderHeader{align-items:flex-start}.detailType{display:grid;place-items:center;min-width:42px;height:34px;border:1px solid #dedfe2;border-radius:8px;background:#fff;font:9px ui-monospace,monospace;color:#777a82}.detailDocument{position:relative;max-width:760px;padding:28px 0 28px 28px}.detailDocumentRule{position:absolute;left:0;top:31px;bottom:31px;width:2px;background:#696aff}.detailDocument p{font-size:18px;line-height:1.78;color:#404249;margin:0}.detailBack{border:0;background:transparent;padding:0;color:#7f8289;cursor:pointer;font-size:12px}.detailBack:hover{color:#15161a}
+
+/* state graph: node-and-edge first, not another trio of cards */
+.decisionMap{position:relative;align-items:start}
+.mapWorld{border:0!important;background:transparent!important;border-radius:0!important;box-shadow:none!important;min-height:248px;padding:8px 10px 18px!important;transform:none!important}
+.mapWorld:hover,.mapWorld.active{background:transparent!important;box-shadow:none!important;transform:none!important}
+.mapWorld .mapOrb{position:relative;z-index:2;border-radius:50%!important;width:42px!important;height:42px!important;border:1px solid #3b3d44;background:#17191e!important;transition:.18s border-color,.18s box-shadow,.18s background}
+.mapWorld.active .mapOrb{border-color:#7779ff;box-shadow:0 0 0 6px rgba(119,121,255,.08)!important;background:#202247!important}
+.mapWorld h3{margin-top:20px!important;font-size:12px!important;text-transform:uppercase;letter-spacing:.06em;color:#7e818a!important}
+.mapWorld .mapChoice{font-size:18px!important;line-height:1.35;min-height:48px;margin-top:8px!important}
+.mapWorld .mapOutcome{min-height:92px;padding-top:14px!important;margin-top:14px!important;border-top:1px solid #292b31!important;color:#9fa2aa!important}
+.mapWorld .mapStats{gap:5px!important}.mapWorld .mapStat{border:0!important;background:#1a1c21!important;border-radius:6px!important;padding:4px 6px!important}
+.mapWorld .mapStat.missed{background:transparent!important;outline:1px dashed #2f3137;color:#62656e!important}
+.mapArrow{margin-top:28px!important;height:1px!important;background:#34363d!important}.mapArrow:before{width:5px!important;height:5px!important;top:-2px!important;background:#6668ff!important}.mapArrow:after{width:6px!important;height:6px!important;top:-3px!important;border-color:#6668ff!important}
+.mapInspector{margin-top:2px!important;background:#111216;border:1px solid #25272c!important;border-radius:10px;padding:16px!important}.inspectGrid{gap:8px!important}.inspectCol{border:0!important;background:#17181d!important;border-radius:8px!important}.inspectMeta{padding:10px 2px 0}
+@media(max-width:900px){.mapArrow{width:1px!important;height:26px!important;margin:8px auto!important}.mapWorld{min-height:210px}}
 </style><script src="challenge-packs.js"></script><script src="challenge-depth.js"></script>\n<script src="journey01-ui.js"></script>\n<script src="golden-study-bridge.js"></script></head>
 <body><div class="app"><header id="researchChrome" class="top hidden"><div class="row" style="margin:0"><span id="market" class="badge"></span><select id="locale"></select></div></header>
 <section id="intro" class="screen"><div class="hero"><div id="introEy" class="ey"></div><h1 id="introTitle"></h1><p id="introLead" class="lead"></p><button id="startBtn" class="primary"></button><p id="introHelp" class="help"></p><div id="introPath" class="worldPath"></div><div id="localeNote" class="localeNote"></div></div></section>
