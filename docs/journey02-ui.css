@@ -1018,3 +1018,47 @@ body[data-instrument="pf02"] .replayTotals{
   body[data-instrument="pf02"] .journeyReplay{grid-template-columns:1fr}
   body[data-instrument="pf02"] .replayArrow{transform:rotate(90deg)}
 }
+
+
+/* Journey 02 navigation memory */
+body[data-instrument="pf02"] .nav button{
+  display:grid!important;
+  grid-template-columns:10px minmax(0,1fr)!important;
+  gap:8px!important;
+  align-items:center!important;
+}
+body[data-instrument="pf02"] .navMark{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  border:1px solid currentColor;
+  opacity:.36;
+}
+body[data-instrument="pf02"] .nav button.visited .navMark{
+  opacity:.85;
+  background:currentColor;
+}
+body[data-instrument="pf02"] .nav button.deep .navMark{
+  box-shadow:0 0 0 3px rgba(90,105,125,.09);
+}
+body[data-instrument="pf02"][data-world="seed"] .nav button.active .navMark{
+  background:#ef6c4f;
+  border-color:#ef6c4f;
+  box-shadow:0 0 0 3px rgba(239,108,79,.12);
+}
+body[data-instrument="pf02"][data-world="near"] .nav button.active .navMark{
+  background:#4a8b62;
+  border-color:#4a8b62;
+  box-shadow:0 0 0 3px rgba(74,139,98,.10);
+}
+body[data-instrument="pf02"][data-world="far"] .nav button.active .navMark{
+  background:#3f8b5e;
+  border-color:#3f8b5e;
+  box-shadow:0 0 0 3px rgba(63,139,94,.10);
+}
+body[data-instrument="pf02"] .navLabel{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
