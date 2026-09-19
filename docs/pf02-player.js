@@ -467,6 +467,126 @@ function commitWorld(world){delete document.body.dataset.action;log('commit',{wo
     show('cue');pendingNextWorld='far';return
   }
   finish()}
+function artifactSpec(){
+  const zh=locale.startsWith('zh'),seed=S.action.seed||'hold',near=S.action.near||'hold',far=S.action.far||'hold';
+  const evidence=[...S.detail.seed,...S.detail.near,...S.detail.far];
+  const invariant=seed==='repin'
+    ? (zh?'當 serving generation 出現局部 mismatch 時，優先驗證並局部修正 serving，而不是默認全量回退。':'When serving generations diverge locally, verify and repair serving before defaulting to a full rollback.')
+    : seed==='rollback'
+      ? (zh?'當退化與發布同時出現且證據仍不足時，先用可逆 rollback 驗證發布是否為主因。':'When degradation coincides with a release and evidence is incomplete, use a reversible rollback to test whether the release is causal.')
+      : (zh?'當仍選擇觀察時，必須把壓力增長本身納入後續判斷。':'When choosing to hold, pressure growth itself must become part of the next decision.');
+  return {
+    id:'pf02-'+Date.now(),
+    title:'journey02-behavior-regression',
+    invariant,
+    evidence,
+    actions:{seed,near,far},
+    expected:{
+      seed:stateAfter('seed',seed),
+      near:stateAfter('near',near),
+      far:stateAfter('far',far)
+    }
+  };
+}
+function evalYaml(spec){
+  const lines=[
+    'scenario: '+spec.title,
+    'source: playable_probe_journey_02',
+    'given:',
+    '  evidence_count: '+spec.evidence.length,
+    '  evidence:'
+  ];
+  (spec.evidence.length?spec.evidence:['overview_only']).forEach(x=>lines.push('    - '+x));
+  lines.push('when:');
+  lines.push('  seed_action: '+spec.actions.seed);
+  lines.push('  near_action: '+spec.actions.near);
+  lines.push('  far_action: '+spec.actions.far);
+  lines.push('then:');
+  lines.push('  seed_status: '+spec.expected.seed.status);
+  lines.push('  near_status: '+spec.expected.near.status);
+  lines.push('  far_status: '+spec.expected.far.status);
+  lines.push('invariant: >-');
+  lines.push('  '+spec.invariant);
+  return lines.join('\n');
+}
+function runbookMarkdown(spec){
+  const zh=locale.startsWith('zh');
+  return [
+    '# Journey 02 Runbook',
+    '',
+    '## '+(zh?'從這次遊玩提取的規則':'Rule extracted from this play'),
+    spec.invariant,
+    '',
+    '## Evidence',
+    ...(spec.evidence.length?spec.evidence.map(x=>'- '+x):['- overview_only']),
+    '',
+    '## Decision Path',
+    '- Retrieval: '+spec.actions.seed,
+    '- Delivery: '+spec.actions.near,
+    '- Energy: '+spec.actions.far,
+    '',
+    '## Expected terminal states',
+    '- Retrieval: '+spec.expected.seed.status+' ('+spec.expected.seed.primary+')',
+    '- Delivery: '+spec.expected.near.status+' ('+spec.expected.near.primary+')',
+    '- Energy: '+spec.expected.far.status+' ('+spec.expected.far.primary+')',
+  ].join('\n');
+}
+function downloadText(name,text,type='text/plain'){
+  const blob=new Blob([text],{type}),a=document.createElement('a'),u=URL.createObjectURL(blob);
+  a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),500);
+}
+function artifactForge(){
+  const zh=locale.startsWith('zh'),spec=artifactSpec();
+  return `<section class="artifactForge" data-artifact-id="${spec.id}">
+    <div class="artifactHead">
+      <div><span>${zh?'PROBE → ARTIFACT':'PROBE → ARTIFACT'}</span><h2>${zh?'把這一局變成系統資產':'Turn this play into a system asset'}</h2></div>
+      <b>CI READY</b>
+    </div>
+    <div class="artifactPipeline">
+      <div><span>01</span><b>${zh?'行為軌跡':'TRAJECTORY'}</b><small>${S.events.length} events</small></div>
+      <i>→</i>
+      <div><span>02</span><b>${zh?'不變量':'INVARIANT'}</b><small>${spec.invariant}</small></div>
+      <i>→</i>
+      <div><span>03</span><b>${zh?'可執行測試':'EXECUTABLE EVAL'}</b><small>journey02-behavior-regression.yaml</small></div>
+      <i>→</i>
+      <div><span>04</span><b>RUNBOOK</b><small>journey02-runbook.md</small></div>
+    </div>
+    <div class="artifactWorkbench">
+      <div class="artifactPreview">
+        <div class="artifactTabs">
+          <button class="artifactTab active" data-kind="eval">${zh?'回歸測試':'REGRESSION'}</button>
+          <button class="artifactTab" data-kind="runbook">RUNBOOK</button>
+        </div>
+        <pre class="artifactCode">${evalYaml(spec).replace(/&/g,'&amp;').replace(/</g,'&lt;')}</pre>
+      </div>
+      <div class="artifactActions">
+        <span>${zh?'帶出這個世界':'TAKE IT INTO REALITY'}</span>
+        <p>${zh?'你剛才的異常路徑可以不再只是 analytics。把它變成 CI 裡永久存在的測試，或團隊真的會用的操作手冊。':'Your unusual path does not have to remain analytics. Turn it into a permanent CI test or an operational runbook.'}</p>
+        <button class="generateArtifact" data-kind="eval">${zh?'生成 Regression Scenario':'Generate Regression Scenario'}</button>
+        <button class="generateArtifact secondary" data-kind="runbook">${zh?'生成 Runbook':'Generate Runbook'}</button>
+        <div class="artifactStatus"><span></span><b>${zh?'尚未生成':'NOT GENERATED'}</b></div>
+      </div>
+    </div>
+  </section>`;
+}
+function bindArtifactForge(){
+  const root=document.querySelector('.artifactForge');if(!root)return;
+  const spec=artifactSpec(),code=root.querySelector('.artifactCode'),status=root.querySelector('.artifactStatus b');
+  const showKind=kind=>{
+    root.querySelectorAll('.artifactTab').forEach(b=>b.classList.toggle('active',b.dataset.kind===kind));
+    code.textContent=kind==='runbook'?runbookMarkdown(spec):evalYaml(spec);
+  };
+  root.querySelectorAll('.artifactTab').forEach(b=>b.onclick=()=>showKind(b.dataset.kind));
+  root.querySelectorAll('.generateArtifact').forEach(b=>b.onclick=()=>{
+    const kind=b.dataset.kind;
+    log('artifact_generate',{kind,source:'journey02'});
+    showKind(kind);
+    status.textContent=kind==='runbook'?'RUNBOOK GENERATED':'REGRESSION GENERATED';
+    root.classList.add('generated');
+    if(kind==='runbook')downloadText('journey02-runbook.md',runbookMarkdown(spec),'text/markdown');
+    else downloadText('journey02-behavior-regression.yaml',evalYaml(spec),'text/yaml');
+  });
+}
 function finish(){
   log('session_complete',{market:P.market});
   window.PAJGoldenStudy?.complete({family:'PF02',instrument_version:'golden-pf02-v1',locale,market:P.market,world_variant:'golden-three-world-v1',terminal_action:S.action.far||'',events:S.events});
@@ -476,10 +596,10 @@ function finish(){
   $('shape').innerHTML=`<div class="journeyReplay">${worlds.map((world,i)=>{
     const w=P[world],a=S.action[world],state=S.worldState[world]||{};
     return `<article class="replayStage"><div class="replayIndex">0${i+1}</div><div class="replayBrand">${w.brand}</div><h3>${w.title}</h3><div class="replayLine"><span>${C.details}</span><b>${S.detail[world].length}</b></div><div class="replayLine"><span>ACTION</span><b>${a?w.actions[a]:'—'}</b></div><div class="replayOutcome"><span>↳</span><p>${state.note||'—'}</p></div></article>`;
-  }).join('<i class="replayArrow">→</i>')}</div><div class="replayTotals"><span class="pill">${C.details}: ${details}</span><span class="pill">${C.revisions}: ${revisions}</span></div>`;
+  }).join('<i class="replayArrow">→</i>')}</div><div class="replayTotals"><span class="pill">${C.details}: ${details}</span><span class="pill">${C.revisions}: ${revisions}</span></div>${artifactForge()}`;
   if(dev){$('research').classList.remove('hidden');$('research').innerHTML='<b>Research view</b><p>Seed incident → partial consequence → one structural sentence → fulfillment transfer → energy transfer. No participant-facing cause label or score is used.</p>'}
-  show('done');
+  show('done');bindArtifactForge();
 }
-function exportTrace(){const payload={instrument:'golden-pf02-v1',locale,market:P.market,events:S.events,views:S.views,details:S.detail,actions:S.action,world_state:S.worldState,pressure:S.pressure,action_order:S.actionOrder};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=`paj-pf02-${P.market}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
+function exportTrace(){const payload={instrument:'golden-pf02-v1',locale,market:P.market,events:S.events,views:S.views,details:S.detail,actions:S.action,world_state:S.worldState,pressure:S.pressure,artifact:artifactSpec(),action_order:S.actionOrder};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=`paj-pf02-${P.market}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
 Object.entries(packs).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.native;$('locale').appendChild(o)});$('locale').value=locale;$('locale').onchange=e=>{locale=e.target.value;P=packs[locale];C=chrome[locale];history.replaceState(null,'',`?locale=${encodeURIComponent(locale)}${dev?'&dev=1':''}`);S.view={seed:0,near:0,far:0};S.worldState={seed:{},near:{},far:{}};delete document.body.dataset.action;applyPack();show('intro')};$('start').onclick=startJourney;$('cueNext').onclick=()=>{log('minimal_intervention',{dose:'one_sentence',next_world:pendingNextWorld});const next=pendingNextWorld;pendingNextWorld='near';if(next==='far')enterFar();else enterNear()};$('export').onclick=exportTrace;$('again').onclick=()=>location.reload();applyPack();
 })();
