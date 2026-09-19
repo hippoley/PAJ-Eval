@@ -3443,3 +3443,157 @@ body[data-instrument="pf02"][data-world="seed"] .instantResult p{
 @media(max-width:760px){
   body[data-instrument="pf02"] .instantChoices{grid-template-columns:1fr}
 }
+
+
+/* Instant flow: scene -> one question -> three choices */
+body[data-instrument="pf02"] .flowNudge,
+body[data-instrument="pf02"] .simpleDecision,
+body[data-instrument="pf02"] .simpleResolution,
+body[data-instrument="pf02"] .simpleNext{
+  display:none!important;
+}
+body[data-instrument="pf02"] .instantDecision{
+  margin-top:12px;
+  padding:16px;
+  border:1px solid #d9ded9;
+  background:#fff;
+}
+body[data-instrument="pf02"] .instantDecision h3{
+  max-width:760px;
+  margin:0 0 14px!important;
+  color:#2d3731!important;
+  font-size:18px!important;
+  line-height:1.35!important;
+  letter-spacing:-.02em!important;
+}
+body[data-instrument="pf02"] .instantChoices{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+body[data-instrument="pf02"] .instantChoice{
+  min-height:56px;
+  padding:0 14px;
+  border:1px solid #d9ded9;
+  background:#f7f9f7;
+  color:#354039;
+  text-align:left;
+  cursor:pointer;
+  transition:transform .14s ease,background .14s ease,border-color .14s ease;
+}
+body[data-instrument="pf02"] .instantChoice:hover{
+  transform:translateY(-1px);
+  background:#fff;
+  border-color:#bfc8c1;
+}
+body[data-instrument="pf02"] .instantChoice b{
+  font-size:12px;
+  font-weight:680;
+}
+body[data-instrument="pf02"] .instantResult{
+  padding:15px 16px;
+  border:1px solid #d3ddd5;
+  background:#f1f7f2;
+}
+body[data-instrument="pf02"] .instantResult span{
+  color:#748078;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.09em;
+}
+body[data-instrument="pf02"] .instantResult p{
+  margin:6px 0 0;
+  color:#3f4b43;
+  font-size:12px;
+  line-height:1.55;
+}
+body[data-instrument="pf02"] .instantNext{
+  display:flex!important;
+  justify-content:flex-end;
+  align-items:center;
+  gap:12px;
+  margin-top:9px;
+}
+body[data-instrument="pf02"] .textUndo{
+  border:0;
+  background:transparent;
+  color:#7c857f;
+  font-size:10px;
+  cursor:pointer;
+}
+body[data-instrument="pf02"] .instantNext .commitWorld{
+  min-height:40px;
+  padding:0 16px;
+  border-radius:0!important;
+}
+
+/* First act dark variant */
+body[data-instrument="pf02"][data-world="seed"] .instantDecision{
+  border-color:#2b323a;
+  background:#14191f;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantDecision h3{
+  color:#edf2f5!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice{
+  border-color:#303842;
+  background:#171d24;
+  color:#e5ebef;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice:hover{
+  background:#1d242c;
+  border-color:#46515d;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult{
+  border-color:#31513d;
+  background:#132019;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult p{color:#cbd9d0}
+
+/* Results: artifact stays optional instead of taking over */
+body[data-instrument="pf02"] .artifactReveal{
+  margin-top:16px;
+}
+body[data-instrument="pf02"] .artifactRevealBtn{
+  width:100%;
+  min-height:46px;
+  border:1px solid #d5dbd6;
+  background:#f8faf8;
+  color:#455048;
+  cursor:pointer;
+  text-align:left;
+  padding:0 14px;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .artifactRevealBtn:hover{background:#fff}
+
+/* Remove remaining instructional clutter */
+body[data-instrument="pf02"] #intro .introMission{display:none!important}
+body[data-instrument="pf02"] .scenePrompt span{display:none!important}
+body[data-instrument="pf02"] .scenePrompt p{
+  margin:0!important;
+  font-size:11px!important;
+  line-height:1.5!important;
+}
+
+/* Keep scenes visually dominant */
+body[data-instrument="pf02"] .diegeticScene{
+  margin-bottom:10px!important;
+}
+body[data-instrument="pf02"] .crumb{
+  display:none!important;
+}
+body[data-instrument="pf02"] .top{
+  min-height:34px!important;
+  margin-bottom:4px!important;
+  border-bottom:0!important;
+}
+body[data-instrument="pf02"] .top .pill{
+  display:none!important;
+}
+@media(max-width:720px){
+  body[data-instrument="pf02"] .instantChoices{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .instantNext{
+    align-items:stretch;
+    flex-direction:column-reverse;
+  }
+}
