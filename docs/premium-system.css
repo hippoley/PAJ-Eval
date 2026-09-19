@@ -440,3 +440,34 @@ body[data-instrument="pf08"] .relationStrip.hasRelations span{color:#2f6650;bord
 body[data-instrument="pf08"][data-world="near"] .relationStrip.hasRelations span{color:#76532f;border-color:#d7c0a8;background:#fff6e9}
 body[data-instrument="pf08"][data-world="far"] .relationStrip.hasRelations span{color:#315840;border-color:#b8cabc;background:#eaf1eb}
 @keyframes relationIn{from{opacity:.25;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+/* --- Journey 04/05 95-pass: native operational context --- */
+body[data-instrument="pf04"] .worldSnapshot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:14px 0 16px;border-top:1px solid #dde1dc;border-bottom:1px solid #dde1dc}
+body[data-instrument="pf04"] .worldSnapshot>div{padding:11px 12px 11px 0;border-right:1px solid #e0e3df}
+body[data-instrument="pf04"] .worldSnapshot>div:last-child{border-right:0;padding-left:12px}
+body[data-instrument="pf04"] .worldSnapshot span{display:block;font:9px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em;color:#858c94;margin-bottom:4px}
+body[data-instrument="pf04"] .worldSnapshot b{display:block;font-size:12px;line-height:1.4;font-weight:620}
+body[data-instrument="pf04"][data-world="seed"] .worldSnapshot{border-color:#2b323b}
+body[data-instrument="pf04"][data-world="seed"] .worldSnapshot>div{border-color:#2b323b}
+body[data-instrument="pf04"][data-world="seed"] .worldSnapshot span{color:#89939f}
+body[data-instrument="pf04"][data-world="seed"] .worldSnapshot b{color:#e5eaf0}
+body[data-instrument="pf04"][data-world="near"] .fulfillmentSnapshot>div:first-child{box-shadow:inset 0 -2px 0 #d98d3f}
+body[data-instrument="pf04"][data-world="far"] .travelSnapshot>div:nth-child(2){box-shadow:inset 0 -2px 0 #4d78b8}
+
+body[data-instrument="pf05"] .experimentHeader{display:grid;grid-template-columns:auto minmax(80px,1fr) auto;gap:12px;align-items:center;margin:12px 0 16px;padding:9px 0;border-top:1px solid #dde0db;border-bottom:1px solid #dde0db}
+body[data-instrument="pf05"] .experimentHeader>div{display:flex;align-items:baseline;gap:7px}
+body[data-instrument="pf05"] .experimentHeader span{font:9px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em;color:#858b93}
+body[data-instrument="pf05"] .experimentHeader b{font:12px ui-monospace,monospace}
+body[data-instrument="pf05"] .experimentHeader>i{height:4px;background:#e3e6e1;position:relative;overflow:hidden}
+body[data-instrument="pf05"] .experimentHeader>i:after{content:"";display:block;height:100%;width:var(--remaining);background:#6b737d;transition:width .2s ease}
+body[data-instrument="pf05"][data-world="near"] .experimentHeader{border-color:#2b323b}
+body[data-instrument="pf05"][data-world="near"] .experimentHeader>i{background:#29313a}
+body[data-instrument="pf05"][data-world="near"] .experimentHeader>i:after{background:#d98d3f}
+body[data-instrument="pf05"][data-world="near"] .experimentHeader b{color:#e6ebf0}
+body[data-instrument="pf05"] .testCard>.experimentHeader{margin-top:-4px}
+@media(max-width:800px){
+ body[data-instrument="pf04"] .worldSnapshot{grid-template-columns:1fr}
+ body[data-instrument="pf04"] .worldSnapshot>div{border-right:0;border-bottom:1px solid #e0e3df;padding:10px 0!important}
+ body[data-instrument="pf04"] .worldSnapshot>div:last-child{border-bottom:0}
+ body[data-instrument="pf05"] .experimentHeader{grid-template-columns:1fr}
+}
