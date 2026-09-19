@@ -59,7 +59,7 @@ test('every PF02 market preserves golden interaction depth',()=>{
 
 test('PF02 localization changes operational and physical worlds, not headings only',()=>{
   const p=loadPacks();
-  assert.match(p['zh-CN'].near.routes,/杭州|苏州|上海|宁波/);
+  assert.match(p['zh-CN'].near.routes,/广州|天河|海珠/);
   assert.match(p['zh-TW'].near.routes,/台北|桃園|新竹|基隆/);
   assert.match(p.en.near.routes,/Portland|Seattle|Kent|Vancouver/);
   assert.match(p.ja.near.routes,/東京|横浜|湘南|市川/);
