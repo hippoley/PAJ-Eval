@@ -78,7 +78,7 @@ test('PF01 seed records consequence exposure and a terminal seed commit', () => 
 });
 
 test('near transfer has nested mobility evidence separate from contract and team', () => {
-  assert.match(html, /class="btn mobility"/);
+  assert.match(html, /class="mailAttachment mobility"/);
   assert.match(html, /careerDetail\(b\.dataset\.k,'mobility'\)/);
   assert.match(html, /object:type\+'_'\+k/);
 });
