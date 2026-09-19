@@ -153,8 +153,8 @@ def test_transfer_worlds_have_nested_objects_and_a_revisable_far_transfer_commit
 
 def test_seed_consequence_exists_for_both_product_paths():
     assert "S.consequence=p.kind==='lite'?'bridge':'delivery'" in HTML
-    assert "U.checkout.proTitle" in HTML
-    assert "U.checkout.proSub" in HTML
+    assert "u.proTitle" in HTML
+    assert "u.proSub" in HTML
     assert "D.checkout.proLine1" in HTML
     assert "affected_devices" in HTML
     assert "alternative_models" in HTML
