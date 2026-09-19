@@ -895,3 +895,126 @@ body[data-instrument="pf02"][data-action="schedule"] .energyTimeline{
 body[data-instrument="pf02"][data-action="hold"] .energyTimeline{
   border-color:#dfcda7!important;
 }
+
+
+/* Journey 02 result replay */
+body[data-instrument="pf02"] #done .summary{
+  display:grid!important;
+  grid-template-columns:.78fr 1.22fr!important;
+  align-items:start!important;
+}
+body[data-instrument="pf02"] #done .summary>.card:first-child{
+  background:#11151a!important;
+  border-color:#252b32!important;
+}
+body[data-instrument="pf02"] #done .summary>.card:first-child .ey{color:#8d96a1!important}
+body[data-instrument="pf02"] #done .trace{
+  max-height:300px!important;
+  background:#0c0f13!important;
+  border:1px solid #252b32!important;
+  color:#9ea8b3!important;
+  font-size:10px!important;
+}
+body[data-instrument="pf02"] #done #shape{
+  display:block!important;
+}
+body[data-instrument="pf02"] .journeyReplay{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1fr);
+  gap:8px;
+  align-items:stretch;
+}
+body[data-instrument="pf02"] .replayStage{
+  min-width:0;
+  padding:16px;
+  border:1px solid #d8ddd9;
+  background:#fff;
+}
+body[data-instrument="pf02"] .replayStage:nth-of-type(1){
+  background:#151a20;
+  border-color:#2b323a;
+  color:#e9edf1;
+}
+body[data-instrument="pf02"] .replayStage:nth-of-type(2){
+  background:#f7f9f6;
+}
+body[data-instrument="pf02"] .replayStage:nth-of-type(3){
+  background:#eef4ef;
+}
+body[data-instrument="pf02"] .replayIndex{
+  font:10px ui-monospace,monospace;
+  color:#89919b;
+}
+body[data-instrument="pf02"] .replayBrand{
+  margin-top:16px;
+  font:9px ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#8a9198;
+}
+body[data-instrument="pf02"] .replayStage h3{
+  min-height:48px;
+  margin:6px 0 18px;
+  font-size:17px;
+  line-height:1.25;
+  letter-spacing:-.02em;
+}
+body[data-instrument="pf02"] .replayLine{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 0;
+  border-top:1px solid #e1e5e2;
+}
+body[data-instrument="pf02"] .replayStage:nth-of-type(1) .replayLine{
+  border-color:#2d343c;
+}
+body[data-instrument="pf02"] .replayLine span{
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#8c949c;
+}
+body[data-instrument="pf02"] .replayLine b{
+  max-width:65%;
+  text-align:right;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .replayOutcome{
+  display:grid;
+  grid-template-columns:18px 1fr;
+  gap:6px;
+  margin-top:13px;
+  padding-top:12px;
+  border-top:1px solid #e1e5e2;
+}
+body[data-instrument="pf02"] .replayStage:nth-of-type(1) .replayOutcome{
+  border-color:#2d343c;
+}
+body[data-instrument="pf02"] .replayOutcome span{
+  color:#69917a;
+}
+body[data-instrument="pf02"] .replayOutcome p{
+  margin:0;
+  color:#667069;
+  font-size:10px;
+  line-height:1.5;
+}
+body[data-instrument="pf02"] .replayStage:nth-of-type(1) .replayOutcome p{
+  color:#9ca7b2;
+}
+body[data-instrument="pf02"] .replayArrow{
+  align-self:center;
+  text-align:center;
+  font-style:normal;
+  color:#a1a8ae;
+}
+body[data-instrument="pf02"] .replayTotals{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+@media(max-width:920px){
+  body[data-instrument="pf02"] #done .summary{grid-template-columns:1fr!important}
+  body[data-instrument="pf02"] .journeyReplay{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .replayArrow{transform:rotate(90deg)}
+}
