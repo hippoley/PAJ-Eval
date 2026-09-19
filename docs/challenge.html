@@ -233,6 +233,10 @@ h1,h2,h3{font-weight:680;text-wrap:balance}.btn,.primary{border-radius:8px}.prim
 @media(max-width:900px){.mapArrow{width:1px!important;height:26px!important;margin:8px auto!important}.mapWorld{min-height:210px}}
 
 .mapPulse{display:flex;align-items:center;gap:4px;height:18px;margin-top:12px}.mapPulseDot{display:block;width:5px;height:5px;border-radius:50%;background:#50535b}.mapPulseDot.detail{background:#7779ff}.mapPulseDot.revision{width:9px;border-radius:3px;background:#d89555}.mapPulseDot.commit{width:7px;height:7px;background:#44a68b;box-shadow:0 0 0 3px rgba(68,166,139,.08)}
+
+.mailSide{display:flex;flex-direction:column}
+.visualHotspot:after{animation-duration:4.8s!important;opacity:.22}
+@keyframes hotPulse{0%{transform:scale(.9);opacity:.22}70%,100%{transform:scale(1.35);opacity:0}}
 </style><script src="challenge-packs.js"></script><script src="challenge-depth.js"></script>\n<script src="journey01-ui.js"></script>\n<script src="golden-study-bridge.js"></script></head>
 <body><div class="app"><header id="researchChrome" class="top hidden"><div class="row" style="margin:0"><span id="market" class="badge"></span><select id="locale"></select></div></header>
 <section id="intro" class="screen"><div class="hero"><div id="introEy" class="ey"></div><h1 id="introTitle"></h1><p id="introLead" class="lead"></p><button id="startBtn" class="primary"></button><p id="introHelp" class="help"></p><div id="introPath" class="worldPath"></div><div id="localeNote" class="localeNote"></div></div></section>
@@ -289,7 +293,7 @@ function focusFlight(k){
 function bindProductMotion(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   document.querySelectorAll('.productCard').forEach(card=>{
-    card.onpointermove=e=>{const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;card.style.setProperty('--ry',(x*3.2)+'deg');card.style.setProperty('--rx',(-y*2.6)+'deg')};
+    card.onpointermove=e=>{const r=card.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;card.style.setProperty('--ry',(x*1.15)+'deg');card.style.setProperty('--rx',(-y*.9)+'deg')};
     card.onpointerleave=()=>{card.style.removeProperty('--ry');card.style.removeProperty('--rx')};
   });
 }
