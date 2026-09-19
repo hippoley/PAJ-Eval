@@ -92,20 +92,39 @@ function uiCopy(){
 function pressureLabel(v){
   const t=uiCopy(); return v>=72?t.pressureHigh:v>=52?t.pressureMid:t.pressureLow;
 }
+function missionClock(){
+  if(!S.started)return '00:00';
+  const sec=Math.max(0,Math.floor((performance.now()-S.started)/1000));
+  return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+}
+function tickMissionClock(){
+  document.querySelectorAll('.missionClock').forEach(el=>el.textContent=missionClock());
+}
+setInterval(tickMissionClock,1000);
+function showSystemPing(world){
+  const main=$(world+'Content')?.closest('.main'); if(!main)return;
+  const t=uiCopy(),list=world==='seed'?t.pingSeed:world==='near'?t.pingNear:t.pingFar;
+  const idx=Math.min(list.length-1,S.ping[world]||0);
+  let toast=main.querySelector('.systemPingToast');
+  if(!toast){toast=document.createElement('div');toast.className='systemPingToast';main.appendChild(toast)}
+  toast.innerHTML='<span>'+t.ping+'</span><b>'+list[idx]+'</b>';
+  toast.classList.remove('show');void toast.offsetWidth;toast.classList.add('show');
+  clearTimeout(toast._hideTimer);toast._hideTimer=setTimeout(()=>toast.classList.remove('show'),2600);
+}
 function missionHud(world){
   const t=uiCopy(),v=Math.max(0,Math.min(100,S.pressure[world]||0));
   const list=world==='seed'?t.pingSeed:world==='near'?t.pingNear:t.pingFar;
   const idx=Math.min(list.length-1,S.ping[world]||0);
   return `<section class="missionHud" data-pressure="${v}">
     <div class="missionObjective"><span>${t.objective}</span><b>${t.obj[world]}</b></div>
-    <div class="missionPressure"><span>${t.pressure}</span><div class="pressureBar"><i style="width:${v}%"></i></div><b>${v} · ${pressureLabel(v)}</b></div>
+    <div class="missionPressure"><span>${t.pressure} · <em class="missionClock">${missionClock()}</em></span><div class="pressureBar"><i style="width:${v}%"></i></div><b>${v} · ${pressureLabel(v)}</b></div>
     <div class="missionPing"><span>${t.ping}</span><b>${list[idx]}</b></div>
   </section>`;
 }
 function bumpPressure(world,delta,reason){
   S.pressure[world]=Math.max(18,Math.min(92,(S.pressure[world]||40)+delta));
   if(delta>0)S.ping[world]=Math.min(2,(S.ping[world]||0)+1);
-  log('pressure_change',{world,delta,reason,pressure:S.pressure[world]});
+  log('pressure_change',{world,delta,reason,pressure:S.pressure[world]});if(delta!==0)showSystemPing(world);
 }
 function animateWorld(world,kind='pulse'){
   const content=$(world+'Content'); if(!content)return;
