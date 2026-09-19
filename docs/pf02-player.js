@@ -67,19 +67,19 @@ function actionMeaning(world,key){
   const zh=locale.startsWith('zh');
   const map={
     seed:{
-      rollback:zh?['回退发布','把整个线上版本退回上一版','影响范围大，但动作直接','可能同时撤回无关改动']:['Rollback release','Return the whole production release to the previous version','Broad but direct','May revert unrelated changes too'],
-      repin:zh?['固定 serving','只把异常流量重新固定到稳定 pool','改动更局部','如果判断错因，症状可能继续']:['Repin serving','Move anomalous traffic back to the stable serving pool only','More targeted','If the diagnosis is wrong, degradation may remain'],
-      hold:zh?['继续观察','暂时不改系统，继续收集证据','不会引入新变化','现场压力会继续累积']:['Hold','Do not mutate the system yet; keep gathering evidence','Introduces no new change','Operational pressure continues to rise']
+      rollback:zh?['撤销全屋动作','把刚才雨感触发的全屋关窗整体撤回','最快回到之前状态','会连没有问题的房间一起恢复']:['Undo whole-home action','Reverse the whole-home close triggered by rain','Fastest return to prior state','Also reverts rooms that were not the problem'],
+      repin:zh?['只重算厨房窗','让厨房窗改用当前家庭策略，其他房间不动','改动最局部，也最贴近刚才冲突','室友仍可能继续 override']:['Recompute kitchen only','Apply the current household policy only to the kitchen window','Most targeted to the conflict you found','A housemate can still override'],
+      hold:zh?['继续观察','暂时不改任何设备，继续听人和 Agent 的后续动作','不会引入新自动变化','冲突会继续变成人工 override']:['Hold','Change nothing and observe the next human/agent move','Introduces no new automation','Conflict may escalate into manual override']
     },
     near:{
-      rollback:zh?['回退网络变更','撤销最近一次履约配置调整','可以快速恢复旧路径','可能重新引入旧瓶颈']:['Rollback network change','Undo the latest fulfillment configuration change','Quickly restores old paths','May reintroduce the previous bottleneck'],
-      reroute:zh?['局部改道','只把受影响区域切到替代节点','影响更聚焦','替代线路容量有限']:['Reroute','Move only affected regions onto alternate capacity','Localized intervention','Alternate capacity is limited'],
-      hold:zh?['保持现状','不立即改路径，继续观察积压','避免错误改道','晚到订单会继续累积']:['Hold','Keep routes unchanged while observing backlog','Avoids a premature reroute','Late orders keep accumulating']
+      rollback:zh?['自己去取','取消两单配送，直接去附近店取','你能掌握冰块这条关键链路','你会离开家，其他准备暂停']:['Self-pickup','Cancel two deliveries and pick them up yourself','You directly control the critical supply','You leave home and pause other prep'],
+      reroute:zh?['改派即时仓','只把冰块和饮料切到附近即时仓','最快救回最影响体验的一单','火锅底料仍可能迟到']:['Reroute to instant store','Move only drinks and ice to nearby instant inventory','Recovers the most visible missing item fastest','Hotpot base may still arrive late'],
+      hold:zh?['继续等','保持三单原配送不变','不增加新成本或新路线','朋友到时关键物资可能还没到']:['Wait','Keep all three original deliveries unchanged','No extra cost or new route','Guests may arrive before key supplies']
     },
     far:{
-      revert:zh?['恢复默认控制','撤销最近的控制策略变化','快速回到已知基线','可能牺牲个性化控制']:['Revert control','Undo the most recent control-policy change','Returns to a known baseline','May sacrifice personalization'],
-      schedule:zh?['调整时段','只改高负荷房间的运行窗口','影响最局部','收益依赖异常是否与时段有关']:['Reschedule','Change only the operating window for the high-load room','Most localized change','Benefit depends on whether timing is causal'],
-      hold:zh?['继续观察','不改变设备状态','保留当前现场','异常能耗继续存在']:['Hold','Leave device state unchanged','Preserves the current scene','Elevated consumption continues']
+      revert:zh?['恢复旧房间策略','回到聚会前每个房间各自的夜间规则','熟悉、稳定','留宿客人的偏好仍没有被建模']:['Restore prior room policy','Return to each room’s pre-party night rules','Familiar and stable','Guest preferences remain unmodeled'],
+      schedule:zh?['创建客房临时规则','只给客房增加今晚 00:30–07:00 的临时策略','最小范围满足留宿需求','明早失效，之后仍要决定是否固化']:['Create guest-room override','Add a temporary 00:30–07:00 rule only for the guest room','Smallest scope that serves the guests','Expires in the morning; not yet a permanent rule'],
+      hold:zh?['保持现状','不改任何夜间规则','不替任何人做更多决定','人会继续用手动 override 表达偏好']:['Hold','Keep current night rules unchanged','Avoids making another decision for people','Humans will keep expressing preferences via overrides']
     }
   };
   return map[world][key];
@@ -106,24 +106,24 @@ function decisionCard(world,key){
   </button>`;
 }
 function stateBefore(world){
-  if(world==='seed')return {primary:P.seed.metrics?.[0]?.[1]||'—',secondary:'B 18%',status:'MISMATCH'};
-  if(world==='near')return {primary:P.near.metrics?.[0]?.[1]||'—',secondary:'east route',status:'DEGRADED'};
-  return {primary:P.far.metrics?.[0]?.[1]||'—',secondary:'night baseline',status:'ELEVATED'};
+  if(world==='seed')return {primary:'3 conflicts',secondary:'Kitchen 0%',status:'RULE CONFLICT'};
+  if(world==='near')return {primary:'+28 min',secondary:'2 critical orders',status:'AT RISK'};
+  return {primary:'+22%',secondary:'2 unresolved prefs',status:'SHARED STATE'};
 }
 function stateAfter(world,a){
   if(world==='seed'){
-    if(a==='repin')return {primary:'−3.2%',secondary:'B 0%',status:'STABILIZING'};
-    if(a==='rollback')return {primary:'−5.4%',secondary:'release reverted',status:'PARTIAL'};
-    return {primary:'−7.1%',secondary:'B 18%',status:'UNCHANGED'};
+    if(a==='repin')return {primary:'1 conflict',secondary:'Kitchen 20%',status:'NEGOTIATED'};
+    if(a==='rollback')return {primary:'2 conflicts',secondary:'All windows restored',status:'PARTIAL'};
+    return {primary:'4 conflicts',secondary:'Kitchen 0%',status:'ESCALATING'};
   }
   if(world==='near'){
-    if(a==='reroute')return {primary:'+5.8%',secondary:'alt route active',status:'RECOVERING'};
-    if(a==='rollback')return {primary:'+6.7%',secondary:'old route restored',status:'PARTIAL'};
-    return {primary:'+10.1%',secondary:'backlog rising',status:'WORSENING'};
+    if(a==='reroute')return {primary:'+13 min',secondary:'drinks recovered',status:'RECOVERING'};
+    if(a==='rollback')return {primary:'+12 min',secondary:'self-pickup active',status:'PARTIAL'};
+    return {primary:'+36 min',secondary:'guests arrived',status:'WORSENING'};
   }
-  if(a==='revert')return {primary:'+11%',secondary:'baseline falling',status:'RECOVERING'};
-  if(a==='schedule')return {primary:'+14%',secondary:'peak shifted',status:'IMPROVING'};
-  return {primary:'+22%',secondary:'baseline unchanged',status:'UNCHANGED'};
+  if(a==='revert')return {primary:'+14%',secondary:'old room policy',status:'PARTIAL'};
+  if(a==='schedule')return {primary:'+9%',secondary:'guest rule active',status:'SETTLING'};
+  return {primary:'+24%',secondary:'manual override',status:'UNCHANGED'};
 }
 function decisionDiff(world,a){
   const before=stateBefore(world),after=stateAfter(world,a),zh=locale.startsWith('zh');
@@ -141,26 +141,25 @@ function decisionDiff(world,a){
 function predictedAfter(world,a){return stateAfter(world,a)}
 function evidenceFit(world,a){
   const zh=locale.startsWith('zh'),items=S.detail[world]||[],last=items[items.length-1]||'';
-  if(!last)return zh?'你还没有深入证据，这个选择主要基于概览。':'You have not opened deep evidence yet; this choice still rests mostly on the overview.';
+  if(!last)return zh?'你还没有打开深入线索，这个决定主要基于现场概览。':'You have not opened a deep clue yet; this choice still rests mostly on the overview.';
+  if(!zh)return 'The last clue you opened is directly relevant to this command, but it does not guarantee the outcome.';
   const maps={
     seed:{
-      serving_generation_compare:{repin:'serving pool 的差异直接指向局部 serving 偏移，因此 repin 与当前证据最贴近。',rollback:'serving pool 有差异，但它还不能证明整次发布都需要回退。',hold:'你已经看到 serving 层的结构性差异，继续等待意味着接受异常继续扩散。'},
-      slice_:{repin:'slice 异常提示问题并非均匀分布，局部 serving 调整比全量回退更聚焦。',rollback:'slice 异常与发布后变化同时出现，rollback 能快速验证发布是否参与其中。',hold:'slice 已经出现明确异常，hold 的价值只在于你认为证据仍不足。'},
-      request_:{repin:'请求样本显示异常落在特定 serving 路径上，repin 可以直接改变这条路径。',rollback:'请求样本与发布时点重叠，rollback 是更宽的验证动作。',hold:'你已经看到了具体失败样本，继续等待不会改变这些请求的当前路由。'}
+      serving_generation_compare:{repin:'你刚看到主机和窗控网关的策略版本不一致；只重算厨房窗正好针对这个断点。',rollback:'策略版本不一致说明问题更像局部同步，而不是所有房间都错。',hold:'你已经看到一个明确的策略断点，继续等待只是把决定交回给人工 override。'},
+      slice_:{repin:'你刚看到不同人的意图和权限并不对称；局部重算比全屋一起撤销更贴近这个冲突。',rollback:'冲突来自多个人，不代表全屋当前状态都应该保留。',hold:'你已经知道谁在冲突，等待会让未解决意图继续存在。'},
+      request_:{repin:'语音片段显示“厨房留一点”是明确且局部的请求，局部重算可以直接回应它。',rollback:'语音里同时有“全关”，全量撤销会把两个意图一起打回原点。',hold:'已经出现清晰的人类请求，继续等待不会自动完成协商。'}
     },
     near:{
-      scan_:{reroute:'站点扫描延迟集中在局部节点，reroute 会直接绕开这些节点。',rollback:'扫描异常出现在最近配置变更后，rollback 可以恢复旧路径。',hold:'站点扫描仍在变慢，hold 等于让积压继续进入同一路径。'},
-      city_:{reroute:'区域延迟并不均匀，局部改道可以只处理受影响区域。',rollback:'区域异常也可能来自全局配置变化，rollback 会影响更大范围。',hold:'区域延迟已经可见，等待会继续消耗配送窗口。'}
+      scan_:{reroute:'你刚看到便利店即时仓的等待是可控的，改派能直接缩短冰块和饮料这条链路。',rollback:'自取能绕开骑手，但会让你本人离开家。',hold:'到店等待已经可见，原路径继续走只会消耗剩余时间。'},
+      city_:{reroute:'你刚看到两单的延迟并不一样；只改冰块和饮料比全部取消更聚焦。',rollback:'如果你认为配送本身不再可信，自取是更强但更贵的控制。',hold:'你已经知道哪一单最危险，等待就是接受它继续晚到。'}
     },
     far:{
-      room_:{schedule:'异常集中在具体房间和时段，schedule 会直接改变这段负荷。',revert:'房间异常也可能来自控制策略，revert 会恢复到已知基线。',hold:'房间负荷已经偏离基线，hold 不会改变下一时段的运行计划。'},
-      interval_15m:{schedule:'15 分钟曲线显示异常与时段相关，schedule 对准了这个变化。',revert:'曲线偏移可能来自控制策略，revert 是更宽的基线恢复。',hold:'时序异常已经持续，等待意味着继续承受高基线。'}
+      room_:{schedule:'你刚看到客房的需求和主卧不同；临时客房规则正好只改变这一个空间。',revert:'旧策略适合常住的人，但没有覆盖留宿客人的偏好。',hold:'你已经看到房间偏好冲突，继续保持现状会让人继续手动 override。'},
+      interval_15m:{schedule:'15 分钟现场变化显示异常集中在客房时段，临时规则直接作用在这里。',revert:'恢复旧策略会把所有房间一起带回聚会前状态。',hold:'现场已经出现人工 override，等待只会让这种补丁继续积累。'}
     }
   };
-  const wm=maps[world]||{};
-  let key=Object.keys(wm).find(k=>last===k||last.startsWith(k));
-  const text=key&&wm[key]&&wm[key][a];
-  return text||(zh?'你刚打开的证据与这个动作有关，但目前还不能单独证明它一定有效。':'The evidence you opened is relevant to this move, but it does not prove the move will work on its own.');
+  const wm=maps[world]||{};const key=Object.keys(wm).find(k=>last===k||last.startsWith(k));
+  return key&&wm[key]&&wm[key][a]?wm[key][a]:'你刚打开的线索和这个动作有关，但还不能单独证明它一定有效。';
 }
 function executionOverlay(world,a){
   const zh=locale.startsWith('zh'),w=P[world];
@@ -240,14 +239,14 @@ function refreshFieldFeed(world){
 }
 
 function resetActionOrders(){for(const world of ['seed','near','far'])S.actionOrder[world]=shuffled(actionKeys(world))}
-function worldMode(world){return world==='seed'?'INCIDENT':world==='near'?'NETWORK':'ENERGY'}
+function worldMode(world){return world==='seed'?'SHARED HOME':world==='near'?'DELIVERY': 'NIGHT'}
 function uiCopy(){
   if(locale==='zh-CN')return {
     objective:'任务目标',pressure:'现场压力',ping:'系统消息',
-    obj:{seed:'判断检索质量下滑的主要原因，并先做一次可逆处置。',near:'在配送窗口继续收窄前，判断该回滚、改道还是继续观察。',far:'找出夜间基线异常的主要来源，并先改变一个变量。'},
-    pingSeed:['SRE：serving-b 的异常请求仍在增加。','客服：长尾查询的失败反馈开始聚集。','发布系统：两个 serving pool 仍未完全收敛。'],
-    pingNear:['运营：晚到订单正在继续累积。','站点：东侧区域的扫描等待仍偏高。','调度：新的改道窗口还剩一小段时间。'],
-    pingFar:['家庭主机：夜间基线仍高于四周均值。','温控器：湿度补偿仍在工作。','能耗侧：下一小时将进入夜间高负荷窗口。'],
+    obj:{seed:'让这个家在多人、权限和自动规则冲突下先稳定下来。',near:'朋友到门口前，先救回最影响今晚体验的那一单。',far:'在不替所有人做主的前提下，留下一个今晚能睡的夜间规则。'},
+    pingSeed:['厨房窗仍是 0%，你刚才的“留一点”没有生效。','室友没有再说话，但全屋关闭规则仍在生效。','窗控网关仍在执行昨晚的旧策略。'],
+    pingNear:['群聊：朋友说“还有 20 分钟到”。','便利店：冰块库存只剩最后 3 袋。','火锅店：你的订单前面还有 7 单。'],
+    pingFar:['客房有人刚手动调低了温度。','室友发来一句：夜里别开窗，太吵。','Agent 还没有留宿客人的长期夜间规则。'],
     pressureLow:'可控',pressureMid:'紧张',pressureHigh:'高压'
   };
   if(locale==='zh-TW')return {
@@ -357,7 +356,7 @@ function generationSurface(w){
     {k:'B',name:w.generation.b,share:shares.B,tone:tones.B}
   ];
   return `<div class="generationSurface">
-    <div class="generationHead"><div><span class="meta">SERVING POOLS</span><h3>${w.generation.expected}</h3></div><span class="generationTraffic">${state.note||w.generation.traffic}</span></div>
+    <div class="generationHead"><div><span class="meta">POLICY NODES</span><h3>${w.generation.expected}</h3></div><span class="generationTraffic">${state.note||w.generation.traffic}</span></div>
     <div class="generationRows">${rows.map(r=>`<button class="generationRow ${s===r.k?'selected':''}" data-k="${r.k}">
       <span class="genPool">${r.k}</span><span class="genName">${r.name}</span><span class="genShare">${r.share}</span><span class="genTone ${r.tone}">${r.tone==='risk'?'MISMATCH':r.tone==='warn'?'PARTIAL':'CURRENT'}</span>
     </button>`).join('')}</div>
@@ -375,11 +374,11 @@ function fulfillmentSurface(w){
   };
   const linkOn=i=>action==='reroute'?i===0:action==='rollback'?i<2:sel===i;
   return `<div class="networkBoard ${action?'action-'+action:''}">
-    <div class="networkHead"><span class="meta">NETWORK VIEW</span><b>${state.note||w.status}</b></div>
+    <div class="networkHead"><span class="meta">DELIVERY MAP</span><b>${state.note||w.status}</b></div>
     <div class="networkLanes">
-      <div class="networkCol"><span class="networkLabel">DEPOTS</span>${w.depots.map((r,i)=>`<button class="networkNode depotNode ${sel===i?'selected':''} ${nodeClass(i)}" data-j="${i}"><b>${r[0]}</b><small>${r[1]}</small></button>`).join('')}</div>
+      <div class="networkCol"><span class="networkLabel">SOURCES</span>${w.depots.map((r,i)=>`<button class="networkNode depotNode ${sel===i?'selected':''} ${nodeClass(i)}" data-j="${i}"><b>${r[0]}</b><small>${r[1]}</small></button>`).join('')}</div>
       <div class="networkLinks">${w.depots.map((_,i)=>`<i class="${linkOn(i)?'on':''} ${nodeClass(i)}"></i>`).join('')}</div>
-      <div class="networkCol"><span class="networkLabel">REGIONS</span>${w.cities.map((r,i)=>`<button class="networkNode cityNode ${sel===i?'selected':''} ${nodeClass(i)}" data-j="${i}"><b>${r[0]}</b><small>${r[1]} · ${r[2]}</small></button>`).join('')}</div>
+      <div class="networkCol"><span class="networkLabel">ORDERS</span>${w.cities.map((r,i)=>`<button class="networkNode cityNode ${sel===i?'selected':''} ${nodeClass(i)}" data-j="${i}"><b>${r[0]}</b><small>${r[1]} · ${r[2]}</small></button>`).join('')}</div>
     </div>
     <div class="networkContext"><div><span>ROUTE</span><b>${w.routes}</b></div><div><span>WEATHER</span><b>${w.weather}</b></div></div>
     ${action?`<div class="networkImpact"><span>↳</span><b>${w.consequence[action]}</b></div>`:''}
@@ -428,8 +427,8 @@ function decorateScene(world,i){
 }
 function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);if(world==='seed')renderSeed(i);if(world==='near')renderNear(i);if(world==='far')renderFar(i);decorateScene(world,i);renderActions(world);bindWorldMicroInteractions(world);refreshFieldFeed(world)}
 function renderSeed(i){const w=P.seed,c=$('seedContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('seed')}${metrics(w.metrics)}${spark()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${sliceBoard(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${generationSurface(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${corpusBoard(w)}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${releaseRail(w)}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${requestBoard(w)}`;document.querySelectorAll('.seedSlice').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','slice_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>SLICE ${String(j+1).padStart(2,'0')}</span><h4>${w.slices[j][0]}</h4><div><b>${w.slices[j][1]}</b><small>${w.sliceCols[1]}</small><b>${w.slices[j][2]}</b><small>${w.sliceCols[2]}</small></div></div>`});document.querySelectorAll('.seedReq').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','request_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>REQUEST SAMPLE</span><h4>${w.requests[j][0]}</h4><div><b>${w.requests[j][1]}</b><small>segment</small><b>${w.requests[j][2]}</b><small>serving</small></div></div>`});if($('compareGen'))$('compareGen').onclick=()=>{markDetail('seed','serving_generation_compare');$('genDetail').innerHTML=`<div class="notice"><b>${w.generation.traffic}</b><p>${w.generation.detail}</p></div>`}}
-function renderNear(i){const w=P.near,c=$('nearContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('near')}${metrics(w.metrics)}${spark([83,84,85,84,82,72,69])}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${fulfillmentSurface(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${carrierBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('ROUTE CONDITIONS',w.routes,'routeContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('WEATHER WINDOW',w.weather,'weatherContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${cityBoard(w)}`;document.querySelectorAll('.nearScan').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','scan_'+j);$('nearDetail').innerHTML=`<div class="notice">${w.nested.scan}: ${w.depots[j].join(' · ')}</div>`});document.querySelectorAll('.nearCity').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','city_'+j);$('nearDetail').innerHTML=`<div class="detailDrawer light"><span>REGION DETAIL</span><h4>${w.cities[j][0]}</h4><div><b>${w.cities[j][1]}</b><small>delay</small><b>${w.cities[j][2]}</b><small>depot</small></div></div>`})}
-function renderFar(i){const w=P.far,c=$('farContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('far')}${metrics(w.metrics)}<div class="energyRoomTabs">${w.schedules.map((r,i)=>`<button class="energyRoom ${(S.selection.far||0)===i?'selected':''}" data-j="${i}"><b>${r[0]}</b><span>${r[1]}</span></button>`).join('')}</div>${energyTimeline()}<button id="interval" class="btn intervalBtn">${w.nested.interval}</button><div id="farDetail"></div>`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${contextPanel('OUTDOOR CONDITIONS',w.weather,'energyContext')}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${scheduleBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('THERMOSTAT FIRMWARE',w.firmware,'firmwareContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('OCCUPANCY',w.occupancy,'occupancyContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${contextPanel('TARIFF',w.tariff,'tariffContext')}`;if($('interval'))$('interval').onclick=()=>{markDetail('far','interval_15m');$('farDetail').innerHTML='<div class="intervalDetail"><span>00:00</span><b>1.0</b><span>00:15</span><b>1.1</b><span>00:30</span><b>1.2</b><span>00:45</span><b>1.2</b><span>01:00</span><b>1.3</b></div>'};document.querySelectorAll('.farRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('far','room_'+j);$('farDetail').innerHTML=`<div class="detailDrawer light"><span>ROOM DETAIL</span><h4>${w.schedules[j][0]}</h4><p>${w.schedules[j][1]}</p></div>`})}
+function renderNear(i){const w=P.near,c=$('nearContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('near')}${metrics(w.metrics)}${spark([83,84,85,84,82,72,69])}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${fulfillmentSurface(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${carrierBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('DELIVERY ROUTE',w.routes,'routeContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('RAIN WINDOW',w.weather,'weatherContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${cityBoard(w)}`;document.querySelectorAll('.nearScan').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','scan_'+j);$('nearDetail').innerHTML=`<div class="notice">${w.nested.scan}: ${w.depots[j].join(' · ')}</div>`});document.querySelectorAll('.nearCity').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','city_'+j);$('nearDetail').innerHTML=`<div class="detailDrawer light"><span>REGION DETAIL</span><h4>${w.cities[j][0]}</h4><div><b>${w.cities[j][1]}</b><small>delay</small><b>${w.cities[j][2]}</b><small>depot</small></div></div>`})}
+function renderFar(i){const w=P.far,c=$('farContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('far')}${metrics(w.metrics)}<div class="energyRoomTabs">${w.schedules.map((r,i)=>`<button class="energyRoom ${(S.selection.far||0)===i?'selected':''}" data-j="${i}"><b>${r[0]}</b><span>${r[1]}</span></button>`).join('')}</div>${energyTimeline()}<button id="interval" class="btn intervalBtn">${w.nested.interval}</button><div id="farDetail"></div>`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${contextPanel('OUTDOOR NIGHT',w.weather,'energyContext')}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${scheduleBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('AGENT POLICY',w.firmware,'firmwareContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('WHO SLEEPS WHERE',w.occupancy,'occupancyContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${contextPanel('NIGHT LOAD',w.tariff,'tariffContext')}`;if($('interval'))$('interval').onclick=()=>{markDetail('far','interval_15m');$('farDetail').innerHTML='<div class="intervalDetail"><span>00:00</span><b>1.0</b><span>00:15</span><b>1.1</b><span>00:30</span><b>1.2</b><span>00:45</span><b>1.2</b><span>01:00</span><b>1.3</b></div>'};document.querySelectorAll('.farRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('far','room_'+j);$('farDetail').innerHTML=`<div class="detailDrawer light"><span>ROOM DETAIL</span><h4>${w.schedules[j][0]}</h4><p>${w.schedules[j][1]}</p></div>`})}
 function renderActions(world){const w=P[world],el=$(world+'Actions'),a=S.action[world];if(!a){el.innerHTML=commandDeck(world);el.querySelectorAll('.commandChoice').forEach(b=>b.onclick=()=>previewAction(world,b.dataset.a));const ex=el.querySelector('.executeCommand');if(ex)ex.onclick=()=>{const p=S.preview[world];if(p)takeAction(world,p)};refreshFieldFeed(world);return}const post=w.post;el.innerHTML=`${decisionDiff(world,a)}${outcomePanel(world,a)}<div class="postActionBar"><button class="btn inspectCurrent">${post.inspect}</button><button class="btn switchAction">${post.switch}</button><button class="primary commitWorld">${post.commit}</button></div>`;const ins=el.querySelector('.inspectCurrent'),sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');ins.onclick=()=>{log('post_consequence_action',{world,action:'inspect_more',after:a});const target=world==='seed'?2:world==='near'?5:0;renderWorld(world,target,true)};sw.onclick=()=>{log('post_consequence_action',{world,action:'switch_mitigation',from:a});S.action[world]=null;S.worldState[world]={};bumpPressure(world,4,'switch_mitigation');delete document.body.dataset.action;refreshSignal(world);refreshMissionHud(world);if(world==='seed'&&S.view.seed===2)renderSeed(2);if(world==='near'&&S.view.near===1)renderNear(1);if(world==='far'&&S.view.far===0)renderFar(0);renderActions(world);bindWorldMicroInteractions(world)};co.onclick=()=>commitWorld(world)}
 function takeAction(world,a){
   playExecution(world,a);
@@ -471,13 +470,13 @@ function artifactSpec(){
   const zh=locale.startsWith('zh'),seed=S.action.seed||'hold',near=S.action.near||'hold',far=S.action.far||'hold';
   const evidence=[...S.detail.seed,...S.detail.near,...S.detail.far];
   const invariant=seed==='repin'
-    ? (zh?'當 serving generation 出現局部 mismatch 時，優先驗證並局部修正 serving，而不是默認全量回退。':'When serving generations diverge locally, verify and repair serving before defaulting to a full rollback.')
+    ? (zh?'當多人意圖衝突但問題集中在單一空間時，優先局部重算該空間，而不是把整個家庭狀態一起回退。':'When multi-person intent conflicts are localized to one space, recompute that space before reverting the whole household state.')
     : seed==='rollback'
-      ? (zh?'當退化與發布同時出現且證據仍不足時，先用可逆 rollback 驗證發布是否為主因。':'When degradation coincides with a release and evidence is incomplete, use a reversible rollback to test whether the release is causal.')
-      : (zh?'當仍選擇觀察時，必須把壓力增長本身納入後續判斷。':'When choosing to hold, pressure growth itself must become part of the next decision.');
+      ? (zh?'當自動化動作影響範圍過大而授權仍不清楚時，先恢復到人類介入前的可逆狀態。':'When an automated action is too broad and authority is unclear, restore the last reversible human-controlled state first.')
+      : (zh?'當選擇暫不處理衝突時，後續的人類 override 必須被視為新的高強度偏好證據。':'When holding a conflict, subsequent human overrides must be treated as high-strength preference evidence.');
   return {
     id:'pf02-'+Date.now(),
-    title:'journey02-behavior-regression',
+    title:'journey02-shared-home-regression',
     invariant,
     evidence,
     actions:{seed,near,far},
@@ -512,7 +511,7 @@ function evalYaml(spec){
 function runbookMarkdown(spec){
   const zh=locale.startsWith('zh');
   return [
-    '# Journey 02 Runbook',
+    '# Journey 02 Shared-Home Runbook',
     '',
     '## '+(zh?'從這次遊玩提取的規則':'Rule extracted from this play'),
     spec.invariant,
@@ -547,9 +546,9 @@ function artifactForge(){
       <i>→</i>
       <div><span>02</span><b>${zh?'不變量':'INVARIANT'}</b><small>${spec.invariant}</small></div>
       <i>→</i>
-      <div><span>03</span><b>${zh?'可執行測試':'EXECUTABLE EVAL'}</b><small>journey02-behavior-regression.yaml</small></div>
+      <div><span>03</span><b>${zh?'可執行測試':'EXECUTABLE EVAL'}</b><small>journey02-shared-home-regression.yaml</small></div>
       <i>→</i>
-      <div><span>04</span><b>RUNBOOK</b><small>journey02-runbook.md</small></div>
+      <div><span>04</span><b>RUNBOOK</b><small>journey02-shared-home-runbook.md</small></div>
     </div>
     <div class="artifactWorkbench">
       <div class="artifactPreview">
