@@ -7,10 +7,12 @@ const q=new URLSearchParams(location.search);
 const dev=q.get('dev')==='1';
 let locale=q.get('locale')&&packs[q.get('locale')]?q.get('locale'):'zh-CN';
 let P=packs[locale],C=chrome[locale],pendingNextWorld='near';
-const S={started:0,events:[],views:{seed:[],near:[],far:[]},detail:{seed:[],near:[],far:[]},action:{seed:null,near:null,far:null},actionOrder:{seed:[],near:[],far:[]},view:{seed:0,near:0,far:0},selection:{seed:null,near:null,far:null},worldState:{seed:{},near:{},far:{}},pressure:{seed:42,near:48,far:37},ping:{seed:0,near:0,far:0}}};
+const S={started:0,events:[],views:{seed:[],near:[],far:[]},detail:{seed:[],near:[],far:[]},action:{seed:null,near:null,far:null},actionOrder:{seed:[],near:[],far:[]},view:{seed:0,near:0,far:0},selection:{seed:null,near:null,far:null},worldState:{seed:{},near:{},far:{}},pressure:{seed:42,near:48,far:37},ping:{seed:0,near:0,far:0}};
 const now=()=>Math.round(performance.now()-S.started);
 const log=(type,data={})=>S.events.push({seq:S.events.length+1,t_ms:now(),type,...data});
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));$(id).classList.remove('hidden');scrollTo(0,0)}
+function enterNear(){show('near');renderWorld('near',0,true)}
+function enterFar(){show('far');renderWorld('far',0,true)}
 function active(el,i){
   const world=(el.id||'').replace('Nav','');
   el.querySelectorAll('button[data-i]').forEach(b=>{
@@ -302,5 +304,5 @@ function finish(){
   show('done');
 }
 function exportTrace(){const payload={instrument:'golden-pf02-v1',locale,market:P.market,events:S.events,views:S.views,details:S.detail,actions:S.action,world_state:S.worldState,pressure:S.pressure,action_order:S.actionOrder};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=`paj-pf02-${P.market}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
-Object.entries(packs).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.native;$('locale').appendChild(o)});$('locale').value=locale;$('locale').onchange=e=>{locale=e.target.value;P=packs[locale];C=chrome[locale];history.replaceState(null,'',`?locale=${encodeURIComponent(locale)}${dev?'&dev=1':''}`);S.view={seed:0,near:0,far:0};S.worldState={seed:{},near:{},far:{}};delete document.body.dataset.action;applyPack();show('intro')};$('start').onclick=startJourney;$('cueNext').onclick=()=>{log('minimal_intervention',{dose:'one_sentence',next_world:pendingNextWorld});const next=pendingNextWorld;pendingNextWorld='near';show(next);renderWorld(next,0,true)};$('export').onclick=exportTrace;$('again').onclick=()=>location.reload();applyPack();
+Object.entries(packs).forEach(([k,v])=>{const o=document.createElement('option');o.value=k;o.textContent=v.native;$('locale').appendChild(o)});$('locale').value=locale;$('locale').onchange=e=>{locale=e.target.value;P=packs[locale];C=chrome[locale];history.replaceState(null,'',`?locale=${encodeURIComponent(locale)}${dev?'&dev=1':''}`);S.view={seed:0,near:0,far:0};S.worldState={seed:{},near:{},far:{}};delete document.body.dataset.action;applyPack();show('intro')};$('start').onclick=startJourney;$('cueNext').onclick=()=>{log('minimal_intervention',{dose:'one_sentence',next_world:pendingNextWorld});const next=pendingNextWorld;pendingNextWorld='near';if(next==='far')enterFar();else enterNear()};$('export').onclick=exportTrace;$('again').onclick=()=>location.reload();applyPack();
 })();
