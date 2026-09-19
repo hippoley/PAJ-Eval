@@ -1,6 +1,8 @@
 # PAJ-Eval
 
-### What does AI leave behind in the human?
+### Same task success. Different humans afterward?
+
+**What does AI leave behind in the human?**
 
 PAJ-Eval is a **playable evaluation environment for post-assistance judgment**.
 
