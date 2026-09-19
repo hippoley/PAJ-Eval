@@ -156,7 +156,9 @@ def test_seed_consequence_exists_for_both_product_paths():
     assert "D.checkout.proConsequence" in HTML
     assert "D.checkout.proLine1" in HTML
     assert "affected_devices" in HTML
-    assert "pickup_option" in HTML
+    assert "alternative_models" in HTML
+    assert "tomorrow_delivery" in HTML
+    assert "pickup_tonight" in HTML
 
 
 def test_challenge_is_local_only_and_does_not_pollute_research_backend():
@@ -222,3 +224,27 @@ def test_pf01_search_is_free_form_but_does_not_persist_query_text():
     assert "query_chars:value.length" in HTML
     assert "query:value" not in HTML
     assert "query:q" not in HTML
+
+
+def test_checkout_has_one_decision_problem_per_screen():
+    for token in [
+        "checkoutDecisionTitle",
+        "decisionOptions",
+        "chooseLiteBridge",
+        "choosePro",
+        "chooseTomorrow",
+        "choosePickup",
+        "alternativeLink",
+        "evidenceLink",
+    ]:
+        assert token in HTML
+    assert "id="change"" not in HTML
+    assert "id="inspect"" not in HTML
+
+
+def test_checkout_inspection_is_not_counted_as_revision():
+    assert "if(a==='inspect_devices'){showAffectedDevices();return}" in HTML
+    assert "if(a==='other_models'){showAlternativeModels();return}" in HTML
+    assert "post_consequence_action',{world:'shop',action:'accept_bridge'" in HTML
+    assert "post_consequence_action',{world:'shop',action:'tomorrow_delivery'" in HTML
+    assert "post_consequence_action',{world:'shop',action:'pickup_tonight'" in HTML
