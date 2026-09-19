@@ -218,10 +218,15 @@ test('subject worlds are rendered as recognizable real applications',()=>{
     'class="checkoutApp"',
     'class="checkoutPage"',
     'class="mailApp"',
+    'class="mailLogoGlyph"',
+    'class="mailAttachment mobility"',
     'class="mailTop"',
     'class="mailBody"',
     'class="mailSide"',
     'class="travelApp"',
+    'class="tripConsole"',
+    'class="flightTrack"',
+    'class="tripReview"',
     'class="tripBar"',
     'class="travelTabs"',
   ]) assert.ok(html.includes(token),token);
@@ -273,4 +278,32 @@ test('delivery problem does not mix product switching into the primary action ro
   assert.ok(html.includes("checkoutAction('other_models')"));
   assert.ok(html.includes("checkoutAction('switch_lite')"));
   assert.ok(html.includes("object:'alternative_models'"));
+});
+
+
+test('premium visual system removes the old beige card language from the subject apps',()=>{
+  for(const token of [
+    '/* --- Premium surface system v3',
+    'background:#0d0e11',
+    'class="handoffScene"',
+    'class="handoffPrimary"',
+    'class="mailLogoGlyph"',
+    'class="mailAttachment mobility"',
+    'class="tripConsole"',
+    'class="flightTrack"',
+    'class="tripReview"',
+    'class="resultScene"',
+    'class="resultMark"',
+  ]) assert.ok(html.includes(token),token);
+});
+
+test('career and travel later stages are first-class applications, not generic cards',()=>{
+  for(const token of [
+    'class="companyCompare"',
+    'class="agenda"',
+    'class="commuteCompare"',
+    'class="travelInfoCard detailCard"',
+    'class="arrivalRail"',
+    'class="travelFact"',
+  ]) assert.ok(html.includes(token),token);
 });
