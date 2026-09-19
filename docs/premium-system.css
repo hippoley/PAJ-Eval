@@ -325,3 +325,39 @@ body[data-instrument="pf08"] .record:hover{background:rgba(255,255,255,.72)!impo
 body[data-instrument="pf08"][data-world="far"] .record:hover{background:#e8efe9!important}
 body[data-instrument="pf08"] .detailBtn{opacity:.55;text-decoration:none!important}
 body[data-instrument="pf08"] .object:hover .detailBtn{opacity:1}
+
+/* --- Journey 01 flagship polish --- */
+body[data-instrument="pf01"] .workspace{border-radius:12px!important;box-shadow:0 20px 54px rgba(18,22,28,.075)!important}
+body[data-instrument="pf01"] .main{padding-top:22px!important}
+body[data-instrument="pf01"] .sceneChrome{position:sticky;top:0;z-index:4;margin:-8px -4px 22px!important;background:rgba(247,248,246,.94);backdrop-filter:blur(12px)}
+body[data-instrument="pf01"][data-world="shop"] .nav{background:#f0eee8!important;border-color:#dcd8cf!important}
+body[data-instrument="pf01"][data-world="shop"] .nav .brand,
+body[data-instrument="pf01"][data-world="shop"] .nav button{color:#696158!important}
+body[data-instrument="pf01"][data-world="shop"] .nav button.active{background:#fff!important;color:#1e1d1b!important;box-shadow:inset 2px 0 0 #d55f3d!important}
+body[data-instrument="pf01"][data-world="shop"] .sceneChrome{box-shadow:inset 2px 0 0 #d55f3d}
+body[data-instrument="pf01"][data-world="career"] .nav{background:#20252b!important}
+body[data-instrument="pf01"][data-world="career"] .sceneChrome{background:rgba(245,247,249,.95);box-shadow:inset 2px 0 0 #5d77a9}
+body[data-instrument="pf01"][data-world="career"] .offerSheet,
+body[data-instrument="pf01"][data-world="career"] .card{box-shadow:none!important}
+body[data-instrument="pf01"][data-world="career"] .mailRow{transition:background .12s ease,padding-left .12s ease}
+body[data-instrument="pf01"][data-world="career"] .mailRow:hover{background:#f6f8fa;padding-left:7px}
+body[data-instrument="pf01"][data-world="travel"] .nav{background:#eef2f4!important;border-color:#d8dee2!important}
+body[data-instrument="pf01"][data-world="travel"] .nav .brand,
+body[data-instrument="pf01"][data-world="travel"] .nav button{color:#66727a!important}
+body[data-instrument="pf01"][data-world="travel"] .nav button.active{background:#dfe9ed!important;color:#213b46!important;box-shadow:inset 2px 0 0 #4d8797!important}
+body[data-instrument="pf01"][data-world="travel"] .sceneChrome{box-shadow:inset 2px 0 0 #4d8797}
+body[data-instrument="pf01"] .contextRail{border-left:1px solid #dedbd4!important;background:#f5f4f0!important;box-shadow:none!important}
+body[data-instrument="pf01"] .contextRail.collapsed{background:#f7f6f2!important}
+body[data-instrument="pf01"] .contextAction{transition:background .12s ease,padding-left .12s ease}
+body[data-instrument="pf01"] .contextAction:hover{padding-left:7px}
+body[data-instrument="pf01"] .productCard{border-radius:12px!important;box-shadow:none!important;transition:transform .15s ease,border-color .15s ease}
+body[data-instrument="pf01"] .productCard:hover{border-color:#c8c2b8!important;transform:translateY(-2px)}
+body[data-instrument="pf01"] .productVisual{border-radius:8px!important}
+body[data-instrument="pf01"] .decisionbar{z-index:5;border-top-color:#dedbd4!important;box-shadow:0 -12px 30px rgba(25,28,32,.035)}
+body[data-instrument="pf01"] .flightRow{transition:background .12s ease,transform .12s ease}
+body[data-instrument="pf01"] .flightRow:hover{transform:translateX(2px)}
+body[data-instrument="pf01"] .mapShell{border-radius:10px!important}
+@media(max-width:900px){
+ body[data-instrument="pf01"] .workspace{grid-template-columns:170px minmax(0,1fr) 46px!important}
+ body[data-instrument="pf01"] .workspace:not(.guidanceCollapsed){grid-template-columns:170px minmax(0,1fr) 220px!important}
+}
