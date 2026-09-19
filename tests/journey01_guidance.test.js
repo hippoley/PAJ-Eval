@@ -241,3 +241,36 @@ test('guidance defaults collapsed so it never competes with the subject app',()=
   assert.ok(html.includes('#career .contextRail.collapsed'));
   assert.ok(html.includes('#travel .contextRail.collapsed'));
 });
+
+
+test('every locale has explicit checkout decision language',()=>{
+  const ui=loadUi();
+  const keys=['secure','currentCart','decision','liteTitle','liteSub','optionA','optionB','liteBridge','liteBridgeMeta','proDirect','proDirectMeta','choose','affected','affectedTitle','notApplied','proTitle','proSub','tomorrow','keepProduct','pickup','otherModels','otherModelsTitle','switchLite','back','pickupCue'];
+  for(const [locale,p] of Object.entries(ui)){
+    for(const key of keys) assert.ok(p.checkout&&p.checkout[key]&&p.checkout[key].length>0,locale+' checkout '+key);
+  }
+});
+
+test('checkout separates decisions from evidence and alternatives',()=>{
+  for(const token of [
+    'class="checkoutDecisionTitle"',
+    'class="decisionOptions"',
+    'id="chooseLiteBridge"',
+    'id="choosePro"',
+    'id="inspectDevices" class="evidenceLink"',
+    'id="chooseTomorrow"',
+    'id="choosePickup"',
+    'id="otherModels" class="alternativeLink"',
+    'function showAffectedDevices()',
+    'function showAlternativeModels()',
+    'function commitShop(choice,resolution)',
+  ]) assert.ok(html.includes(token),token);
+});
+
+test('delivery problem does not mix product switching into the primary action row',()=>{
+  assert.ok(html.includes("checkoutAction('tomorrow')"));
+  assert.ok(html.includes("checkoutAction('pickup')"));
+  assert.ok(html.includes("checkoutAction('other_models')"));
+  assert.ok(html.includes("checkoutAction('switch_lite')"));
+  assert.ok(html.includes("object:'alternative_models'"));
+});
