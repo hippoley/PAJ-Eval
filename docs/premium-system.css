@@ -285,3 +285,43 @@ body[data-instrument="pf08"][data-world="far"] .object{border-color:#d9e0da!impo
  body[data-instrument="pf07"][data-world="far"] .plan{grid-template-columns:1fr!important;display:grid!important}
  body[data-instrument="pf08"] .record{grid-template-columns:1fr!important}
 }
+
+/* --- J04–J08 interaction feel --- */
+body[data-instrument="pf04"] .sceneChrome,
+body[data-instrument="pf05"] .sceneChrome,
+body[data-instrument="pf06"] .sceneChrome,
+body[data-instrument="pf07"] .sceneChrome,
+body[data-instrument="pf08"] .sceneChrome{position:sticky;top:0;z-index:3;backdrop-filter:blur(10px)}
+body[data-instrument="pf04"][data-world="seed"] .sceneChrome,
+body[data-instrument="pf05"][data-world="near"] .sceneChrome{background:rgba(20,24,30,.94)!important;border-color:#2b323b!important;color:#9ca6b2!important}
+body[data-instrument="pf04"][data-world="seed"] .sceneChrome b,
+body[data-instrument="pf05"][data-world="near"] .sceneChrome b{color:#f2f5f7!important}
+body[data-instrument="pf04"][data-world="seed"] .sceneState,
+body[data-instrument="pf05"][data-world="near"] .sceneState{background:#1c2229!important;border-color:#343d47!important;color:#bec7d1!important}
+body[data-instrument="pf04"] .actions,
+body[data-instrument="pf05"] .actions,
+body[data-instrument="pf06"] .actions,
+body[data-instrument="pf07"] .actions,
+body[data-instrument="pf08"] .actions{position:sticky;bottom:0;z-index:4;padding:16px 0 4px}
+body[data-instrument="pf04"] .object,
+body[data-instrument="pf05"] .object,
+body[data-instrument="pf06"] .object,
+body[data-instrument="pf07"] .object,
+body[data-instrument="pf08"] .object{transition:background .12s ease,padding-left .12s ease}
+body[data-instrument="pf04"] .object:hover,
+body[data-instrument="pf05"] .object:hover,
+body[data-instrument="pf06"] .object:hover,
+body[data-instrument="pf07"] .object:hover,
+body[data-instrument="pf08"] .object:hover{padding-left:6px!important}
+body[data-instrument="pf05"] .runExperiment:disabled{opacity:.42;cursor:not-allowed;transform:none!important}
+body[data-instrument="pf05"] .testCard .budget{position:relative}
+body[data-instrument="pf05"] .testCard .budget:after{content:"budget";position:absolute;right:0;top:-18px;font:9px ui-monospace,monospace;color:#858b93;text-transform:uppercase;letter-spacing:.08em}
+body[data-instrument="pf06"] .timeline span{transition:background .15s ease,border-color .15s ease,transform .15s ease}
+body[data-instrument="pf06"] .timeline span:hover{transform:translateY(-1px)}
+body[data-instrument="pf07"] .planDetail{margin-top:4px}
+body[data-instrument="pf07"] .step b{font-weight:620}
+body[data-instrument="pf08"] .record{cursor:pointer;transition:background .12s ease,padding-left .12s ease}
+body[data-instrument="pf08"] .record:hover{background:rgba(255,255,255,.72)!important;padding-left:8px!important}
+body[data-instrument="pf08"][data-world="far"] .record:hover{background:#e8efe9!important}
+body[data-instrument="pf08"] .detailBtn{opacity:.55;text-decoration:none!important}
+body[data-instrument="pf08"] .object:hover .detailBtn{opacity:1}
