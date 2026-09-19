@@ -2275,3 +2275,194 @@ body[data-instrument="pf02"] .commandPreview.armed .commandState.projected{
     border-top:1px solid #e0e4e1;
   }
 }
+
+
+/* Probe -> Artifact forge */
+body[data-instrument="pf02"] .artifactForge{
+  margin-top:18px;
+  border:1px solid #d7ddd8;
+  background:#f7faf7;
+}
+body[data-instrument="pf02"] .artifactHead{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:flex-start;
+  padding:18px 20px 16px;
+  border-bottom:1px solid #dfe4e0;
+}
+body[data-instrument="pf02"] .artifactHead span,
+body[data-instrument="pf02"] .artifactActions>span{
+  display:block;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.12em;
+  color:#7f8982;
+}
+body[data-instrument="pf02"] .artifactHead h2{
+  margin:5px 0 0!important;
+  font-size:22px!important;
+  line-height:1.15!important;
+  letter-spacing:-.03em!important;
+  color:#2d3831!important;
+}
+body[data-instrument="pf02"] .artifactHead>b{
+  padding:4px 7px;
+  border:1px solid #aac6b1;
+  color:#4d7d5b;
+  background:#edf7ef;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .artifactPipeline{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1fr);
+  align-items:stretch;
+  gap:6px;
+  padding:14px;
+  border-bottom:1px solid #dfe4e0;
+  background:#eef3ef;
+}
+body[data-instrument="pf02"] .artifactPipeline>div{
+  min-height:104px;
+  padding:12px;
+  border:1px solid #d8dfda;
+  background:#fbfcfb;
+}
+body[data-instrument="pf02"] .artifactPipeline>div>span{
+  display:block;
+  color:#8f9891;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .artifactPipeline>div>b{
+  display:block;
+  margin-top:8px;
+  color:#354139;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .artifactPipeline>div>small{
+  display:block;
+  margin-top:7px;
+  color:#737e76;
+  font-size:9px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .artifactPipeline>i{
+  align-self:center;
+  justify-self:center;
+  color:#8d978f;
+  font-style:normal;
+}
+body[data-instrument="pf02"] .artifactWorkbench{
+  display:grid;
+  grid-template-columns:1.45fr .75fr;
+  min-height:360px;
+}
+body[data-instrument="pf02"] .artifactPreview{
+  min-width:0;
+  border-right:1px solid #dfe4e0;
+  background:#11161b;
+}
+body[data-instrument="pf02"] .artifactTabs{
+  display:flex;
+  min-height:38px;
+  border-bottom:1px solid #283039;
+}
+body[data-instrument="pf02"] .artifactTab{
+  padding:0 13px;
+  border:0;
+  border-right:1px solid #283039;
+  background:transparent;
+  color:#6f7b86;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+  cursor:pointer;
+}
+body[data-instrument="pf02"] .artifactTab.active{
+  background:#192028;
+  color:#dce3e9;
+  box-shadow:inset 0 -2px 0 #6c7dff;
+}
+body[data-instrument="pf02"] .artifactCode{
+  margin:0;
+  min-height:320px;
+  max-height:430px;
+  overflow:auto;
+  padding:18px;
+  color:#b7c3cd;
+  background:#11161b;
+  font:10px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;
+  white-space:pre-wrap;
+}
+body[data-instrument="pf02"] .artifactActions{
+  position:relative;
+  padding:22px 20px;
+  background:#fbfcfb;
+}
+body[data-instrument="pf02"] .artifactActions p{
+  margin:8px 0 20px;
+  color:#5c675f;
+  font-size:11px;
+  line-height:1.6;
+}
+body[data-instrument="pf02"] .generateArtifact{
+  width:100%;
+  min-height:44px;
+  margin-top:8px;
+  border:0;
+  background:#171c21;
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .15s ease,background .15s ease;
+}
+body[data-instrument="pf02"] .generateArtifact:hover{
+  transform:translateY(-1px);
+  background:#262d34;
+}
+body[data-instrument="pf02"] .generateArtifact.secondary{
+  border:1px solid #d5dbd6;
+  background:#f5f8f5;
+  color:#354039;
+}
+body[data-instrument="pf02"] .generateArtifact.secondary:hover{
+  background:#fff;
+}
+body[data-instrument="pf02"] .artifactStatus{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid #e1e5e2;
+}
+body[data-instrument="pf02"] .artifactStatus span{
+  width:7px;height:7px;border-radius:50%;
+  background:#9aa29c;
+}
+body[data-instrument="pf02"] .artifactStatus b{
+  color:#8a938c;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .artifactForge.generated .artifactStatus span{
+  background:#4e9b66;
+  box-shadow:0 0 0 4px rgba(78,155,102,.08);
+}
+body[data-instrument="pf02"] .artifactForge.generated .artifactStatus b{
+  color:#4e7b5a;
+}
+@media(max-width:960px){
+  body[data-instrument="pf02"] .artifactPipeline{
+    grid-template-columns:1fr;
+  }
+  body[data-instrument="pf02"] .artifactPipeline>i{
+    transform:rotate(90deg);
+  }
+  body[data-instrument="pf02"] .artifactWorkbench{
+    grid-template-columns:1fr;
+  }
+  body[data-instrument="pf02"] .artifactPreview{
+    border-right:0;
+    border-bottom:1px solid #dfe4e0;
+  }
+}
