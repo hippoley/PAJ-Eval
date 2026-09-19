@@ -60,6 +60,66 @@ function scheduleBoard(w){
     <span class="roomIcon">${String(i+1).padStart(2,'0')}</span><b>${r[0]}</b><small>${r[1]}</small><i>→</i>
   </button>`).join('')}</div><div id="farDetail"></div>`;
 }
+function diegeticScene(world){
+  const zh=locale.startsWith('zh'),state=S.worldState[world]||{},a=S.action[world];
+  if(world==='seed'){
+    const kitchen=a==='repin'?'20%':a==='rollback'?'35%':'0%';
+    const conflict=a==='repin'?'1':a==='rollback'?'2':a==='hold'?'4':'3';
+    return `<section class="diegeticScene homeScene">
+      <div class="sceneTopline"><span>18:42</span><b>${zh?'雨正在下 · 朋友 38 分鐘後到':'Rain · guests in 38 min'}</b><small>${conflict} ${zh?'個未解決衝突':'unresolved conflicts'}</small></div>
+      <div class="homePlan">
+        <button class="roomTile kitchen hot sceneInspect" data-key="room_kitchen"><span>${zh?'廚房':'Kitchen'}</span><strong>${kitchen}</strong><small>${zh?'窗戶 · 油煙正在上升':'window · cooking now'}</small><i class="personDot you">${zh?'你':'YOU'}</i></button>
+        <button class="roomTile living sceneInspect" data-key="room_living"><span>${zh?'客廳':'Living'}</span><strong>0%</strong><small>${zh?'窗戶 · 雨感鎖定':'window · rain lock'}</small><i class="personDot mate">${zh?'室友':'MATE'}</i></button>
+        <button class="roomTile guest sceneInspect" data-key="room_guest"><span>${zh?'客房':'Guest'}</span><strong>0%</strong><small>${zh?'未授權自動開窗':'automation not authorized'}</small><i class="personDot guestP">${zh?'朋友':'GUEST'}</i></button>
+        <button class="roomTile bedroom sceneInspect" data-key="room_bedroom"><span>${zh?'主臥':'Bedroom'}</span><strong>0%</strong><small>${zh?'關閉 · 無人在內':'closed · empty'}</small></button>
+      </div>
+      <div class="voiceThread">
+        <div><time>18:39</time><b>${zh?'你':'You'}</b><p>“${zh?'廚房那扇別全關，留一點。':'Leave the kitchen window a little open.'}”</p></div>
+        <div><time>18:40</time><b>${zh?'室友':'Housemate'}</b><p>“${zh?'下雨就都關了吧。':'If it rains, just close them all.'}”</p></div>
+        <div class="agentLine"><time>18:41</time><b>HOME AGENT</b><p>${zh?'雨感觸發 → 全屋關窗已執行':'Rain sensor → whole-home close executed'}</p></div>
+        <div class="conflictLine"><time>18:42</time><b>${zh?'現場':'LIVE'}</b><p>${zh?'廚房窗 0% · 你的指令沒有生效':'Kitchen 0% · your instruction did not take effect'}</p></div>
+      </div>
+    </section>`;
+  }
+  if(world==='near'){
+    const eta=a==='reroute'?13:a==='rollback'?12:a==='hold'?36:28;
+    return `<section class="diegeticScene deliveryScene">
+      <div class="sceneTopline"><span>19:05</span><b>${zh?'門鈴預計 25 分鐘後響':'Guests arrive in 25 min'}</b><small>${zh?'最晚 ETA +':''}${eta} min</small></div>
+      <div class="deliveryTable">
+        <button class="orderCard sceneInspect critical" data-key="order_drinks"><span>01</span><b>${zh?'冰塊 + 飲料':'Ice + drinks'}</b><strong>${a==='reroute'?'19:18':'19:33'}</strong><small>${a==='reroute'?(zh?'已改派即時倉':'rerouted to instant store'):(zh?'原配送延遲':'original courier delayed')}</small></button>
+        <button class="orderCard sceneInspect warning" data-key="order_hotpot"><span>02</span><b>${zh?'火鍋底料':'Hotpot base'}</b><strong>19:47</strong><small>${zh?'後廚還有 7 單':'7 orders ahead'}</small></button>
+        <button class="orderCard sceneInspect good" data-key="order_cake"><span>03</span><b>${zh?'蛋糕':'Cake'}</b><strong>19:28</strong><small>${zh?'基本準時':'on time'}</small></button>
+      </div>
+      <div class="messageThread">
+        <div><span class="avatar">群</span><p><b>19:04 · ${zh?'朋友群':'Group chat'}</b><br>${zh?'“我們大概 19:30 到，你們開始了嗎？”':'“We should be there around 19:30. Started yet?”'}</p></div>
+        <div><span class="avatar store">店</span><p><b>19:05 · ${zh?'便利店':'Store'}</b><br>${zh?'冰塊庫存剩 3 袋，可切即時倉。':'Only 3 bags of ice left; instant inventory available.'}</p></div>
+      </div>
+    </section>`;
+  }
+  const guestTemp=a==='schedule'?'25°C':a==='revert'?'26°C':'24°C';
+  return `<section class="diegeticScene nightScene">
+    <div class="sceneTopline"><span>00:47</span><b>${zh?'客廳已經安靜 · 四個人準備睡':'Living room quiet · four people settling in'}</b><small>${zh?'雨停了 · 濕度 82%':'rain stopped · humidity 82%'}</small></div>
+    <div class="nightPlan">
+      <button class="nightRoom sceneInspect" data-key="night_master"><span>${zh?'主臥':'Master'}</span><b>25°C</b><small>${zh?'你 · 優先安靜':'you · quiet first'}</small></button>
+      <button class="nightRoom sceneInspect active" data-key="night_guest"><span>${zh?'客房':'Guest room'}</span><b>${guestTemp}</b><small>${a==='schedule'?(zh?'臨時規則 00:30–07:00':'temporary rule 00:30–07:00'):(zh?'剛發生人工 override':'manual override just happened')}</small></button>
+      <button class="nightRoom sceneInspect" data-key="night_mate"><span>${zh?'次臥':'Second room'}</span><b>26°C</b><small>${zh?'室友 · 不希望夜間開窗':'housemate · no open window at night'}</small></button>
+      <button class="nightRoom empty sceneInspect" data-key="night_living"><span>${zh?'客廳':'Living'}</span><b>OFF</b><small>${zh?'無人 · 已關機':'empty · off'}</small></button>
+    </div>
+    <div class="nightConversation">
+      <div><time>00:41</time><b>${zh?'朋友':'Guest'}</b><p>“${zh?'這間有點悶，我可以調低一點嗎？':'It is a little stuffy. Can I turn it down?' }”</p></div>
+      <div><time>00:43</time><b>${zh?'室友':'Housemate'}</b><p>“${zh?'夜裡別開窗，外面車太吵。':'Please do not open the window at night. Traffic is too loud.'}”</p></div>
+      <div class="agentLine"><time>00:47</time><b>HOME AGENT</b><p>${zh?'未找到「留宿客人」的夜間優先級規則':'No night-priority rule exists for overnight guests'}</p></div>
+    </div>
+  </section>`;
+}
+function bindSceneInteractions(world){
+  document.querySelectorAll('.sceneInspect').forEach(el=>el.onclick=()=>{
+    const key=el.dataset.key||'scene_object';
+    markDetail(world,key);
+    el.classList.add('inspected');
+    refreshFieldFeed(world);
+  });
+}
 function randomIndex(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}
 function shuffled(items){const out=[...items];for(let i=out.length-1;i>0;i--){const j=randomIndex(i+1);[out[i],out[j]]=[out[j],out[i]]}return out}
 function actionKeys(world){return world==='seed'?['rollback','repin','hold']:world==='near'?['rollback','reroute','hold']:['revert','schedule','hold']}
@@ -426,7 +486,7 @@ function decorateScene(world,i){
   if(!hud){hud=document.createElement('div');hud.innerHTML=missionHud(world);main.insertBefore(hud.firstElementChild,content)}
   else hud.outerHTML=missionHud(world);
 }
-function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);if(world==='seed')renderSeed(i);if(world==='near')renderNear(i);if(world==='far')renderFar(i);decorateScene(world,i);renderActions(world);bindWorldMicroInteractions(world);refreshFieldFeed(world)}
+function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);if(world==='seed')renderSeed(i);if(world==='near')renderNear(i);if(world==='far')renderFar(i);decorateScene(world,i);renderActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world)}
 function homeLiveScene(){
   const a=S.action.seed,state=S.worldState.seed||{},zh=locale.startsWith('zh');
   const kitchen=a==='repin'?'20%':a==='rollback'?'45%':'0%';
@@ -491,7 +551,7 @@ function nightLiveScene(){
 }
 function renderSeed(i){const w=P.seed,c=$('seedContent');if(i===0)c.innerHTML=`${homeLiveScene()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${sliceBoard(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${generationSurface(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${corpusBoard(w)}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${releaseRail(w)}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${requestBoard(w)}`;document.querySelectorAll('.seedSlice').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','slice_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>SLICE ${String(j+1).padStart(2,'0')}</span><h4>${w.slices[j][0]}</h4><div><b>${w.slices[j][1]}</b><small>${w.sliceCols[1]}</small><b>${w.slices[j][2]}</b><small>${w.sliceCols[2]}</small></div></div>`});document.querySelectorAll('.seedReq').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','request_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>REQUEST SAMPLE</span><h4>${w.requests[j][0]}</h4><div><b>${w.requests[j][1]}</b><small>segment</small><b>${w.requests[j][2]}</b><small>serving</small></div></div>`});if($('compareGen'))$('compareGen').onclick=()=>{markDetail('seed','serving_generation_compare');$('genDetail').innerHTML=`<div class="notice"><b>${w.generation.traffic}</b><p>${w.generation.detail}</p></div>`}}
 function renderNear(i){const w=P.near,c=$('nearContent');if(i===0)c.innerHTML=`${deliveryLiveScene()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${fulfillmentSurface(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${carrierBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('DELIVERY ROUTE',w.routes,'routeContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('RAIN WINDOW',w.weather,'weatherContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${cityBoard(w)}`;document.querySelectorAll('.nearScan').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','scan_'+j);$('nearDetail').innerHTML=`<div class="notice">${w.nested.scan}: ${w.depots[j].join(' · ')}</div>`});document.querySelectorAll('.nearCity').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','city_'+j);$('nearDetail').innerHTML=`<div class="detailDrawer light"><span>REGION DETAIL</span><h4>${w.cities[j][0]}</h4><div><b>${w.cities[j][1]}</b><small>delay</small><b>${w.cities[j][2]}</b><small>depot</small></div></div>`})}
-function renderFar(i){const w=P.far,c=$('farContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('far')}${metrics(w.metrics)}<div class="energyRoomTabs">${w.schedules.map((r,i)=>`<button class="energyRoom ${(S.selection.far||0)===i?'selected':''}" data-j="${i}"><b>${r[0]}</b><span>${r[1]}</span></button>`).join('')}</div>${energyTimeline()}<button id="interval" class="btn intervalBtn">${w.nested.interval}</button><div id="farDetail"></div>`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${contextPanel('OUTDOOR NIGHT',w.weather,'energyContext')}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${scheduleBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('AGENT POLICY',w.firmware,'firmwareContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('WHO SLEEPS WHERE',w.occupancy,'occupancyContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${contextPanel('NIGHT LOAD',w.tariff,'tariffContext')}`;if($('interval'))$('interval').onclick=()=>{markDetail('far','interval_15m');$('farDetail').innerHTML='<div class="intervalDetail"><span>00:00</span><b>1.0</b><span>00:15</span><b>1.1</b><span>00:30</span><b>1.2</b><span>00:45</span><b>1.2</b><span>01:00</span><b>1.3</b></div>'};document.querySelectorAll('.farRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('far','room_'+j);$('farDetail').innerHTML=`<div class="detailDrawer light"><span>ROOM DETAIL</span><h4>${w.schedules[j][0]}</h4><p>${w.schedules[j][1]}</p></div>`})}
+function renderFar(i){const w=P.far,c=$('farContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${diegeticScene('far')}${signalStrip('far')}<div class="energyRoomTabs">${w.schedules.map((r,i)=>`<button class="energyRoom ${(S.selection.far||0)===i?'selected':''}" data-j="${i}"><b>${r[0]}</b><span>${r[1]}</span></button>`).join('')}</div>${energyTimeline()}<button id="interval" class="btn intervalBtn">${w.nested.interval}</button><div id="farDetail"></div>`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${contextPanel('OUTDOOR NIGHT',w.weather,'energyContext')}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${scheduleBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('AGENT POLICY',w.firmware,'firmwareContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('WHO SLEEPS WHERE',w.occupancy,'occupancyContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${contextPanel('NIGHT LOAD',w.tariff,'tariffContext')}`;if($('interval'))$('interval').onclick=()=>{markDetail('far','interval_15m');$('farDetail').innerHTML='<div class="intervalDetail"><span>00:00</span><b>1.0</b><span>00:15</span><b>1.1</b><span>00:30</span><b>1.2</b><span>00:45</span><b>1.2</b><span>01:00</span><b>1.3</b></div>'};document.querySelectorAll('.farRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('far','room_'+j);$('farDetail').innerHTML=`<div class="detailDrawer light"><span>ROOM DETAIL</span><h4>${w.schedules[j][0]}</h4><p>${w.schedules[j][1]}</p></div>`})}
 function renderActions(world){const w=P[world],el=$(world+'Actions'),a=S.action[world];if(!a){el.innerHTML=commandDeck(world);el.querySelectorAll('.commandChoice').forEach(b=>b.onclick=()=>previewAction(world,b.dataset.a));const ex=el.querySelector('.executeCommand');if(ex)ex.onclick=()=>{const p=S.preview[world];if(p)takeAction(world,p)};refreshFieldFeed(world);return}const post=w.post;el.innerHTML=`${decisionDiff(world,a)}${outcomePanel(world,a)}<div class="postActionBar"><button class="btn inspectCurrent">${post.inspect}</button><button class="btn switchAction">${post.switch}</button><button class="primary commitWorld">${post.commit}</button></div>`;const ins=el.querySelector('.inspectCurrent'),sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');ins.onclick=()=>{log('post_consequence_action',{world,action:'inspect_more',after:a});const target=world==='seed'?2:world==='near'?5:0;renderWorld(world,target,true)};sw.onclick=()=>{log('post_consequence_action',{world,action:'switch_mitigation',from:a});S.action[world]=null;S.worldState[world]={};bumpPressure(world,4,'switch_mitigation');delete document.body.dataset.action;refreshSignal(world);refreshMissionHud(world);if(world==='seed'&&S.view.seed===2)renderSeed(2);if(world==='near'&&S.view.near===1)renderNear(1);if(world==='far'&&S.view.far===0)renderFar(0);renderActions(world);bindWorldMicroInteractions(world)};co.onclick=()=>commitWorld(world)}
 function takeAction(world,a){
   playExecution(world,a);
@@ -508,7 +568,7 @@ function takeAction(world,a){
   if(world==='seed'&&S.view.seed===2)renderSeed(2);
   if(world==='near'&&S.view.near===1)renderNear(1);
   if(world==='far'&&S.view.far===0)renderFar(0);
-  renderActions(world);bindWorldMicroInteractions(world);refreshFieldFeed(world);
+  renderActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world);
 }
 function commitWorld(world){delete document.body.dataset.action;log('commit',{world,action:S.action[world],views:[...S.views[world]],details:[...S.detail[world]]});if(world==='seed'){
     const t=uiCopy(),a=S.action.seed;
