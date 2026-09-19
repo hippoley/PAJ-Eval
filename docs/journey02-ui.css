@@ -1,3469 +1,593 @@
-/* Journey 02 isolated product UI — scoped to pf02 only */
-body[data-instrument="pf02"]{--jx-ink:#15191e;--jx-muted:#747b84;--jx-line:#d8ddd9;--jx-panel:#fff;--jx-accent:#5966ff}
-body[data-instrument="pf02"] .app{max-width:1280px!important}
-body[data-instrument="pf02"] #intro .hero{max-width:840px}
-body[data-instrument="pf02"] #intro h1{font-size:clamp(46px,6.8vw,76px)!important;line-height:.97!important;letter-spacing:-.055em!important}
-body[data-instrument="pf02"] #intro .lead{font-size:18px!important;line-height:1.65!important;max-width:760px}
-body[data-instrument="pf02"] #intro .primary{min-height:44px!important;border-radius:7px!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
-body[data-instrument="pf02"] .workspace{border-radius:10px!important;box-shadow:0 16px 44px rgba(20,25,30,.07)!important;overflow:hidden}
-body[data-instrument="pf02"] .main{padding:26px 30px 34px!important}
-body[data-instrument="pf02"] .sceneChrome{border-radius:0!important;border-width:0 0 1px!important;background:transparent!important;box-shadow:none!important;margin-bottom:22px!important}
-body[data-instrument="pf02"] .actions{margin-top:30px!important;padding-top:18px!important}
-body[data-instrument="pf02"] .btn,body[data-instrument="pf02"] .primary{border-radius:6px!important;min-height:39px!important}
-body[data-instrument="pf02"] #cue .moment,body[data-instrument="pf02"] #transition .moment{max-width:760px!important;text-align:left!important}
-body[data-instrument="pf02"] #done .summary{gap:12px!important}
-body[data-instrument="pf02"] #done .trace{border-radius:7px!important}
-body[data-instrument="pf02"][data-world="seed"] .main{background:#11151a!important}
-body[data-instrument="pf02"][data-world="near"] .main{background:#f7f8f6!important}
-body[data-instrument="pf02"][data-world="far"] .main{background:#eef3ef!important}
-body[data-instrument="pf02"] .sceneChrome:after{content:"INCIDENT / FULFILLMENT / ENERGY";margin-left:auto;color:#8b929a;font:9px ui-monospace,monospace;letter-spacing:.08em}
-@media(max-width:800px){body[data-instrument="pf02"] .main{padding:19px!important}body[data-instrument="pf02"] .workspace{border-radius:7px!important}}
 
+/* Journey 02 — clean scene-first UI
+   One visual system. No inherited dashboard layers. */
 
-/* High-fidelity Journey 02 product surfaces */
 body[data-instrument="pf02"]{
-  background:#eef0ee!important;
-  color:#15191e!important;
+  --pf-bg:#f3f1ec;
+  --pf-paper:#fbfaf7;
+  --pf-ink:#1f2428;
+  --pf-muted:#777d82;
+  --pf-line:#dedbd4;
+  --pf-soft:#efede7;
+  --pf-accent:#505fef;
+  --pf-green:#4d8b61;
+  --pf-warm:#b7654f;
+  margin:0;
+  background:var(--pf-bg)!important;
+  color:var(--pf-ink)!important;
 }
+
+body[data-instrument="pf02"] .app{
+  max-width:1040px!important;
+  padding:18px 22px 42px!important;
+}
+
 body[data-instrument="pf02"] .top{
-  min-height:48px!important;
-  margin-bottom:8px!important;
-  padding:0 2px!important;
-  border-bottom:1px solid #d8ddda!important;
-  color:#7a8189!important;
+  min-height:36px!important;
+  padding:0!important;
+  margin:0 0 12px!important;
+  border:0!important;
+  justify-content:flex-end!important;
 }
+body[data-instrument="pf02"] .top .pill{display:none!important}
 body[data-instrument="pf02"] .top select{
   height:30px!important;
-  border:1px solid #d6dbd8!important;
-  border-radius:5px!important;
-  background:#fafbf9!important;
-  color:#5d646d!important;
   padding:0 8px!important;
-}
-body[data-instrument="pf02"] #intro.screen{
-  min-height:calc(100vh - 72px)!important;
-  padding:54px 0 70px!important;
-}
-body[data-instrument="pf02"] #intro .progress{
-  width:min(430px,100%)!important;
-  gap:5px!important;
-  margin-top:28px!important;
-}
-body[data-instrument="pf02"] #intro .progress span{
-  height:2px!important;
-  border-radius:0!important;
-}
-body[data-instrument="pf02"] .nav{
-  padding:14px 10px 18px!important;
-}
-body[data-instrument="pf02"] .nav .brand{
-  padding:4px 8px 13px!important;
-  margin:0 0 4px!important;
-  font-size:10px!important;
-  letter-spacing:.1em!important;
-}
-body[data-instrument="pf02"] .nav button{
-  min-height:38px!important;
-  margin:1px 0!important;
-  padding:9px 10px!important;
-  border-radius:5px!important;
-  font-size:12px!important;
-}
-body[data-instrument="pf02"] .sceneChrome{
-  min-height:40px!important;
-  padding:0 0 10px!important;
-}
-
-/* shared operational state rail */
-body[data-instrument="pf02"] .signalStrip{
-  display:grid;
-  grid-template-columns:minmax(150px,1.2fr) repeat(3,minmax(86px,.55fr)) minmax(170px,1.2fr);
-  gap:0;
-  margin:17px 0 18px;
-  border:1px solid #d9ddda;
-  background:#fff;
-}
-body[data-instrument="pf02"] .signalStrip>div{
-  min-height:58px;
-  padding:10px 12px;
-  border-right:1px solid #e3e6e3;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
-body[data-instrument="pf02"] .signalStrip>div:last-child{border-right:0}
-body[data-instrument="pf02"] .signalStrip span,
-body[data-instrument="pf02"] .signalStrip small{
-  display:block;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8a9199;
-}
-body[data-instrument="pf02"] .signalStrip b{
-  display:block;
-  margin-top:3px;
-  font-size:12px;
-  font-weight:680;
-  color:#283039;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-body[data-instrument="pf02"] .signalIdentity{
-  position:relative;
-  padding-left:30px!important;
-}
-body[data-instrument="pf02"] .signalPulse{
-  position:absolute;
-  left:13px;
-  top:50%;
-  width:8px;
-  height:8px;
-  border-radius:50%;
-  transform:translateY(-50%);
-  background:#42a675;
-  box-shadow:0 0 0 4px rgba(66,166,117,.11);
-}
-body[data-instrument="pf02"] .signalAction.active b{color:#2f7154}
-
-/* action area becomes an operating control, not a survey */
-body[data-instrument="pf02"] .actionHeader{
-  display:flex;
-  justify-content:space-between;
-  gap:18px;
-  align-items:end;
-  margin-bottom:10px;
-}
-body[data-instrument="pf02"] .actionHeader h3{
-  margin:2px 0 0!important;
-  font-size:15px!important;
-  color:inherit!important;
-}
-body[data-instrument="pf02"] .actionHint{
-  font:9px ui-monospace,monospace;
-  letter-spacing:.07em;
-  color:#90969d;
-}
-body[data-instrument="pf02"] .actionGrid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  border:1px solid #d9ddda;
-  background:#fff;
-}
-body[data-instrument="pf02"] .actionGrid .worldAction{
-  width:100%;
-  min-height:58px!important;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  margin:0!important;
-  padding:12px 14px!important;
-  border:0!important;
-  border-right:1px solid #e2e5e2!important;
-  border-radius:0!important;
-  background:#fff!important;
-  text-align:left;
-  color:#303740!important;
-}
-body[data-instrument="pf02"] .actionGrid .worldAction:last-child{border-right:0!important}
-body[data-instrument="pf02"] .actionGrid .worldAction:hover{background:#f6f8f6!important}
-body[data-instrument="pf02"] .actionGrid .worldAction i{
-  font-style:normal;
-  color:#a2a8ae;
-}
-body[data-instrument="pf02"] .outcomePanel{
-  display:grid;
-  grid-template-columns:minmax(180px,.8fr) 28px minmax(280px,1.6fr);
-  align-items:center;
-  gap:12px;
-  border:1px solid #d9ddda;
-  background:#fff;
-  padding:14px 16px;
-}
-body[data-instrument="pf02"] .outcomePanel span{
-  display:block;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8a9199;
-}
-body[data-instrument="pf02"] .outcomePanel b{
-  display:block;
-  margin-top:5px;
-  font-size:13px;
-  line-height:1.48;
-}
-body[data-instrument="pf02"] .outcomeArrow{
-  text-align:center;
-  color:#a4abb1;
-}
-body[data-instrument="pf02"] .outcomeResult{
-  padding-left:15px;
-  border-left:1px solid #e2e5e2;
-}
-body[data-instrument="pf02"] .postActionBar{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:wrap;
-  margin-top:10px;
-}
-
-/* World 01 — production incident console */
-body[data-instrument="pf02"][data-world="seed"] .workspace{
-  grid-template-columns:174px minmax(0,1fr)!important;
-  border-color:#2a3038!important;
-  background:#11151a!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .nav{
-  background:#0d1014!important;
-  border-color:#252b33!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .nav .brand{color:#8d96a2!important}
-body[data-instrument="pf02"][data-world="seed"] .nav button{color:#8e98a4!important}
-body[data-instrument="pf02"][data-world="seed"] .nav button:hover{background:#171c22!important;color:#eef2f5!important}
-body[data-instrument="pf02"][data-world="seed"] .nav button.active{
-  background:#1d232b!important;
-  color:#fff!important;
-  box-shadow:inset 2px 0 0 #ef6c4f!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .main{color:#e8edf2!important}
-body[data-instrument="pf02"][data-world="seed"] h2{color:#f5f7f9!important}
-body[data-instrument="pf02"][data-world="seed"] .lead,
-body[data-instrument="pf02"][data-world="seed"] .meta,
-body[data-instrument="pf02"][data-world="seed"] .crumb{color:#8f98a4!important}
-body[data-instrument="pf02"][data-world="seed"] .sceneChrome{border-color:#2b323a!important}
-body[data-instrument="pf02"][data-world="seed"] .sceneIdentity b{color:#edf1f4!important}
-body[data-instrument="pf02"][data-world="seed"] .signalStrip{
-  border-color:#2b323a!important;
-  background:#151a20!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .signalStrip>div{border-color:#292f37!important}
-body[data-instrument="pf02"][data-world="seed"] .signalStrip b{color:#edf1f4}
-body[data-instrument="pf02"][data-world="seed"] .signalStrip span,
-body[data-instrument="pf02"][data-world="seed"] .signalStrip small{color:#808b97}
-body[data-instrument="pf02"][data-world="seed"] .metricGrid{
-  display:grid!important;
-  grid-template-columns:repeat(3,1fr)!important;
-  gap:0!important;
-  border:1px solid #2b323a;
-  margin-top:14px!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .metricGrid .card{
-  border:0!important;
-  border-right:1px solid #2b323a!important;
-  border-radius:0!important;
-  background:#151a20!important;
-  color:#e9edf1!important;
-  box-shadow:none!important;
-  padding:15px 16px!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .metricGrid .card:last-child{border-right:0!important}
-body[data-instrument="pf02"][data-world="seed"] .metric b{font-size:31px!important;color:#f6f8fa!important}
-body[data-instrument="pf02"][data-world="seed"] .spark{
-  height:150px!important;
-  padding:22px 12px 0!important;
-  margin:0!important;
-  border:1px solid #2b323a!important;
-  border-top:0!important;
-  background:#12171d!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .spark i{
-  background:#303945!important;
-  border-radius:1px 1px 0 0!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .spark i:last-child{background:#ef6c4f!important}
-body[data-instrument="pf02"][data-world="seed"] .card,
-body[data-instrument="pf02"][data-world="seed"] .panel{
-  background:#151a20!important;
-  border-color:#2b323a!important;
-  color:#dfe5eb!important;
+  border:1px solid var(--pf-line)!important;
   border-radius:6px!important;
-  box-shadow:none!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .table th,
-body[data-instrument="pf02"][data-world="seed"] .table td{border-color:#2b323a!important;color:#c9d0d8!important}
-body[data-instrument="pf02"][data-world="seed"] .link{color:#aeb8c4!important}
-body[data-instrument="pf02"][data-world="seed"] .log{
-  border-radius:5px!important;
-  background:#0d1014!important;
-  border:1px solid #2b323a!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .actions{border-color:#2b323a!important}
-body[data-instrument="pf02"][data-world="seed"] .actionHeader h3{color:#eef2f5!important}
-body[data-instrument="pf02"][data-world="seed"] .actionGrid,
-body[data-instrument="pf02"][data-world="seed"] .outcomePanel{
-  border-color:#2b323a!important;
-  background:#151a20!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .actionGrid .worldAction{
-  background:#151a20!important;
-  color:#e5eaf0!important;
-  border-color:#2b323a!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .actionGrid .worldAction:hover{background:#1c222a!important}
-body[data-instrument="pf02"][data-world="seed"] .outcomePanel{color:#e6ebef!important}
-body[data-instrument="pf02"][data-world="seed"] .outcomeResult{border-color:#2b323a!important}
-body[data-instrument="pf02"][data-world="seed"] .postActionBar .btn{
-  background:#171c22!important;
-  border-color:#343c46!important;
-  color:#e8edf2!important;
+  background:var(--pf-paper)!important;
+  color:#676d72!important;
+  font-size:11px!important;
 }
 
-/* World 02 — fulfillment network */
-body[data-instrument="pf02"][data-world="near"] .workspace{
-  grid-template-columns:196px minmax(0,1fr)!important;
-  background:#f7f8f6!important;
-}
-body[data-instrument="pf02"][data-world="near"] .nav{
-  background:#f0f2ef!important;
-  border-color:#d9ded9!important;
-}
-body[data-instrument="pf02"][data-world="near"] .nav .brand{color:#6d756f!important}
-body[data-instrument="pf02"][data-world="near"] .nav button{color:#6c746e!important}
-body[data-instrument="pf02"][data-world="near"] .nav button.active{
-  background:#e3e8e3!important;
-  color:#25342a!important;
-  box-shadow:inset 2px 0 0 #4a8b62!important;
-}
-body[data-instrument="pf02"][data-world="near"] .signalPulse{background:#d58a43;box-shadow:0 0 0 4px rgba(213,138,67,.1)}
-body[data-instrument="pf02"][data-world="near"] .metricGrid{
-  grid-template-columns:1.3fr .85fr .85fr!important;
-  gap:0!important;
-  border-top:1px solid #dce1dd;
-  border-bottom:1px solid #dce1dd;
-}
-body[data-instrument="pf02"][data-world="near"] .metricGrid .card{
-  border:0!important;
-  border-right:1px solid #dce1dd!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  padding:16px 12px!important;
-}
-body[data-instrument="pf02"][data-world="near"] .metricGrid .card:last-child{border-right:0!important}
-body[data-instrument="pf02"][data-world="near"] .metric b{font-size:30px!important}
-body[data-instrument="pf02"][data-world="near"] .spark{
-  height:124px!important;
-  padding:16px 0 0!important;
-  border-bottom:1px solid #dce1dd;
-}
-body[data-instrument="pf02"][data-world="near"] .spark i{
-  background:#cad7cd!important;
-  border-radius:1px!important;
-}
-body[data-instrument="pf02"][data-world="near"] .spark i:last-child{background:#d58a43!important}
-body[data-instrument="pf02"][data-world="near"] .card,
-body[data-instrument="pf02"][data-world="near"] .panel{
-  border-radius:6px!important;
-  box-shadow:none!important;
-}
-body[data-instrument="pf02"][data-world="near"] .table tr:hover td{background:#f3f6f2}
-body[data-instrument="pf02"][data-world="near"] .actionGrid,
-body[data-instrument="pf02"][data-world="near"] .outcomePanel{border-color:#d7ddd8!important}
-
-/* World 03 — energy operations */
-body[data-instrument="pf02"][data-world="far"] .workspace{
-  grid-template-columns:164px minmax(0,1fr)!important;
-  background:#eef3ef!important;
-}
-body[data-instrument="pf02"][data-world="far"] .nav{
-  background:#e6ece7!important;
-  border-color:#d3ddd5!important;
-}
-body[data-instrument="pf02"][data-world="far"] .nav .brand{color:#66746a!important}
-body[data-instrument="pf02"][data-world="far"] .nav button{color:#67736a!important}
-body[data-instrument="pf02"][data-world="far"] .nav button.active{
-  background:#d8e4da!important;
-  color:#20402a!important;
-  box-shadow:inset 2px 0 0 #3f8b5e!important;
-}
-body[data-instrument="pf02"][data-world="far"] .signalStrip{
-  border-color:#d3ddd5!important;
-  background:#f8fbf8!important;
-}
-body[data-instrument="pf02"][data-world="far"] .signalPulse{background:#4b9969}
-body[data-instrument="pf02"][data-world="far"] .metricGrid{
-  display:flex!important;
-  gap:28px!important;
-  border-bottom:1px solid #d4ddd6;
-  padding:0 0 17px!important;
-}
-body[data-instrument="pf02"][data-world="far"] .metricGrid .card{
-  flex:1;
-  border:0!important;
-  border-radius:0!important;
-  padding:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-body[data-instrument="pf02"][data-world="far"] .metric b{
-  margin-top:4px;
-  font-size:34px!important;
-  color:#315b3f!important;
-}
-body[data-instrument="pf02"][data-world="far"] .spark{
-  height:160px!important;
-  padding:22px 0 0!important;
-  border-bottom:1px solid #d4ddd6;
-}
-body[data-instrument="pf02"][data-world="far"] .spark i{
-  background:#bed0c2!important;
-  border-radius:1px!important;
-}
-body[data-instrument="pf02"][data-world="far"] .spark i:last-child{background:#4b9969!important}
-body[data-instrument="pf02"][data-world="far"] .card,
-body[data-instrument="pf02"][data-world="far"] .panel{
-  border-radius:6px!important;
-  box-shadow:none!important;
-  background:#f9fbf9!important;
-  border-color:#d4ddd6!important;
-}
-
-/* Journey transition: one sentence, strong rhythm */
-body[data-instrument="pf02"] #cue.screen{
-  min-height:calc(100vh - 72px)!important;
-}
-body[data-instrument="pf02"] #cue .moment{
-  width:min(760px,100%)!important;
-  padding:38px 40px!important;
-  border:1px solid #272c33!important;
-  border-radius:8px!important;
-  background:#171b20!important;
-  color:#f1f4f6!important;
-  box-shadow:0 24px 64px rgba(20,24,29,.13)!important;
-}
-body[data-instrument="pf02"] #cue .ey{color:#8d96a1!important}
-body[data-instrument="pf02"] #cue .signal{
-  margin:16px 0 28px!important;
-  font-family:Inter,"Noto Sans SC",system-ui,sans-serif!important;
-  font-size:clamp(25px,3.2vw,35px)!important;
-  line-height:1.28!important;
-  letter-spacing:-.035em!important;
-  color:#f5f7f9!important;
-}
-body[data-instrument="pf02"] #cue .primary{
-  background:#f4f6f7!important;
-  border-color:#f4f6f7!important;
-  color:#171b20!important;
-  -webkit-text-fill-color:#171b20!important;
-}
-body[data-instrument="pf02"] #cue .progress span{height:2px!important;border-radius:0!important}
-
-/* result screen */
-body[data-instrument="pf02"] #done.screen{
-  align-items:flex-start!important;
-  padding:54px 0 68px!important;
-}
-body[data-instrument="pf02"] #done>div{max-width:1040px;margin:auto!important}
-body[data-instrument="pf02"] #done h1{
-  font-size:clamp(42px,5.5vw,62px)!important;
-  letter-spacing:-.05em!important;
-}
-body[data-instrument="pf02"] #done .summary{
-  grid-template-columns:1.2fr .8fr!important;
-  margin-top:26px!important;
-}
-body[data-instrument="pf02"] #done .card{
-  border-radius:7px!important;
-  box-shadow:none!important;
-}
-body[data-instrument="pf02"] #done .row>.primary{
-  color:#fff!important;
-  -webkit-text-fill-color:#fff!important;
-}
-@media(max-width:880px){
-  body[data-instrument="pf02"] .signalStrip{grid-template-columns:1fr 1fr}
-  body[data-instrument="pf02"] .signalStrip>div{border-bottom:1px solid #e3e6e3}
-  body[data-instrument="pf02"] .actionGrid{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .actionGrid .worldAction{border-right:0!important;border-bottom:1px solid #e2e5e2!important}
-  body[data-instrument="pf02"] .actionGrid .worldAction:last-child{border-bottom:0!important}
-  body[data-instrument="pf02"] .outcomePanel{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .outcomeArrow{display:none}
-  body[data-instrument="pf02"] .outcomeResult{padding-left:0;border-left:0;padding-top:10px;border-top:1px solid #e2e5e2}
-}
-
-
-/* Journey 02 deep interaction surfaces */
-
-/* Retrieval Ops — serving generation control */
-body[data-instrument="pf02"] .generationSurface{
-  border:1px solid #2b323a;
-  background:#12171d;
-}
-body[data-instrument="pf02"] .generationHead{
-  display:flex;
-  justify-content:space-between;
-  gap:20px;
-  align-items:end;
-  padding:16px 18px;
-  border-bottom:1px solid #2b323a;
-}
-body[data-instrument="pf02"] .generationHead h3{
-  margin:4px 0 0;
-  font:600 15px ui-monospace,monospace;
-  color:#eef2f5;
-}
-body[data-instrument="pf02"] .generationTraffic{
-  max-width:460px;
-  text-align:right;
-  color:#9aa5b1;
-  font-size:11px;
-}
-body[data-instrument="pf02"] .generationRows{
-  display:grid;
-}
-body[data-instrument="pf02"] .generationRow{
-  width:100%;
-  display:grid;
-  grid-template-columns:42px minmax(0,1fr) 72px 92px;
-  gap:12px;
-  align-items:center;
-  min-height:58px;
-  padding:0 18px;
-  border:0;
-  border-bottom:1px solid #262d35;
-  background:#151a20;
-  color:#dce2e8;
-  text-align:left;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .generationRow:last-child{border-bottom:0}
-body[data-instrument="pf02"] .generationRow:hover{background:#1a2027}
-body[data-instrument="pf02"] .generationRow.selected{
-  background:#1d242c;
-  box-shadow:inset 3px 0 0 #6e7dff;
-}
-body[data-instrument="pf02"] .genPool{
-  display:grid;
-  place-items:center;
-  width:28px;height:28px;
-  border:1px solid #39424d;
-  border-radius:50%;
-  font:10px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .genName{
-  font:11px ui-monospace,monospace;
-  color:#c7cfd7;
-}
-body[data-instrument="pf02"] .genShare{
-  justify-self:end;
-  font-weight:700;
-  color:#f2f5f7;
-}
-body[data-instrument="pf02"] .genTone{
-  justify-self:end;
-  border:1px solid #3a424d;
-  padding:3px 6px;
-  border-radius:4px;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8e99a5;
-}
-body[data-instrument="pf02"] .genTone.risk{
-  color:#f0a183;
-  border-color:#6d4337;
-  background:#241915;
-}
-body[data-instrument="pf02"] .generationCompare{
-  display:flex;
-  justify-content:space-between;
-  gap:18px;
-  align-items:center;
-  padding:14px 18px;
-  border-top:1px solid #2b323a;
-  color:#9aa4af;
-  font-size:11px;
-}
-body[data-instrument="pf02"] .generationCompare .btn{
-  flex:0 0 auto;
-  background:#eef2f5!important;
-  color:#15191e!important;
-  border-color:#eef2f5!important;
-}
-
-/* Fulfillment Ops — network board */
-body[data-instrument="pf02"] .networkBoard{
-  border:1px solid #d6ddd7;
-  background:#fbfcfa;
-}
-body[data-instrument="pf02"] .networkHead{
-  padding:15px 17px;
-  border-bottom:1px solid #dde2de;
-}
-body[data-instrument="pf02"] .networkHead b{
-  display:block;
-  margin-top:4px;
-  max-width:760px;
-  font-size:13px;
-  font-weight:600;
-  color:#344038;
-}
-body[data-instrument="pf02"] .networkLanes{
-  display:grid;
-  grid-template-columns:minmax(220px,1fr) 76px minmax(220px,1fr);
-  gap:0;
-  padding:16px;
-}
-body[data-instrument="pf02"] .networkCol{
-  display:grid;
-  gap:6px;
-}
-body[data-instrument="pf02"] .networkLabel{
-  margin-bottom:3px;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8a938c;
-}
-body[data-instrument="pf02"] .networkNode{
-  width:100%;
-  min-height:58px;
-  padding:10px 12px;
-  border:1px solid #dce2dd;
-  border-radius:5px;
-  background:#fff;
-  text-align:left;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .networkNode b{
-  display:block;
-  font-size:12px;
-  color:#26312a;
-}
-body[data-instrument="pf02"] .networkNode small{
-  display:block;
-  margin-top:4px;
-  color:#7d867f;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .networkNode:hover{background:#f4f7f4}
-body[data-instrument="pf02"] .networkNode.selected{
-  border-color:#9bb9a3;
-  background:#eef5ef;
-  box-shadow:inset 3px 0 0 #4e8e62;
-}
-body[data-instrument="pf02"] .networkLinks{
-  display:grid;
-  align-content:center;
-  gap:52px;
-  padding:28px 10px 0;
-}
-body[data-instrument="pf02"] .networkLinks i{
-  display:block;
-  height:1px;
-  background:#d8ded9;
-  position:relative;
-}
-body[data-instrument="pf02"] .networkLinks i:after{
-  content:"";
-  position:absolute;
-  right:-1px;top:-3px;
-  width:6px;height:6px;
-  border-top:1px solid #c5cec7;
-  border-right:1px solid #c5cec7;
-  transform:rotate(45deg);
-}
-body[data-instrument="pf02"] .networkLinks i.on{
-  background:#5f9870;
-}
-body[data-instrument="pf02"] .networkLinks i.on:after{
-  border-color:#5f9870;
-}
-body[data-instrument="pf02"] .networkContext{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  border-top:1px solid #dde2de;
-}
-body[data-instrument="pf02"] .networkContext>div{
-  padding:13px 16px;
-}
-body[data-instrument="pf02"] .networkContext>div+div{
-  border-left:1px solid #dde2de;
-}
-body[data-instrument="pf02"] .networkContext span{
-  display:block;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8b938d;
-}
-body[data-instrument="pf02"] .networkContext b{
-  display:block;
-  margin-top:5px;
-  font-size:11px;
-  line-height:1.55;
-  font-weight:560;
-  color:#4d5750;
-}
-
-/* Energy Ops — room tabs + interval timeline */
-body[data-instrument="pf02"] .energyRoomTabs{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  margin-top:18px;
-  border:1px solid #d3ddd5;
-  border-bottom:0;
-}
-body[data-instrument="pf02"] .energyRoom{
-  min-height:58px;
-  padding:10px 12px;
-  border:0;
-  border-right:1px solid #d3ddd5;
-  background:#f8fbf8;
-  text-align:left;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .energyRoom:last-child{border-right:0}
-body[data-instrument="pf02"] .energyRoom b{
-  display:block;
-  color:#31543b;
-  font-size:12px;
-}
-body[data-instrument="pf02"] .energyRoom span{
-  display:block;
-  margin-top:4px;
-  color:#7a887d;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .energyRoom.selected{
-  background:#e4eee6;
-  box-shadow:inset 0 3px 0 #4f9064;
-}
-body[data-instrument="pf02"] .energyTimeline{
-  position:relative;
-  height:238px;
-  padding:26px 22px 34px;
-  border:1px solid #d3ddd5;
-  background:
-    linear-gradient(to top,rgba(90,120,98,.06) 1px,transparent 1px) 0 0/100% 25%,
-    #f8fbf8;
-}
-body[data-instrument="pf02"] .energyAxis{
-  position:absolute;
-  left:20px;right:20px;bottom:9px;
-  display:flex;
-  justify-content:space-between;
-  color:#89958c;
-  font:8px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .energyBars{
-  height:100%;
-  display:flex;
-  gap:8px;
-  align-items:flex-end;
-}
-body[data-instrument="pf02"] .energyBars i{
-  position:relative;
-  flex:1;
-  min-height:12px;
-  background:#82a88d;
-  border-radius:1px 1px 0 0;
-  transition:height .22s ease;
-}
-body[data-instrument="pf02"] .energyBars i:nth-last-child(-n+3){
-  background:#4f8f63;
-}
-body[data-instrument="pf02"] .energyBars i b{
-  position:absolute;
-  top:-17px;
-  left:50%;
-  transform:translateX(-50%);
-  color:#718078;
-  font:8px ui-monospace,monospace;
-  font-style:normal;
-}
-body[data-instrument="pf02"] .intervalBtn{
-  margin-top:10px!important;
-  background:#f8fbf8!important;
-  border-color:#cad7cd!important;
-  color:#42604a!important;
-}
-body[data-instrument="pf02"] .intervalDetail{
-  display:grid;
-  grid-template-columns:repeat(5,auto 1fr);
-  gap:8px;
-  align-items:center;
-  margin-top:10px;
-  padding:11px 13px;
-  border:1px solid #d3ddd5;
-  background:#f8fbf8;
-}
-body[data-instrument="pf02"] .intervalDetail span{
-  font:8px ui-monospace,monospace;
-  color:#8b968d;
-}
-body[data-instrument="pf02"] .intervalDetail b{
-  font-size:11px;
-  color:#355a40;
-}
-
-/* action consequence writes back into the active surface */
-body[data-instrument="pf02"][data-action] .signalAction{
-  background:rgba(76,139,94,.05);
-}
-body[data-instrument="pf02"][data-world="seed"][data-action] .signalAction{
-  background:rgba(239,108,79,.06);
-}
-
-@media(max-width:820px){
-  body[data-instrument="pf02"] .generationRow{
-    grid-template-columns:36px minmax(0,1fr) 60px;
-  }
-  body[data-instrument="pf02"] .genTone{display:none}
-  body[data-instrument="pf02"] .networkLanes{
-    grid-template-columns:1fr;
-  }
-  body[data-instrument="pf02"] .networkLinks{display:none}
-  body[data-instrument="pf02"] .networkContext{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .networkContext>div+div{border-left:0;border-top:1px solid #dde2de}
-  body[data-instrument="pf02"] .energyRoomTabs{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .energyRoom{border-right:0;border-bottom:1px solid #d3ddd5}
-  body[data-instrument="pf02"] .intervalDetail{grid-template-columns:auto 1fr auto 1fr}
-}
-
-
-/* Journey 02 state mutation feedback */
-body[data-instrument="pf02"] .genTone.warn{
-  color:#e6c178;
-  border-color:#6c5832;
-  background:#221e14;
-}
-body[data-instrument="pf02"] .networkNode.recovered{
-  border-color:#9dc2a6!important;
-  background:#eef7f0!important;
-  box-shadow:inset 3px 0 0 #4f9665!important;
-}
-body[data-instrument="pf02"] .networkNode.affected{
-  border-color:#dfb7a9!important;
-  background:#fff5f1!important;
-  box-shadow:inset 3px 0 0 #cb7254!important;
-}
-body[data-instrument="pf02"] .networkNode.watch{
-  border-color:#decba5!important;
-  background:#fffaf0!important;
-  box-shadow:inset 3px 0 0 #c79746!important;
-}
-body[data-instrument="pf02"] .networkLinks i.recovered{
-  background:#4f9665!important;
-}
-body[data-instrument="pf02"] .networkLinks i.recovered:after{
-  border-color:#4f9665!important;
-}
-body[data-instrument="pf02"] .networkLinks i.affected{
-  background:#cb7254!important;
-}
-body[data-instrument="pf02"] .networkLinks i.affected:after{
-  border-color:#cb7254!important;
-}
-body[data-instrument="pf02"] .networkLinks i.watch{
-  background:#c79746!important;
-}
-body[data-instrument="pf02"] .networkLinks i.watch:after{
-  border-color:#c79746!important;
-}
-body[data-instrument="pf02"] .networkImpact{
-  display:grid;
-  grid-template-columns:24px minmax(0,1fr);
-  gap:8px;
-  align-items:start;
-  padding:12px 16px;
-  border-top:1px solid #dde2de;
-  background:#f4f7f4;
-  color:#445249;
-}
-body[data-instrument="pf02"] .networkImpact span{
-  color:#6d8f77;
-  font-size:15px;
-  line-height:1.2;
-}
-body[data-instrument="pf02"] .networkImpact b{
-  font-size:11px;
-  line-height:1.55;
-  font-weight:580;
-}
-body[data-instrument="pf02"] .energyTimeline{
-  transition:background .2s ease,border-color .2s ease;
-}
-body[data-instrument="pf02"][data-action="revert"] .energyTimeline{
-  border-color:#b7cfbd!important;
-  background:
-    linear-gradient(to top,rgba(76,139,94,.075) 1px,transparent 1px) 0 0/100% 25%,
-    #f5faf6!important;
-}
-body[data-instrument="pf02"][data-action="schedule"] .energyTimeline{
-  border-color:#c8d4ba!important;
-}
-body[data-instrument="pf02"][data-action="hold"] .energyTimeline{
-  border-color:#dfcda7!important;
-}
-
-
-/* Journey 02 result replay */
-body[data-instrument="pf02"] #done .summary{
-  display:grid!important;
-  grid-template-columns:.78fr 1.22fr!important;
-  align-items:start!important;
-}
-body[data-instrument="pf02"] #done .summary>.card:first-child{
-  background:#11151a!important;
-  border-color:#252b32!important;
-}
-body[data-instrument="pf02"] #done .summary>.card:first-child .ey{color:#8d96a1!important}
-body[data-instrument="pf02"] #done .trace{
-  max-height:300px!important;
-  background:#0c0f13!important;
-  border:1px solid #252b32!important;
-  color:#9ea8b3!important;
-  font-size:10px!important;
-}
-body[data-instrument="pf02"] #done #shape{
-  display:block!important;
-}
-body[data-instrument="pf02"] .journeyReplay{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr) 28px minmax(0,1fr);
-  gap:8px;
-  align-items:stretch;
-}
-body[data-instrument="pf02"] .replayStage{
-  min-width:0;
-  padding:16px;
-  border:1px solid #d8ddd9;
-  background:#fff;
-}
-body[data-instrument="pf02"] .replayStage:nth-of-type(1){
-  background:#151a20;
-  border-color:#2b323a;
-  color:#e9edf1;
-}
-body[data-instrument="pf02"] .replayStage:nth-of-type(2){
-  background:#f7f9f6;
-}
-body[data-instrument="pf02"] .replayStage:nth-of-type(3){
-  background:#eef4ef;
-}
-body[data-instrument="pf02"] .replayIndex{
-  font:10px ui-monospace,monospace;
-  color:#89919b;
-}
-body[data-instrument="pf02"] .replayBrand{
-  margin-top:16px;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#8a9198;
-}
-body[data-instrument="pf02"] .replayStage h3{
-  min-height:48px;
-  margin:6px 0 18px;
-  font-size:17px;
-  line-height:1.25;
-  letter-spacing:-.02em;
-}
-body[data-instrument="pf02"] .replayLine{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  padding:9px 0;
-  border-top:1px solid #e1e5e2;
-}
-body[data-instrument="pf02"] .replayStage:nth-of-type(1) .replayLine{
-  border-color:#2d343c;
-}
-body[data-instrument="pf02"] .replayLine span{
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8c949c;
-}
-body[data-instrument="pf02"] .replayLine b{
-  max-width:65%;
-  text-align:right;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .replayOutcome{
-  display:grid;
-  grid-template-columns:18px 1fr;
-  gap:6px;
-  margin-top:13px;
-  padding-top:12px;
-  border-top:1px solid #e1e5e2;
-}
-body[data-instrument="pf02"] .replayStage:nth-of-type(1) .replayOutcome{
-  border-color:#2d343c;
-}
-body[data-instrument="pf02"] .replayOutcome span{
-  color:#69917a;
-}
-body[data-instrument="pf02"] .replayOutcome p{
-  margin:0;
-  color:#667069;
-  font-size:10px;
-  line-height:1.5;
-}
-body[data-instrument="pf02"] .replayStage:nth-of-type(1) .replayOutcome p{
-  color:#9ca7b2;
-}
-body[data-instrument="pf02"] .replayArrow{
-  align-self:center;
-  text-align:center;
-  font-style:normal;
-  color:#a1a8ae;
-}
-body[data-instrument="pf02"] .replayTotals{
-  display:flex;
-  gap:7px;
-  flex-wrap:wrap;
-  margin-top:12px;
-}
-@media(max-width:920px){
-  body[data-instrument="pf02"] #done .summary{grid-template-columns:1fr!important}
-  body[data-instrument="pf02"] .journeyReplay{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .replayArrow{transform:rotate(90deg)}
-}
-
-
-/* Journey 02 navigation memory */
-body[data-instrument="pf02"] .nav button{
-  display:grid!important;
-  grid-template-columns:10px minmax(0,1fr)!important;
-  gap:8px!important;
+body[data-instrument="pf02"] .screen{
+  min-height:calc(100vh - 88px)!important;
   align-items:center!important;
 }
-body[data-instrument="pf02"] .navMark{
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  border:1px solid currentColor;
-  opacity:.36;
-}
-body[data-instrument="pf02"] .nav button.visited .navMark{
-  opacity:.85;
-  background:currentColor;
-}
-body[data-instrument="pf02"] .nav button.deep .navMark{
-  box-shadow:0 0 0 3px rgba(90,105,125,.09);
-}
-body[data-instrument="pf02"][data-world="seed"] .nav button.active .navMark{
-  background:#ef6c4f;
-  border-color:#ef6c4f;
-  box-shadow:0 0 0 3px rgba(239,108,79,.12);
-}
-body[data-instrument="pf02"][data-world="near"] .nav button.active .navMark{
-  background:#4a8b62;
-  border-color:#4a8b62;
-  box-shadow:0 0 0 3px rgba(74,139,98,.10);
-}
-body[data-instrument="pf02"][data-world="far"] .nav button.active .navMark{
-  background:#3f8b5e;
-  border-color:#3f8b5e;
-  box-shadow:0 0 0 3px rgba(63,139,94,.10);
-}
-body[data-instrument="pf02"] .navLabel{
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
+body[data-instrument="pf02"] .hidden{display:none!important}
 
+/* Intro */
+body[data-instrument="pf02"] #intro .hero{
+  width:min(760px,100%)!important;
+  margin:auto!important;
+}
+body[data-instrument="pf02"] #intro .ey{
+  color:#8b8e91!important;
+  font-size:10px!important;
+}
+body[data-instrument="pf02"] #intro h1{
+  max-width:720px!important;
+  margin:12px 0 18px!important;
+  color:#1d2226!important;
+  font-size:clamp(42px,6vw,68px)!important;
+  line-height:1.02!important;
+  letter-spacing:-.055em!important;
+}
+body[data-instrument="pf02"] #intro .lead{
+  max-width:690px!important;
+  margin:0 0 24px!important;
+  color:#565c60!important;
+  font-size:18px!important;
+  line-height:1.55!important;
+}
+body[data-instrument="pf02"] #intro .primary{
+  min-height:46px!important;
+  padding:0 18px!important;
+  border-radius:6px!important;
+  background:#1e2429!important;
+  color:#fff!important;
+}
+body[data-instrument="pf02"] #intro .help{
+  max-width:620px!important;
+  margin-top:14px!important;
+  color:#8a8f93!important;
+  font-size:11px!important;
+}
+body[data-instrument="pf02"] #intro .progress,
+body[data-instrument="pf02"] #intro .introMission{display:none!important}
 
-/* Domain-native secondary surfaces */
-body[data-instrument="pf02"] .sliceBoard,
-body[data-instrument="pf02"] .requestBoard,
-body[data-instrument="pf02"] .cityBoard,
-body[data-instrument="pf02"] .scheduleBoard{
-  border:1px solid #2b323a;
-  background:#12171d;
+/* Main world shell */
+body[data-instrument="pf02"] .workspace{
+  width:100%!important;
+  min-height:0!important;
+  display:block!important;
+  overflow:visible!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
 }
-body[data-instrument="pf02"] .sliceRow,
-body[data-instrument="pf02"] .requestRow,
-body[data-instrument="pf02"] .cityRow,
-body[data-instrument="pf02"] .scheduleRow{
-  width:100%;
-  display:grid;
-  align-items:center;
-  gap:12px;
-  min-height:56px;
-  padding:0 15px;
-  border:0;
-  border-bottom:1px solid #272e36;
-  background:transparent;
-  text-align:left;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .sliceRow:last-child,
-body[data-instrument="pf02"] .requestRow:last-child,
-body[data-instrument="pf02"] .cityRow:last-child,
-body[data-instrument="pf02"] .scheduleRow:last-child{border-bottom:0}
-body[data-instrument="pf02"] .sliceRow{grid-template-columns:minmax(160px,1.3fr) 90px 90px 20px;color:#dfe5eb}
-body[data-instrument="pf02"] .requestRow{grid-template-columns:minmax(180px,1.5fr) 100px 110px 20px;color:#dfe5eb}
-body[data-instrument="pf02"] .sliceRow:hover,
-body[data-instrument="pf02"] .requestRow:hover{background:#181f26}
-body[data-instrument="pf02"] .sliceName,
-body[data-instrument="pf02"] .requestQuery{font-size:12px;font-weight:620}
-body[data-instrument="pf02"] .sliceRow b,
-body[data-instrument="pf02"] .requestRow b{color:#f0f3f6}
-body[data-instrument="pf02"] .sliceRow span:not(.sliceName),
-body[data-instrument="pf02"] .requestType{color:#8f99a5;font-size:10px}
-body[data-instrument="pf02"] .sliceRow i,
-body[data-instrument="pf02"] .requestRow i{font-style:normal;color:#6f7984}
-
-body[data-instrument="pf02"] .corpusBoard{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  border:1px solid #2b323a;
-  background:#12171d;
-}
-body[data-instrument="pf02"] .corpusMetric{
-  min-height:130px;
-  padding:18px;
-  border-right:1px solid #2b323a;
-}
-body[data-instrument="pf02"] .corpusMetric:last-child{border-right:0}
-body[data-instrument="pf02"] .corpusMetric span{
-  display:block;
-  color:#909ba7;
-  font-size:11px;
-}
-body[data-instrument="pf02"] .corpusMetric b{
-  display:block;
-  margin-top:18px;
-  color:#f4f6f8;
-  font-size:32px;
-  letter-spacing:-.04em;
-}
-body[data-instrument="pf02"] .corpusMetric i{
-  display:block;
-  margin-top:8px;
-  color:#6f7a86;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.09em;
-  font-style:normal;
-}
-
-body[data-instrument="pf02"] .releaseRail{
-  border-left:1px solid #303740;
-  margin-left:12px;
-  padding-left:24px;
-}
-body[data-instrument="pf02"] .releaseEvent{
-  position:relative;
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 34px;
-  gap:14px;
-  min-height:68px;
-  align-items:start;
-  padding:2px 0 20px;
-}
-body[data-instrument="pf02"] .releaseDot{
-  position:absolute;
-  left:-29px;
-  top:5px;
-  width:9px;height:9px;border-radius:50%;
-  background:#606a75;
-  box-shadow:0 0 0 4px #11151a;
-}
-body[data-instrument="pf02"] .releaseDot.hot{background:#ef6c4f}
-body[data-instrument="pf02"] .releaseEvent b{
-  font:11px/1.55 ui-monospace,monospace;
-  color:#c7cfd7;
-  font-weight:500;
-}
-body[data-instrument="pf02"] .releaseEvent small{
-  color:#65707b;
-  font:9px ui-monospace,monospace;
-}
-
-body[data-instrument="pf02"] .carrierBoard{
-  border:1px solid #d7ddd8;
-  background:#fff;
-}
-body[data-instrument="pf02"] .carrierRow{
-  position:relative;
-  display:grid;
-  grid-template-columns:42px minmax(120px,1fr) 110px;
-  gap:10px;
-  align-items:center;
-  min-height:64px;
-  padding:0 15px 8px;
-  border-bottom:1px solid #e3e7e3;
-  overflow:hidden;
-}
-body[data-instrument="pf02"] .carrierRow:last-child{border-bottom:0}
-body[data-instrument="pf02"] .carrierBadge{
-  color:#8d958f;
-  font:9px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .carrierRow b{font-size:12px;color:#344038}
-body[data-instrument="pf02"] .carrierRow strong{
-  justify-self:end;
-  font-size:11px;
-  color:#6e766f;
-}
-body[data-instrument="pf02"] .carrierRow i{
-  position:absolute;
-  left:15px;
-  bottom:8px;
-  width:var(--w);
-  height:2px;
-  background:#90aa96;
-}
-
-body[data-instrument="pf02"] .contextPanel{
-  position:relative;
-  min-height:220px;
-  padding:28px 30px;
-  border:1px solid #d7ddd8;
-  background:#fbfcfa;
-  overflow:hidden;
-}
-body[data-instrument="pf02"] .contextPanel:after{
-  content:"";
-  position:absolute;
-  right:-60px;bottom:-60px;
-  width:210px;height:210px;
-  border:1px solid #e3e7e3;
-  border-radius:50%;
-  box-shadow:0 0 0 35px rgba(215,223,217,.28),0 0 0 70px rgba(215,223,217,.14);
-}
-body[data-instrument="pf02"] .contextPanel>span{
-  position:relative;z-index:1;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#8a928c;
-}
-body[data-instrument="pf02"] .contextPanel p{
-  position:relative;z-index:1;
-  max-width:720px;
-  margin:22px 0 0;
-  font-size:18px;
-  line-height:1.6;
-  color:#344038;
-}
-body[data-instrument="pf02"] .weatherContext:after{border-radius:0;transform:rotate(18deg)}
-body[data-instrument="pf02"] .energyContext,
-body[data-instrument="pf02"] .firmwareContext,
-body[data-instrument="pf02"] .occupancyContext,
-body[data-instrument="pf02"] .tariffContext{
-  border-color:#d2ddd4;
-  background:#f8fbf8;
-}
-body[data-instrument="pf02"] .energyContext p,
-body[data-instrument="pf02"] .firmwareContext p,
-body[data-instrument="pf02"] .occupancyContext p,
-body[data-instrument="pf02"] .tariffContext p{color:#35513e}
-
-body[data-instrument="pf02"] .cityBoard,
-body[data-instrument="pf02"] .scheduleBoard{
-  border-color:#d7ddd8;
-  background:#fff;
-}
-body[data-instrument="pf02"] .cityRow,
-body[data-instrument="pf02"] .scheduleRow{
-  border-color:#e3e7e3;
-  color:#354038;
-  background:#fff;
-}
-body[data-instrument="pf02"] .cityRow{grid-template-columns:minmax(140px,1fr) 90px 110px 18px}
-body[data-instrument="pf02"] .scheduleRow{grid-template-columns:42px minmax(120px,.7fr) minmax(200px,1.3fr) 18px}
-body[data-instrument="pf02"] .cityRow:hover,
-body[data-instrument="pf02"] .scheduleRow:hover{background:#f5f8f5}
-body[data-instrument="pf02"] .cityRow small,
-body[data-instrument="pf02"] .scheduleRow small{color:#7a847c}
-body[data-instrument="pf02"] .roomIcon{
-  display:grid;
-  place-items:center;
-  width:28px;height:28px;
-  border:1px solid #cfd9d1;
-  border-radius:50%;
-  color:#6f7f73;
-  font:9px ui-monospace,monospace;
-}
-
-body[data-instrument="pf02"] .detailDrawer{
-  margin-top:10px;
-  padding:15px 17px;
-  border:1px solid #303840;
-  border-left:3px solid #6e7dff;
-  background:#171d24;
-}
-body[data-instrument="pf02"] .detailDrawer.light{
-  border-color:#d8dfd9;
-  border-left-color:#4f9064;
-  background:#f7faf7;
-}
-body[data-instrument="pf02"] .detailDrawer>span{
-  font:8px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#84909c;
-}
-body[data-instrument="pf02"] .detailDrawer h4{
-  margin:5px 0 10px;
-  color:#edf1f4;
-  font-size:14px;
-}
-body[data-instrument="pf02"] .detailDrawer.light h4{color:#304938}
-body[data-instrument="pf02"] .detailDrawer>div{
-  display:grid;
-  grid-template-columns:auto 1fr auto 1fr;
-  gap:8px 12px;
-  align-items:baseline;
-}
-body[data-instrument="pf02"] .detailDrawer b{color:#e7ebef}
-body[data-instrument="pf02"] .detailDrawer.light b{color:#35543f}
-body[data-instrument="pf02"] .detailDrawer small{
-  color:#7d8791;
-  font-size:9px;
-}
-body[data-instrument="pf02"] .detailDrawer p{
-  margin:6px 0 0;
-  color:#647269;
-  font-size:11px;
-}
-
-@media(max-width:760px){
-  body[data-instrument="pf02"] .sliceRow,
-  body[data-instrument="pf02"] .requestRow,
-  body[data-instrument="pf02"] .cityRow,
-  body[data-instrument="pf02"] .scheduleRow{grid-template-columns:1fr 72px}
-  body[data-instrument="pf02"] .sliceRow>*:nth-child(3),
-  body[data-instrument="pf02"] .requestRow>*:nth-child(3),
-  body[data-instrument="pf02"] .cityRow>*:nth-child(3),
-  body[data-instrument="pf02"] .scheduleRow>*:nth-child(3){display:none}
-  body[data-instrument="pf02"] .corpusBoard{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .corpusMetric{border-right:0;border-bottom:1px solid #2b323a}
-  body[data-instrument="pf02"] .corpusMetric:last-child{border-bottom:0}
-}
-
-
-/* Immersive mission layer */
-body[data-instrument="pf02"] #intro .introMission{
-  margin-top:30px;
-  width:min(860px,100%);
-  border:1px solid #d7ddd9;
-  background:rgba(255,255,255,.64);
-  backdrop-filter:blur(8px);
-}
-body[data-instrument="pf02"] .introMissionStatus{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-height:38px;
-  padding:0 14px;
-  border-bottom:1px solid #dfe3e0;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#687078;
-}
-body[data-instrument="pf02"] .introMissionStatus small{margin-left:auto;color:#92989d}
-body[data-instrument="pf02"] .liveDot{
-  width:7px;height:7px;border-radius:50%;
-  background:#4c9b67;
-  box-shadow:0 0 0 4px rgba(76,155,103,.09);
-}
-body[data-instrument="pf02"] .introMissionGrid{
-  display:grid;
-  grid-template-columns:1.2fr .9fr 1fr;
-}
-body[data-instrument="pf02"] .introMissionGrid>div{
-  min-height:92px;
-  padding:14px 16px;
-  border-right:1px solid #e2e5e3;
-}
-body[data-instrument="pf02"] .introMissionGrid>div:last-child{border-right:0}
-body[data-instrument="pf02"] .introMissionGrid span{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#959ba0;
-}
-body[data-instrument="pf02"] .introMissionGrid b{
-  display:block;
-  margin-top:7px;
-  font-size:11px;
-  line-height:1.55;
-  font-weight:580;
-  color:#3f464c;
-}
-
-body[data-instrument="pf02"] .missionHud{
-  display:grid;
-  grid-template-columns:1.4fr .8fr 1.2fr;
-  margin:0 0 18px;
-  border:1px solid currentColor;
-  border-color:#d9ddda;
-  background:rgba(255,255,255,.72);
-  overflow:hidden;
-}
-body[data-instrument="pf02"] .missionHud>div{
-  min-height:66px;
-  padding:11px 13px;
-  border-right:1px solid #e2e5e2;
-}
-body[data-instrument="pf02"] .missionHud>div:last-child{border-right:0}
-body[data-instrument="pf02"] .missionHud span{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#8c9399;
-}
-body[data-instrument="pf02"] .missionHud b{
-  display:block;
-  margin-top:5px;
-  font-size:11px;
-  line-height:1.45;
-  font-weight:610;
-  color:#364039;
-}
-body[data-instrument="pf02"] .missionPressure b{
-  margin-top:6px;
-  font:9px ui-monospace,monospace;
-  letter-spacing:.04em;
-  color:#687068;
-}
-body[data-instrument="pf02"] .pressureBar{
-  height:4px;
-  margin-top:9px;
-  overflow:hidden;
-  background:#e8ebe8;
-}
-body[data-instrument="pf02"] .pressureBar i{
-  display:block;
-  height:100%;
-  width:0;
-  background:#78947f;
-  transition:width .35s cubic-bezier(.2,.8,.2,1),background .25s ease;
-}
-body[data-instrument="pf02"] .missionHud[data-pressure^="7"] .pressureBar i,
-body[data-instrument="pf02"] .missionHud[data-pressure^="8"] .pressureBar i,
-body[data-instrument="pf02"] .missionHud[data-pressure^="9"] .pressureBar i{
-  background:#c66b4e;
-}
-body[data-instrument="pf02"] .missionHud[data-pressure^="5"] .pressureBar i,
-body[data-instrument="pf02"] .missionHud[data-pressure^="6"] .pressureBar i{
-  background:#c49a54;
-}
-
-body[data-instrument="pf02"][data-world="seed"] .missionHud{
-  border-color:#2b323a;
-  background:#14191f;
-}
-body[data-instrument="pf02"][data-world="seed"] .missionHud>div{border-color:#2b323a}
-body[data-instrument="pf02"][data-world="seed"] .missionHud span{color:#798490}
-body[data-instrument="pf02"][data-world="seed"] .missionHud b{color:#dce2e8}
-body[data-instrument="pf02"][data-world="seed"] .pressureBar{background:#252c34}
-body[data-instrument="pf02"][data-world="seed"] .missionPressure b{color:#9aa4ae}
-
-@keyframes pf02-investigate{
-  0%{opacity:.78;transform:translateY(2px)}
-  100%{opacity:1;transform:translateY(0)}
-}
-@keyframes pf02-world-mutate{
-  0%{filter:brightness(1);transform:scale(1)}
-  38%{filter:brightness(1.055);transform:scale(1.003)}
-  100%{filter:brightness(1);transform:scale(1)}
-}
-body[data-instrument="pf02"] .worldInvestigate{
-  animation:pf02-investigate .24s ease both;
-}
-body[data-instrument="pf02"] .worldMutate{
-  animation:pf02-world-mutate .42s cubic-bezier(.2,.8,.2,1) both;
-}
-body[data-instrument="pf02"] .generationRow,
-body[data-instrument="pf02"] .networkNode,
-body[data-instrument="pf02"] .energyBars i{
-  transition:background .22s ease,border-color .22s ease,box-shadow .22s ease,height .32s cubic-bezier(.2,.8,.2,1),opacity .22s ease;
-}
-
-/* chapter transfer */
-body[data-instrument="pf02"] #cue{
-  position:relative;
-  overflow:hidden;
-}
-body[data-instrument="pf02"] #cue:before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:
-    radial-gradient(circle at 18% 24%,rgba(92,103,255,.12),transparent 28%),
-    linear-gradient(135deg,#0f1217,#191d23 58%,#111419);
-}
-body[data-instrument="pf02"] #cue .moment{
-  position:relative;
-  z-index:1;
-}
-body[data-instrument="pf02"] #cue .moment:before{
-  content:"CHAPTER TRANSFER";
-  display:block;
-  margin-bottom:26px;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.18em;
-  color:#6e7883;
-}
-body[data-instrument="pf02"] #cue .progress{opacity:.45}
-
-/* world-specific ambient cues */
-body[data-instrument="pf02"][data-world="seed"] .main{
-  background:
-    linear-gradient(rgba(255,255,255,.01),rgba(255,255,255,.01)),
-    repeating-linear-gradient(0deg,transparent 0 31px,rgba(255,255,255,.012) 32px),
-    #11151a!important;
-}
-body[data-instrument="pf02"][data-world="near"] .main{
-  background:
-    radial-gradient(circle at 82% 18%,rgba(92,132,102,.055),transparent 24%),
-    #f7f8f6!important;
-}
-body[data-instrument="pf02"][data-world="far"] .main{
-  background:
-    radial-gradient(circle at 78% 12%,rgba(81,143,99,.08),transparent 28%),
-    #eef3ef!important;
-}
-
-@media(max-width:820px){
-  body[data-instrument="pf02"] .introMissionGrid,
-  body[data-instrument="pf02"] .missionHud{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .introMissionGrid>div,
-  body[data-instrument="pf02"] .missionHud>div{
-    border-right:0;
-    border-bottom:1px solid #e2e5e2;
-  }
-  body[data-instrument="pf02"] .introMissionGrid>div:last-child,
-  body[data-instrument="pf02"] .missionHud>div:last-child{border-bottom:0}
-}
-
-
-/* Live incident clock + ambient ping */
-body[data-instrument="pf02"] .missionPressure em{
-  font-style:normal;
-  color:inherit;
+body[data-instrument="pf02"] .nav,
+body[data-instrument="pf02"] .sceneChrome,
+body[data-instrument="pf02"] .missionHud,
+body[data-instrument="pf02"] .signalStrip,
+body[data-instrument="pf02"] .fieldFeed,
+body[data-instrument="pf02"] .crumb{
+  display:none!important;
 }
 body[data-instrument="pf02"] .main{
   position:relative;
+  min-width:0!important;
+  padding:0!important;
+  color:var(--pf-ink)!important;
 }
-body[data-instrument="pf02"] .systemPingToast{
-  position:absolute;
-  right:24px;
-  top:72px;
-  z-index:20;
-  width:min(330px,calc(100% - 48px));
-  padding:12px 14px;
-  border:1px solid #d9dedb;
-  background:rgba(252,253,251,.96);
-  box-shadow:0 14px 36px rgba(22,28,24,.10);
-  opacity:0;
-  transform:translateY(-8px);
-  pointer-events:none;
-  transition:opacity .2s ease,transform .24s cubic-bezier(.2,.8,.2,1);
-}
-body[data-instrument="pf02"] .systemPingToast.show{
-  opacity:1;
-  transform:translateY(0);
-}
-body[data-instrument="pf02"] .systemPingToast span{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.1em;
-  color:#8c9490;
-}
-body[data-instrument="pf02"] .systemPingToast b{
-  display:block;
-  margin-top:5px;
-  color:#39423c;
-  font-size:11px;
-  line-height:1.45;
-  font-weight:600;
-}
-body[data-instrument="pf02"][data-world="seed"] .systemPingToast{
-  border-color:#303740;
-  background:rgba(20,25,31,.97);
-  box-shadow:0 16px 42px rgba(0,0,0,.26);
-}
-body[data-instrument="pf02"][data-world="seed"] .systemPingToast span{color:#7f8994}
-body[data-instrument="pf02"][data-world="seed"] .systemPingToast b{color:#dce2e8}
-@media(max-width:760px){
-  body[data-instrument="pf02"] .systemPingToast{
-    right:12px;
-    top:58px;
-    width:calc(100% - 24px);
-  }
-}
-
-
-/* Journey 02 legible decision semantics */
-body[data-instrument="pf02"] .actionExplain{
-  max-width:720px;
-  margin:6px 0 0;
-  color:#7f878f;
-  font-size:11px;
-  line-height:1.55;
-}
-body[data-instrument="pf02"] .decisionGrid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:10px;
-}
-body[data-instrument="pf02"] .decisionCard{
-  position:relative;
-  min-height:250px;
-  padding:15px;
-  border:1px solid #d9ddda;
-  background:#fff;
-  text-align:left;
-  cursor:pointer;
-  color:#2e353b;
-  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
-}
-body[data-instrument="pf02"] .decisionCard:hover{
-  transform:translateY(-2px);
-  border-color:#bfc6c1;
-  box-shadow:0 12px 28px rgba(31,37,33,.08);
-}
-body[data-instrument="pf02"] .decisionCardTop{
-  display:flex;
-  align-items:center;
-  gap:9px;
-}
-body[data-instrument="pf02"] .decisionKey{
-  flex:0 0 auto;
-  padding:3px 5px;
-  border:1px solid #d5dad6;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8a9196;
-}
-body[data-instrument="pf02"] .decisionCardTop b{
-  font-size:13px;
-  font-weight:680;
-}
-body[data-instrument="pf02"] .decisionIntent{
-  min-height:54px;
-  margin:12px 0 14px;
-  color:#636b72;
-  font-size:11px;
-  line-height:1.55;
-}
-body[data-instrument="pf02"] .decisionMeta{
-  display:grid;
-  gap:7px;
-  padding-top:12px;
-  border-top:1px solid #e5e8e5;
-}
-body[data-instrument="pf02"] .decisionMeta>div{
-  display:grid;
-  grid-template-columns:76px minmax(0,1fr);
-  gap:10px;
-  align-items:start;
-}
-body[data-instrument="pf02"] .decisionMeta span,
-body[data-instrument="pf02"] .decisionEvidence span{
-  font:8px ui-monospace,monospace;
-  letter-spacing:.06em;
-  color:#92999e;
-}
-body[data-instrument="pf02"] .decisionMeta b{
-  font-size:10px;
-  line-height:1.45;
-  font-weight:590;
-  color:#4b5359;
-}
-body[data-instrument="pf02"] .decisionEvidence{
-  margin-top:12px;
-  padding-top:11px;
-  border-top:1px dashed #e1e4e1;
-}
-body[data-instrument="pf02"] .decisionEvidence small{
-  display:block;
-  margin-top:5px;
-  color:#7d858b;
-  font-size:9px;
-  line-height:1.45;
-}
-body[data-instrument="pf02"] .decisionCard>i{
-  position:absolute;
-  right:14px;
-  bottom:12px;
-  font-style:normal;
-  color:#a0a7ac;
-}
-body[data-instrument="pf02"][data-world="seed"] .decisionCard{
-  border-color:#2b323a;
-  background:#151a20;
-  color:#e7ecf1;
-}
-body[data-instrument="pf02"][data-world="seed"] .decisionCard:hover{
-  background:#1a2027;
-  border-color:#3a444f;
-  box-shadow:0 16px 32px rgba(0,0,0,.2);
-}
-body[data-instrument="pf02"][data-world="seed"] .decisionKey{
-  border-color:#39424c;
-  color:#87929e;
-}
-body[data-instrument="pf02"][data-world="seed"] .decisionIntent,
-body[data-instrument="pf02"][data-world="seed"] .decisionEvidence small{color:#9da7b1}
-body[data-instrument="pf02"][data-world="seed"] .decisionMeta{border-color:#2b323a}
-body[data-instrument="pf02"][data-world="seed"] .decisionMeta span,
-body[data-instrument="pf02"][data-world="seed"] .decisionEvidence span{color:#74808c}
-body[data-instrument="pf02"][data-world="seed"] .decisionMeta b{color:#cdd4db}
-body[data-instrument="pf02"][data-world="seed"] .decisionEvidence{border-color:#2c333b}
-
-/* before -> after relationship */
-body[data-instrument="pf02"] .decisionDiff{
-  border:1px solid #d9ddda;
-  background:#fff;
-  margin-bottom:10px;
-}
-body[data-instrument="pf02"] .diffHead{
-  display:flex;
-  justify-content:space-between;
-  gap:16px;
-  align-items:center;
-  padding:10px 13px;
-  border-bottom:1px solid #e3e6e3;
-}
-body[data-instrument="pf02"] .diffHead span,
-body[data-instrument="pf02"] .diffWhy span{
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#8b9399;
-}
-body[data-instrument="pf02"] .diffHead b{
-  font-size:11px;
-  color:#3d454b;
-}
-body[data-instrument="pf02"] .diffGrid{
-  display:grid;
-  grid-template-columns:1fr 34px 1fr;
-  gap:10px;
-  align-items:stretch;
-  padding:13px;
-}
-body[data-instrument="pf02"] .diffSide{
-  padding:12px;
-  border:1px solid #e1e5e2;
-  background:#fafbfa;
-}
-body[data-instrument="pf02"] .diffSide.after{
-  border-color:#b9cebF;
-  background:#f1f7f2;
-}
-body[data-instrument="pf02"] .diffSide span{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  color:#91989d;
-}
-body[data-instrument="pf02"] .diffSide strong{
-  display:block;
-  margin-top:7px;
-  font-size:24px;
-  letter-spacing:-.03em;
-  color:#2d353a;
-}
-body[data-instrument="pf02"] .diffSide small{
-  display:block;
-  margin-top:4px;
-  color:#727b81;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .diffSide em{
-  display:inline-block;
-  margin-top:9px;
-  padding:3px 6px;
-  border:1px solid #d3d9d4;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.07em;
-  font-style:normal;
-  color:#737c77;
-}
-body[data-instrument="pf02"] .diffSide.after em{
-  border-color:#aac5b1;
-  color:#4e7e5d;
-}
-body[data-instrument="pf02"] .diffArrow{
-  display:grid;
-  place-items:center;
-  color:#8e969c;
-  font-size:18px;
-}
-body[data-instrument="pf02"] .diffWhy{
-  padding:12px 13px 13px;
-  border-top:1px solid #e3e6e3;
-}
-body[data-instrument="pf02"] .diffWhy p{
-  margin:5px 0 0;
-  color:#596168;
-  font-size:10px;
-  line-height:1.5;
-}
-body[data-instrument="pf02"][data-world="seed"] .decisionDiff{
-  border-color:#2b323a;
-  background:#151a20;
-}
-body[data-instrument="pf02"][data-world="seed"] .diffHead,
-body[data-instrument="pf02"][data-world="seed"] .diffWhy{border-color:#2b323a}
-body[data-instrument="pf02"][data-world="seed"] .diffHead b{color:#e1e6eb}
-body[data-instrument="pf02"][data-world="seed"] .diffSide{
-  border-color:#2c333b;
-  background:#11161b;
-}
-body[data-instrument="pf02"][data-world="seed"] .diffSide.after{
-  border-color:#365a46;
-  background:#15221a;
-}
-body[data-instrument="pf02"][data-world="seed"] .diffSide strong{color:#eef2f5}
-body[data-instrument="pf02"][data-world="seed"] .diffSide small,
-body[data-instrument="pf02"][data-world="seed"] .diffWhy p{color:#9ba5af}
-body[data-instrument="pf02"][data-world="seed"] .diffSide em{border-color:#39414a;color:#929ca6}
-body[data-instrument="pf02"][data-world="seed"] .diffSide.after em{border-color:#3f7054;color:#79ac89}
-
-@media(max-width:900px){
-  body[data-instrument="pf02"] .decisionGrid{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .decisionCard{min-height:0}
-  body[data-instrument="pf02"] .diffGrid{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .diffArrow{transform:rotate(90deg)}
-}
-
-
-/* Journey 02 command-deck game layer */
 body[data-instrument="pf02"] .actions{
-  margin-top:24px!important;
-  padding-top:0!important;
-  border-top:0!important;
-}
-body[data-instrument="pf02"] .decisionGrid,
-body[data-instrument="pf02"] .decisionCard,
-body[data-instrument="pf02"] .actionHeader,
-body[data-instrument="pf02"] .actionExplain{
-  display:none!important;
-}
-body[data-instrument="pf02"] .commandDeck{
-  display:grid;
-  grid-template-columns:minmax(240px,.82fr) minmax(360px,1.18fr);
-  min-height:340px;
-  border:1px solid #d9ddda;
-  background:#f7f9f7;
-}
-body[data-instrument="pf02"] .commandRail{
-  border-right:1px solid #dfe3df;
-  background:#eef2ef;
-}
-body[data-instrument="pf02"] .commandLabel{
-  padding:14px 15px 12px;
-  border-bottom:1px solid #dfe3df;
-}
-body[data-instrument="pf02"] .commandLabel span,
-body[data-instrument="pf02"] .commandPreviewHead span,
-body[data-instrument="pf02"] .commandRationale span{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.11em;
-  color:#879089;
-}
-body[data-instrument="pf02"] .commandLabel small{
-  display:block;
-  margin-top:4px;
-  color:#747e77;
-  font-size:9px;
-}
-body[data-instrument="pf02"] .commandChoice{
-  width:100%;
-  min-height:78px;
-  display:grid;
-  grid-template-columns:30px minmax(0,1fr) 18px;
-  gap:10px;
-  align-items:center;
-  padding:10px 13px;
-  border:0;
-  border-bottom:1px solid #dfe3df;
-  background:transparent;
-  color:#344038;
-  text-align:left;
-  cursor:pointer;
-  transition:background .16s ease,box-shadow .16s ease;
-}
-body[data-instrument="pf02"] .commandChoice:last-child{border-bottom:0}
-body[data-instrument="pf02"] .commandChoice:hover{
-  background:#f7faf7;
-}
-body[data-instrument="pf02"] .commandChoice.selected{
-  background:#fff;
-  box-shadow:inset 3px 0 0 #5264ff;
-}
-body[data-instrument="pf02"] .commandNo{
-  color:#89928b;
-  font:9px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .commandText b{
-  display:block;
-  font-size:12px;
-  line-height:1.25;
-  color:#2d3831;
-}
-body[data-instrument="pf02"] .commandText small{
-  display:block;
-  margin-top:4px;
-  color:#7b857e;
-  font-size:9px;
-  line-height:1.45;
-}
-body[data-instrument="pf02"] .commandChoice>i{
-  justify-self:end;
-  color:#9aa29c;
-  font-style:normal;
-  font-size:18px;
-}
-body[data-instrument="pf02"] .commandPreview{
-  position:relative;
-  padding:18px;
-  background:
-    linear-gradient(rgba(255,255,255,.88),rgba(255,255,255,.88)),
-    repeating-linear-gradient(90deg,transparent 0 39px,rgba(66,88,73,.035) 40px);
-}
-body[data-instrument="pf02"] .commandPreviewHead{
-  display:flex;
-  justify-content:space-between;
-  gap:14px;
-  align-items:center;
-  padding-bottom:13px;
-  border-bottom:1px solid #e1e5e2;
-}
-body[data-instrument="pf02"] .commandPreviewHead b{
-  font-size:12px;
-  color:#384139;
-}
-body[data-instrument="pf02"] .commandStateGrid{
-  display:grid;
-  grid-template-columns:1fr 38px 1fr;
-  align-items:center;
-  gap:10px;
-  margin-top:22px;
-}
-body[data-instrument="pf02"] .commandState{
-  min-height:120px;
-  padding:14px;
-  border:1px solid #dfe4e0;
-  background:#fafcfb;
-}
-body[data-instrument="pf02"] .commandState.projected{
-  border-color:#b8c9bc;
-  background:#f0f6f1;
-}
-body[data-instrument="pf02"] .commandState span{
-  font:8px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#909894;
-}
-body[data-instrument="pf02"] .commandState strong{
-  display:block;
-  margin-top:8px;
-  font-size:30px;
-  letter-spacing:-.04em;
-  color:#2d3731;
-}
-body[data-instrument="pf02"] .commandState small{
-  display:block;
-  margin-top:5px;
-  color:#69736d;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .commandState em{
-  display:inline-block;
-  margin-top:12px;
-  padding:3px 6px;
-  border:1px solid #d1d8d2;
-  color:#68736b;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.07em;
-  font-style:normal;
-}
-body[data-instrument="pf02"] .commandState.projected em{
-  border-color:#9eb7a5;
-  color:#4c7858;
-}
-body[data-instrument="pf02"] .commandVector{
-  text-align:center;
-  color:#929b94;
-  font-size:20px;
-}
-body[data-instrument="pf02"] .commandRationale{
-  min-height:74px;
-  margin-top:16px;
-  padding-top:13px;
-  border-top:1px solid #e2e5e3;
-}
-body[data-instrument="pf02"] .commandRationale b{
-  display:block;
-  margin-top:5px;
-  font-size:11px;
-  color:#3a443d;
-}
-body[data-instrument="pf02"] .commandRationale p{
-  margin:5px 0 0;
-  color:#737d76;
-  font-size:10px;
-  line-height:1.5;
-}
-body[data-instrument="pf02"] .executeCommand{
-  position:absolute;
-  right:18px;
-  bottom:18px;
-  min-width:170px;
-  min-height:42px;
-  padding:0 16px;
-  border:0;
-  background:#15191e;
-  color:#fff;
-  font-weight:700;
-  cursor:pointer;
-  transition:transform .15s ease,background .15s ease,opacity .15s ease;
-}
-body[data-instrument="pf02"] .executeCommand:disabled{
-  opacity:.28;
-  cursor:default;
-}
-body[data-instrument="pf02"] .executeCommand:not(:disabled):hover{
-  transform:translateY(-1px);
-  background:#23282f;
+  margin:12px 0 0!important;
+  padding:0!important;
+  border:0!important;
 }
 
-/* live field feed */
-body[data-instrument="pf02"] .fieldFeed{
-  margin-top:14px;
-  border:1px solid #d8ddd9;
-  background:#101419;
-  color:#cfd6dc;
-}
-body[data-instrument="pf02"] .fieldFeedHead{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  min-height:34px;
-  padding:0 11px;
-  border-bottom:1px solid #252b32;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.09em;
-  color:#7f8a95;
-}
-body[data-instrument="pf02"] .fieldFeedHead small{margin-left:auto}
-body[data-instrument="pf02"] .feedPulse{
-  width:6px;height:6px;border-radius:50%;
-  background:#58b179;
-  box-shadow:0 0 0 4px rgba(88,177,121,.08);
-}
-body[data-instrument="pf02"] .fieldFeedBody{
-  padding:7px 0;
-}
-body[data-instrument="pf02"] .fieldFeedBody>div{
-  display:grid;
-  grid-template-columns:34px minmax(0,1fr);
-  gap:8px;
-  padding:7px 11px;
-}
-body[data-instrument="pf02"] .fieldFeedBody span{
-  color:#596570;
-  font:8px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .fieldFeedBody p{
-  margin:0;
-  color:#b7c0c8;
-  font-size:10px;
-  line-height:1.45;
-}
-
-/* Seed becomes an incident-game command room */
-body[data-instrument="pf02"][data-world="seed"] .commandDeck{
-  border-color:#2b323a;
-  background:#101419;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandRail{
-  border-color:#252c34;
-  background:#0d1116;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandLabel,
-body[data-instrument="pf02"][data-world="seed"] .commandChoice{
-  border-color:#252c34;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandChoice{
-  color:#d9dfe5;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandChoice:hover{background:#151b22}
-body[data-instrument="pf02"][data-world="seed"] .commandChoice.selected{
-  background:#171e26;
-  box-shadow:inset 3px 0 0 #6676ff;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandText b{color:#e8edf2}
-body[data-instrument="pf02"][data-world="seed"] .commandText small,
-body[data-instrument="pf02"][data-world="seed"] .commandLabel small{color:#7f8a95}
-body[data-instrument="pf02"][data-world="seed"] .commandPreview{
-  background:
-    linear-gradient(rgba(20,25,31,.96),rgba(20,25,31,.96)),
-    repeating-linear-gradient(90deg,transparent 0 39px,rgba(255,255,255,.025) 40px);
-}
-body[data-instrument="pf02"][data-world="seed"] .commandPreviewHead,
-body[data-instrument="pf02"][data-world="seed"] .commandRationale{
-  border-color:#293039;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandPreviewHead b,
-body[data-instrument="pf02"][data-world="seed"] .commandRationale b{color:#e0e6eb}
-body[data-instrument="pf02"][data-world="seed"] .commandState{
-  border-color:#2c333b;
-  background:#10151a;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandState.projected{
-  border-color:#355b45;
-  background:#142119;
-}
-body[data-instrument="pf02"][data-world="seed"] .commandState strong{color:#f1f4f6}
-body[data-instrument="pf02"][data-world="seed"] .commandState small,
-body[data-instrument="pf02"][data-world="seed"] .commandRationale p{color:#909aa4}
-body[data-instrument="pf02"][data-world="seed"] .commandState em{border-color:#39414a;color:#8c96a0}
-body[data-instrument="pf02"][data-world="seed"] .commandState.projected em{border-color:#3e7253;color:#77ad89}
-body[data-instrument="pf02"][data-world="seed"] .executeCommand{
-  background:#f0f3f5;
-  color:#11151a;
-}
-body[data-instrument="pf02"][data-world="seed"] .executeCommand:not(:disabled):hover{
-  background:#fff;
-}
-
-/* action resolution overlays the same command surface */
-body[data-instrument="pf02"] .decisionDiff{
-  margin-top:0;
-  border-radius:0!important;
-}
-body[data-instrument="pf02"] .outcomePanel{
-  margin-top:8px;
-}
-
-@media(max-width:900px){
-  body[data-instrument="pf02"] .commandDeck{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .commandRail{border-right:0;border-bottom:1px solid #dfe3df}
-  body[data-instrument="pf02"] .commandPreview{min-height:330px}
-}
-
-
-/* Evidence-to-command relationship + execution sequence */
-body[data-instrument="pf02"] .commandRationale{
-  display:grid;
-  grid-template-columns:1fr 1.25fr;
-  gap:14px;
-}
-body[data-instrument="pf02"] .commandTarget,
-body[data-instrument="pf02"] .evidenceLink{
-  min-height:76px;
-}
-body[data-instrument="pf02"] .evidenceLink{
-  padding-left:14px;
-  border-left:1px solid #e0e4e1;
-}
-body[data-instrument="pf02"] .evidenceLink p{
-  margin:6px 0 0;
-  color:#56615a;
-  font-size:10px;
-  line-height:1.55;
-}
-body[data-instrument="pf02"][data-world="seed"] .evidenceLink{
-  border-color:#2d343d;
-}
-body[data-instrument="pf02"][data-world="seed"] .evidenceLink p{
-  color:#a2acb5;
-}
-
-/* Command execution occupies the workspace for a beat */
-body[data-instrument="pf02"] .executionOverlay{
-  position:absolute;
-  inset:0;
-  z-index:50;
-  display:grid;
-  place-items:center;
-  background:rgba(245,248,246,.9);
-  backdrop-filter:blur(5px);
-  opacity:1;
-  transition:opacity .2s ease;
-}
-body[data-instrument="pf02"] .executionOverlay.done{
-  opacity:0;
-}
-body[data-instrument="pf02"] .executionCore{
-  width:min(520px,calc(100% - 48px));
-  padding:26px;
-  border:1px solid #d1d8d3;
-  background:#fbfcfb;
-  box-shadow:0 26px 70px rgba(24,32,27,.13);
-}
-body[data-instrument="pf02"] .executionPulse{
-  display:block;
-  width:10px;height:10px;
-  margin-bottom:18px;
-  border-radius:50%;
-  background:#4d9b68;
-  box-shadow:0 0 0 0 rgba(77,155,104,.24);
-  animation:pf02-exec-pulse 1s infinite;
-}
-@keyframes pf02-exec-pulse{
-  0%{box-shadow:0 0 0 0 rgba(77,155,104,.24)}
-  70%{box-shadow:0 0 0 12px rgba(77,155,104,0)}
-  100%{box-shadow:0 0 0 0 rgba(77,155,104,0)}
-}
-body[data-instrument="pf02"] .executionCore>small{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.13em;
-  color:#849088;
-}
-body[data-instrument="pf02"] .executionCore h3{
-  margin:7px 0 20px!important;
-  font-size:22px!important;
-  letter-spacing:-.03em!important;
-  color:#29322c!important;
-}
-body[data-instrument="pf02"] .executionSteps{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:6px;
-}
-body[data-instrument="pf02"] .executionSteps span{
-  position:relative;
-  padding:10px 8px 9px;
-  border-top:2px solid #dce2dd;
-  color:#9aa29d;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.06em;
-  transition:color .18s ease,border-color .18s ease,background .18s ease;
-}
-body[data-instrument="pf02"] .executionSteps span.on{
-  border-color:#4e9564;
-  color:#4e6f58;
-  background:#eef6f0;
-}
-body[data-instrument="pf02"][data-world="seed"] .executionOverlay{
-  background:rgba(10,14,18,.9);
-}
-body[data-instrument="pf02"][data-world="seed"] .executionCore{
-  border-color:#303842;
-  background:#121820;
-  box-shadow:0 28px 80px rgba(0,0,0,.38);
-}
-body[data-instrument="pf02"][data-world="seed"] .executionCore>small{color:#798490}
-body[data-instrument="pf02"][data-world="seed"] .executionCore h3{color:#eef2f5!important}
-body[data-instrument="pf02"][data-world="seed"] .executionSteps span{
-  border-color:#2d343c;
-  color:#68737e;
-}
-body[data-instrument="pf02"][data-world="seed"] .executionSteps span.on{
-  border-color:#60a978;
-  color:#9fd0af;
-  background:#15231a;
-}
-
-/* de-emphasize explanatory chrome while a command is armed */
-body[data-instrument="pf02"] .commandPreview.armed{
-  box-shadow:inset 0 0 0 1px rgba(82,100,255,.08);
-}
-body[data-instrument="pf02"] .commandPreview.armed .commandState.projected{
-  animation:pf02-projected-in .22s ease both;
-}
-@keyframes pf02-projected-in{
-  from{opacity:.45;transform:translateX(-5px)}
-  to{opacity:1;transform:translateX(0)}
-}
-@media(max-width:900px){
-  body[data-instrument="pf02"] .commandRationale{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .evidenceLink{
-    padding-left:0;
-    padding-top:12px;
-    border-left:0;
-    border-top:1px solid #e0e4e1;
-  }
-}
-
-
-/* Probe -> Artifact forge */
-body[data-instrument="pf02"] .artifactForge{
-  margin-top:18px;
-  border:1px solid #d7ddd8;
-  background:#f7faf7;
-}
-body[data-instrument="pf02"] .artifactHead{
-  display:flex;
-  justify-content:space-between;
-  gap:18px;
-  align-items:flex-start;
-  padding:18px 20px 16px;
-  border-bottom:1px solid #dfe4e0;
-}
-body[data-instrument="pf02"] .artifactHead span,
-body[data-instrument="pf02"] .artifactActions>span{
-  display:block;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.12em;
-  color:#7f8982;
-}
-body[data-instrument="pf02"] .artifactHead h2{
-  margin:5px 0 0!important;
-  font-size:22px!important;
-  line-height:1.15!important;
-  letter-spacing:-.03em!important;
-  color:#2d3831!important;
-}
-body[data-instrument="pf02"] .artifactHead>b{
-  padding:4px 7px;
-  border:1px solid #aac6b1;
-  color:#4d7d5b;
-  background:#edf7ef;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-}
-body[data-instrument="pf02"] .artifactPipeline{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1fr) 24px minmax(0,1fr);
-  align-items:stretch;
-  gap:6px;
-  padding:14px;
-  border-bottom:1px solid #dfe4e0;
-  background:#eef3ef;
-}
-body[data-instrument="pf02"] .artifactPipeline>div{
-  min-height:104px;
-  padding:12px;
-  border:1px solid #d8dfda;
-  background:#fbfcfb;
-}
-body[data-instrument="pf02"] .artifactPipeline>div>span{
-  display:block;
-  color:#8f9891;
-  font:8px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .artifactPipeline>div>b{
-  display:block;
-  margin-top:8px;
-  color:#354139;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .artifactPipeline>div>small{
-  display:block;
-  margin-top:7px;
-  color:#737e76;
-  font-size:9px;
-  line-height:1.45;
-}
-body[data-instrument="pf02"] .artifactPipeline>i{
-  align-self:center;
-  justify-self:center;
-  color:#8d978f;
-  font-style:normal;
-}
-body[data-instrument="pf02"] .artifactWorkbench{
-  display:grid;
-  grid-template-columns:1.45fr .75fr;
-  min-height:360px;
-}
-body[data-instrument="pf02"] .artifactPreview{
-  min-width:0;
-  border-right:1px solid #dfe4e0;
-  background:#11161b;
-}
-body[data-instrument="pf02"] .artifactTabs{
-  display:flex;
-  min-height:38px;
-  border-bottom:1px solid #283039;
-}
-body[data-instrument="pf02"] .artifactTab{
-  padding:0 13px;
-  border:0;
-  border-right:1px solid #283039;
-  background:transparent;
-  color:#6f7b86;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .artifactTab.active{
-  background:#192028;
-  color:#dce3e9;
-  box-shadow:inset 0 -2px 0 #6c7dff;
-}
-body[data-instrument="pf02"] .artifactCode{
-  margin:0;
-  min-height:320px;
-  max-height:430px;
-  overflow:auto;
-  padding:18px;
-  color:#b7c3cd;
-  background:#11161b;
-  font:10px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;
-  white-space:pre-wrap;
-}
-body[data-instrument="pf02"] .artifactActions{
-  position:relative;
-  padding:22px 20px;
-  background:#fbfcfb;
-}
-body[data-instrument="pf02"] .artifactActions p{
-  margin:8px 0 20px;
-  color:#5c675f;
-  font-size:11px;
-  line-height:1.6;
-}
-body[data-instrument="pf02"] .generateArtifact{
-  width:100%;
-  min-height:44px;
-  margin-top:8px;
-  border:0;
-  background:#171c21;
-  color:#fff;
-  font-weight:700;
-  cursor:pointer;
-  transition:transform .15s ease,background .15s ease;
-}
-body[data-instrument="pf02"] .generateArtifact:hover{
-  transform:translateY(-1px);
-  background:#262d34;
-}
-body[data-instrument="pf02"] .generateArtifact.secondary{
-  border:1px solid #d5dbd6;
-  background:#f5f8f5;
-  color:#354039;
-}
-body[data-instrument="pf02"] .generateArtifact.secondary:hover{
-  background:#fff;
-}
-body[data-instrument="pf02"] .artifactStatus{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  margin-top:18px;
-  padding-top:14px;
-  border-top:1px solid #e1e5e2;
-}
-body[data-instrument="pf02"] .artifactStatus span{
-  width:7px;height:7px;border-radius:50%;
-  background:#9aa29c;
-}
-body[data-instrument="pf02"] .artifactStatus b{
-  color:#8a938c;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-}
-body[data-instrument="pf02"] .artifactForge.generated .artifactStatus span{
-  background:#4e9b66;
-  box-shadow:0 0 0 4px rgba(78,155,102,.08);
-}
-body[data-instrument="pf02"] .artifactForge.generated .artifactStatus b{
-  color:#4e7b5a;
-}
-@media(max-width:960px){
-  body[data-instrument="pf02"] .artifactPipeline{
-    grid-template-columns:1fr;
-  }
-  body[data-instrument="pf02"] .artifactPipeline>i{
-    transform:rotate(90deg);
-  }
-  body[data-instrument="pf02"] .artifactWorkbench{
-    grid-template-columns:1fr;
-  }
-  body[data-instrument="pf02"] .artifactPreview{
-    border-right:0;
-    border-bottom:1px solid #dfe4e0;
-  }
-}
-
-
-/* Diegetic scene layer — enter the world instead of reading a dashboard */
+/* Scene frame */
 body[data-instrument="pf02"] .diegeticScene{
-  position:relative;
-  min-height:560px;
+  width:100%;
   overflow:hidden;
-  border:1px solid #d9dedb;
+  border:1px solid var(--pf-line);
+  border-radius:14px;
+  background:var(--pf-paper);
+  box-shadow:0 18px 50px rgba(28,31,34,.07);
 }
 body[data-instrument="pf02"] .sceneTopline,
 body[data-instrument="pf02"] .nightHeader{
+  min-height:44px;
   display:flex;
   align-items:center;
-  gap:12px;
-  min-height:44px;
-  padding:0 15px;
-  border-bottom:1px solid rgba(255,255,255,.08);
-  font:9px ui-monospace,monospace;
-  letter-spacing:.08em;
+  gap:14px;
+  padding:0 16px;
+  border-bottom:1px solid var(--pf-line);
+  background:#f7f5f0;
+}
+body[data-instrument="pf02"] .sceneTopline span,
+body[data-instrument="pf02"] .nightHeader span{
+  color:#858a8e;
+  font:10px ui-monospace,SFMono-Regular,Consolas,monospace;
 }
 body[data-instrument="pf02"] .sceneTopline b,
-body[data-instrument="pf02"] .nightHeader b{margin-left:auto}
-
-/* Home scene */
-body[data-instrument="pf02"] .homeScene{
-  background:
-    radial-gradient(circle at 76% 18%,rgba(86,111,255,.08),transparent 24%),
-    linear-gradient(180deg,#0e1217,#151b21);
-  color:#e9edf2;
-  border-color:#2b323a;
+body[data-instrument="pf02"] .nightHeader b{
+  color:#343a3e;
+  font-size:11px;
 }
+body[data-instrument="pf02"] .sceneTopline small,
+body[data-instrument="pf02"] .nightHeader small{
+  margin-left:auto;
+  color:#8e9396;
+  font-size:9px;
+}
+
+/* Act 1 — shared home */
+body[data-instrument="pf02"][data-world="seed"]{
+  background:#111417!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .top select{
+  border-color:#2c3339!important;
+  background:#181d21!important;
+  color:#9da6ad!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .diegeticScene{
+  border-color:#30363c;
+  background:#15191d;
+  box-shadow:0 24px 60px rgba(0,0,0,.26);
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline{
+  border-color:#30363c;
+  background:#191e23;
+}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline span{color:#808a92}
+body[data-instrument="pf02"][data-world="seed"] .sceneTopline b{color:#e7ecef}
+
 body[data-instrument="pf02"] .homeStage{
   position:relative;
-  min-height:440px;
-  padding:32px;
+  height:520px;
+  background:#11161a;
 }
 body[data-instrument="pf02"] .roomTile{
   position:absolute;
   z-index:3;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
-  gap:6px;
-  min-height:150px;
+  display:block;
   padding:16px;
-  border:1px solid #303842;
-  background:#151b21;
-  color:#dfe5eb;
+  border:1px solid #303840;
+  border-radius:10px;
+  background:#191f24;
+  color:#e7ecef;
   text-align:left;
   cursor:pointer;
-  transition:transform .18s ease,border-color .18s ease,background .18s ease;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease;
 }
 body[data-instrument="pf02"] .roomTile:hover{
-  transform:translateY(-3px);
-  border-color:#586674;
-  background:#1a222a;
+  transform:translateY(-2px);
+  border-color:#4a555f;
+  background:#1d242a;
 }
+body[data-instrument="pf02"] .roomTile.living{left:6%;bottom:12%;width:27%;height:27%}
+body[data-instrument="pf02"] .roomTile.kitchen{left:38%;bottom:8%;width:28%;height:31%}
+body[data-instrument="pf02"] .roomTile.bedroom{right:5%;bottom:12%;width:24%;height:27%}
 body[data-instrument="pf02"] .roomTile>span{
+  display:block;
+  color:#8b969f;
   font:9px ui-monospace,monospace;
-  letter-spacing:.1em;
-  color:#8995a1;
+  letter-spacing:.08em;
 }
-body[data-instrument="pf02"] .roomTile>small{font-size:11px;color:#c2cad2}
-body[data-instrument="pf02"] .roomTile.living{left:5%;top:24%;width:27%}
-body[data-instrument="pf02"] .roomTile.kitchen{left:37%;top:40%;width:28%}
-body[data-instrument="pf02"] .roomTile.bedroom{right:5%;top:26%;width:25%}
+body[data-instrument="pf02"] .roomTile>small{
+  display:block;
+  margin-top:8px;
+  color:#c0c8ce;
+  font-size:10px;
+  line-height:1.45;
+}
 body[data-instrument="pf02"] .roomTile.hot{
-  border-color:#7f4f3d;
-  box-shadow:inset 0 0 0 1px rgba(213,112,73,.12);
+  border-color:#6c4439;
+  background:#211916;
 }
 body[data-instrument="pf02"] .windowGauge{
   display:block;
   height:5px;
-  margin-top:8px;
-  background:#252d35;
+  margin-top:18px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#2b3035;
 }
 body[data-instrument="pf02"] .windowGauge i{
-  display:block;height:100%;background:#6fa47e;transition:width .4s ease;
+  display:block;
+  height:100%;
+  background:#db8063;
 }
 body[data-instrument="pf02"] .lockMark{
-  position:absolute;right:14px;top:12px;
-  color:#7e8994;font-style:normal
+  position:absolute;
+  right:14px;
+  top:14px;
+  color:#7f8991;
+  font-style:normal;
 }
-body[data-instrument="pf02"] .rainSensor,
-body[data-instrument="pf02"] .agentNode{
+body[data-instrument="pf02"] .rainSensor{
   position:absolute;
   z-index:4;
+  top:28px;
+  left:50%;
+  transform:translateX(-50%);
   display:flex;
   align-items:center;
   gap:8px;
-  padding:8px 10px;
+  padding:7px 10px;
   border:1px solid #33404a;
-  background:#10151a;
+  border-radius:999px;
+  background:#172028;
+}
+body[data-instrument="pf02"] .rainSensor span{
+  width:7px;height:7px;border-radius:50%;background:#5ea5ce;
+}
+body[data-instrument="pf02"] .rainSensor b{
+  color:#a9c7d8;
   font:8px ui-monospace,monospace;
-  color:#9aa5af;
 }
-body[data-instrument="pf02"] .rainSensor{left:43%;top:8%}
-body[data-instrument="pf02"] .agentNode{left:43%;top:26%}
-body[data-instrument="pf02"] .rainSensor>span{
-  width:7px;height:7px;border-radius:50%;background:#5a8cff;
-  box-shadow:0 0 0 5px rgba(90,140,255,.08)
+body[data-instrument="pf02"] .agentNode{
+  position:absolute;
+  z-index:4;
+  left:50%;
+  top:42%;
+  transform:translate(-50%,-50%);
+  width:180px;
+  padding:13px 14px;
+  border:1px solid #3a4450;
+  border-radius:10px;
+  background:#1b2228;
+  text-align:center;
 }
-body[data-instrument="pf02"] .agentNode>span{
-  display:grid;place-items:center;width:22px;height:22px;border:1px solid #485563;border-radius:50%;
+body[data-instrument="pf02"] .agentNode span{
+  display:grid;
+  place-items:center;
+  width:30px;height:30px;
+  margin:0 auto 8px;
+  border-radius:50%;
+  background:#27305a;
+  color:#c2caff;
+  font:9px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .agentNode b{
+  color:#d6dde2;
+  font-size:10px;
 }
 body[data-instrument="pf02"] .voiceBubble{
   position:absolute;
   z-index:5;
   max-width:210px;
   padding:9px 11px;
-  border:1px solid #39424b;
-  background:#1a2027;
-  color:#cbd3da;
+  border-radius:10px;
+  background:#252c32;
+  color:#d7dde1;
   font-size:10px;
   line-height:1.45;
-  box-shadow:0 10px 24px rgba(0,0,0,.18);
+  box-shadow:0 8px 22px rgba(0,0,0,.18);
 }
-body[data-instrument="pf02"] .voiceBubble.you{left:7%;bottom:7%}
-body[data-instrument="pf02"] .voiceBubble.mate{right:7%;bottom:10%}
-body[data-instrument="pf02"] .voiceBubble.guest{right:4%;top:10%;opacity:.6}
+body[data-instrument="pf02"] .voiceBubble.you{left:8%;top:18%}
+body[data-instrument="pf02"] .voiceBubble.mate{right:8%;top:19%}
+body[data-instrument="pf02"] .voiceBubble.guest{right:12%;bottom:3%;opacity:.62}
 body[data-instrument="pf02"] .homeLinks{
-  position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none
+  position:absolute;
+  z-index:1;
+  inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
 }
 body[data-instrument="pf02"] .homeLinks path{
-  fill:none;stroke:#35404a;stroke-width:2;stroke-dasharray:4 6;
+  fill:none;
+  stroke:#313a42;
+  stroke-width:1.4;
 }
 body[data-instrument="pf02"] .scenePrompt{
-  padding:14px 16px 16px;
-  border-top:1px solid #283039;
-  background:#11161b;
+  padding:14px 16px;
+  border-top:1px solid #2d343a;
+  background:#151a1f;
 }
-body[data-instrument="pf02"] .scenePrompt span{
-  font:8px ui-monospace,monospace;letter-spacing:.1em;color:#76818c
-}
+body[data-instrument="pf02"] .scenePrompt span{display:none}
 body[data-instrument="pf02"] .scenePrompt p{
-  margin:6px 0 0;color:#c6ced5;font-size:11px;line-height:1.5
+  margin:0;
+  color:#aeb7bd;
+  font-size:11px;
+  line-height:1.55;
 }
 
-/* Delivery phone scene */
-body[data-instrument="pf02"] .deliveryScene{
+/* Act 2 — delivery phone + map */
+body[data-instrument="pf02"][data-world="near"] .diegeticScene{
   display:grid;
-  grid-template-columns:minmax(330px,.8fr) minmax(380px,1.2fr);
-  gap:22px;
-  padding:28px;
-  background:#eef2ef;
+  grid-template-columns:minmax(320px,.9fr) minmax(360px,1.1fr);
+  gap:0;
+  background:#f8f5ee;
 }
 body[data-instrument="pf02"] .phoneShell{
-  align-self:start;
-  max-width:390px;
-  margin:auto;
-  width:100%;
-  border:8px solid #1a1d21;
-  border-radius:34px;
-  overflow:hidden;
-  background:#fbfcfb;
-  box-shadow:0 24px 55px rgba(28,34,30,.14);
+  border-right:1px solid #ddd7cc;
+  background:#fffdf9;
 }
 body[data-instrument="pf02"] .phoneHead{
-  display:flex;align-items:center;gap:8px;min-height:46px;padding:0 14px;
-  border-bottom:1px solid #e4e8e5;font-size:9px
-}
-body[data-instrument="pf02"] .phoneHead b{margin:auto;font-size:10px}
-body[data-instrument="pf02"] .phoneHead i{font-style:normal;color:#909791;font-size:7px}
-body[data-instrument="pf02"] .orderHero{
-  padding:20px 16px 14px;
-  border-bottom:1px solid #e5e9e6;
-}
-body[data-instrument="pf02"] .orderHero span{display:block;font:8px ui-monospace,monospace;color:#89918b;letter-spacing:.08em}
-body[data-instrument="pf02"] .orderHero strong{font-size:42px;letter-spacing:-.05em;color:#27322b}
-body[data-instrument="pf02"] .orderHero small{margin-left:7px;color:#7b847e}
-body[data-instrument="pf02"] .orderLive{
-  width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;
-  align-items:center;padding:14px 15px;border:0;border-bottom:1px solid #e6e9e6;
-  background:#fff;text-align:left;cursor:pointer
-}
-body[data-instrument="pf02"] .orderLive:hover{background:#f5f8f5}
-body[data-instrument="pf02"] .orderLive>span{font-size:20px}
-body[data-instrument="pf02"] .orderLive b{display:block;font-size:11px;color:#313b34}
-body[data-instrument="pf02"] .orderLive small{display:block;margin-top:2px;color:#858d87;font-size:9px}
-body[data-instrument="pf02"] .orderLive strong{color:#b66a48;font-size:10px}
-body[data-instrument="pf02"] .orderLive.ok strong{color:#548262}
-body[data-instrument="pf02"] .chatIncoming{
-  margin:14px;padding:11px 12px;border-radius:14px;background:#e9f2eb
-}
-body[data-instrument="pf02"] .chatIncoming span{display:block;font:8px ui-monospace,monospace;color:#7d887f}
-body[data-instrument="pf02"] .chatIncoming b{display:block;margin-top:4px;font-size:10px;color:#425148}
-body[data-instrument="pf02"] .deliveryMapLive{
-  position:relative;min-height:500px;border:1px solid #d5ddd7;
-  background:
-    linear-gradient(90deg,rgba(79,107,88,.05) 1px,transparent 1px),
-    linear-gradient(rgba(79,107,88,.05) 1px,transparent 1px),
-    #f8faf8;
-  background-size:40px 40px;
-  overflow:hidden
-}
-body[data-instrument="pf02"] .mapRoad{
-  position:absolute;height:2px;background:#c6d1c9;transform-origin:left center
-}
-body[data-instrument="pf02"] .mapRoad.r1{left:11%;top:62%;width:68%;transform:rotate(-18deg)}
-body[data-instrument="pf02"] .mapRoad.r2{left:25%;top:28%;width:58%;transform:rotate(36deg)}
-body[data-instrument="pf02"] .mapRoad.r3{left:18%;top:77%;width:66%;transform:rotate(-48deg)}
-body[data-instrument="pf02"] .pin{
-  position:absolute;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;
-  background:#1f2923;color:#fff;font-size:10px;box-shadow:0 8px 20px rgba(31,41,35,.16)
-}
-body[data-instrument="pf02"] .pin.store{left:18%;top:18%}
-body[data-instrument="pf02"] .pin.home{right:16%;bottom:16%;background:#476c53}
-body[data-instrument="pf02"] .pin.rider{left:48%;top:50%;background:#d58a43}
-body[data-instrument="pf02"] .rainPatch{
-  position:absolute;left:5%;bottom:4%;width:42%;height:35%;
-  background:radial-gradient(ellipse at center,rgba(71,120,173,.18),transparent 65%);
-  filter:blur(8px)
-}
-body[data-instrument="pf02"] .deliveryMapLive p{
-  position:absolute;left:18px;right:18px;bottom:18px;margin:0;padding:10px 12px;
-  background:rgba(255,255,255,.88);border:1px solid #dae0db;color:#5a665e;font-size:10px;line-height:1.5
-}
-
-/* Night scene */
-body[data-instrument="pf02"] .nightScene{
-  padding:0 24px 24px;
-  background:linear-gradient(180deg,#111820,#17241c);
-  color:#e6ece8;border-color:#28382e
-}
-body[data-instrument="pf02"] .nightHeader{padding:0;border-color:#2b3930;color:#8f9d94}
-body[data-instrument="pf02"] .nightHeader b{margin-left:0;color:#d8e0da}
-body[data-instrument="pf02"] .nightHeader small{margin-left:auto}
-body[data-instrument="pf02"] .nightRooms{
-  display:grid;grid-template-columns:1fr 1.15fr .8fr;gap:12px;margin-top:26px
-}
-body[data-instrument="pf02"] .nightRoom{
-  position:relative;min-height:220px;padding:16px;border:1px solid #304039;
-  background:#141e18;color:#dce5df;text-align:left;cursor:pointer
-}
-body[data-instrument="pf02"] .nightRoom:hover{border-color:#4a6a56;background:#18251d}
-body[data-instrument="pf02"] .nightRoom.guestRoom{
-  border-color:#66764e;
-  box-shadow:inset 0 0 45px rgba(126,143,77,.07)
-}
-body[data-instrument="pf02"] .nightRoom span{
-  display:block;font:8px ui-monospace,monospace;letter-spacing:.1em;color:#829188
-}
-body[data-instrument="pf02"] .nightRoom b{
-  display:block;margin-top:35px;font-size:28px;letter-spacing:-.04em;color:#eef3ef
-}
-body[data-instrument="pf02"] .nightRoom small{
-  display:block;margin-top:7px;max-width:180px;color:#9aaa9f;font-size:10px;line-height:1.45
-}
-body[data-instrument="pf02"] .nightRoom i{
-  position:absolute;right:14px;bottom:14px;font-style:normal;color:#5f7165
-}
-body[data-instrument="pf02"] .nightConversation{
-  margin-top:14px;border-top:1px solid #2d3b32
-}
-body[data-instrument="pf02"] .nightConversation>div{
-  display:grid;grid-template-columns:64px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #28362e
-}
-body[data-instrument="pf02"] .nightConversation span{font:8px ui-monospace,monospace;color:#68796e}
-body[data-instrument="pf02"] .nightConversation p{margin:0;color:#b6c1b9;font-size:10px}
-
-/* scene object inspection */
-body[data-instrument="pf02"] .sceneInspect{
-  margin-top:10px;padding:12px 14px;border:1px solid #303942;background:#151b21;color:#dfe5ea
-}
-body[data-instrument="pf02"] .sceneInspect span{font:8px ui-monospace,monospace;color:#7e8a95;letter-spacing:.08em}
-body[data-instrument="pf02"] .sceneInspect b{display:block;margin-top:4px;font-size:12px}
-body[data-instrument="pf02"] .sceneInspect p{margin:4px 0 0;color:#9aa5af;font-size:10px}
-
-@media(max-width:900px){
-  body[data-instrument="pf02"] .deliveryScene{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .deliveryMapLive{min-height:320px}
-  body[data-instrument="pf02"] .nightRooms{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .roomTile{position:relative!important;left:auto!important;right:auto!important;top:auto!important;width:100%!important;margin:8px 0}
-  body[data-instrument="pf02"] .homeStage{padding:18px;min-height:0}
-  body[data-instrument="pf02"] .rainSensor,
-  body[data-instrument="pf02"] .agentNode,
-  body[data-instrument="pf02"] .voiceBubble{position:relative;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;margin:8px 0}
-  body[data-instrument="pf02"] .homeLinks{display:none}
-}
-
-
-/* Diegetic scene-first world */
-body[data-instrument="pf02"] .diegeticScene{
-  margin:18px 0 14px;
-  border:1px solid #d8ddd9;
-  overflow:hidden;
-}
-body[data-instrument="pf02"] .sceneTopline{
+  min-height:46px;
   display:flex;
   align-items:center;
-  gap:14px;
-  min-height:42px;
-  padding:0 14px;
-  border-bottom:1px solid #dfe4e0;
-  background:#f7f9f7;
-  font-size:10px;
+  gap:12px;
+  padding:0 15px;
+  border-bottom:1px solid #e7e1d7;
 }
-body[data-instrument="pf02"] .sceneTopline>span{
+body[data-instrument="pf02"] .phoneHead span{
+  color:#8e847a;
   font:10px ui-monospace,monospace;
-  color:#657069;
 }
-body[data-instrument="pf02"] .sceneTopline>b{
+body[data-instrument="pf02"] .phoneHead b{
+  color:#443d37;
   font-size:11px;
-  color:#38423b;
 }
-body[data-instrument="pf02"] .sceneTopline>small{
+body[data-instrument="pf02"] .phoneHead i{
   margin-left:auto;
-  color:#8b938e;
-  font:9px ui-monospace,monospace;
+  color:#b3aaa0;
+  font-size:8px;
+  font-style:normal;
+  letter-spacing:.18em;
 }
-
-/* Act 1: home as a place, not a dashboard */
-body[data-instrument="pf02"] .homeScene{
-  border-color:#2b323a;
-  background:#0f1318;
+body[data-instrument="pf02"] .orderHero{
+  padding:18px 16px 15px;
+  border-bottom:1px solid #ece5dc;
 }
-body[data-instrument="pf02"] .homeScene .sceneTopline{
-  border-color:#2b323a;
-  background:#14191f;
-}
-body[data-instrument="pf02"] .homeScene .sceneTopline>span{color:#87929d}
-body[data-instrument="pf02"] .homeScene .sceneTopline>b{color:#e2e8ed}
-body[data-instrument="pf02"] .homeScene .sceneTopline>small{color:#8d98a3}
-body[data-instrument="pf02"] .homePlan{
-  display:grid;
-  grid-template-columns:1.25fr 1fr;
-  grid-template-rows:168px 142px;
-  gap:1px;
-  background:#293039;
-}
-body[data-instrument="pf02"] .roomTile{
-  position:relative;
-  border:0;
-  background:#151b22;
-  color:#e7edf2;
-  text-align:left;
-  padding:18px;
-  cursor:pointer;
-  overflow:hidden;
-  transition:background .18s ease,box-shadow .18s ease;
-}
-body[data-instrument="pf02"] .roomTile:hover{background:#1b222a}
-body[data-instrument="pf02"] .roomTile.inspected{box-shadow:inset 0 0 0 1px #6878ff}
-body[data-instrument="pf02"] .roomTile.hot{
-  background:
-    radial-gradient(circle at 84% 18%,rgba(229,108,70,.18),transparent 25%),
-    #171c22;
-}
-body[data-instrument="pf02"] .roomTile>span{
+body[data-instrument="pf02"] .orderHero span{
   display:block;
-  color:#89949f;
-  font:9px ui-monospace,monospace;
+  color:#9a9087;
+  font:8px ui-monospace,monospace;
   letter-spacing:.08em;
 }
-body[data-instrument="pf02"] .roomTile>strong{
-  display:block;
-  margin-top:12px;
-  color:#f5f7f9;
+body[data-instrument="pf02"] .orderHero strong{
+  display:inline-block;
+  margin-top:5px;
+  color:#2f2a26;
   font-size:34px;
   letter-spacing:-.04em;
 }
-body[data-instrument="pf02"] .roomTile>small{
-  display:block;
-  margin-top:4px;
-  color:#8d98a3;
+body[data-instrument="pf02"] .orderHero small{
+  margin-left:7px;
+  color:#7f756c;
   font-size:10px;
 }
-body[data-instrument="pf02"] .roomTile.kitchen:after{
-  content:"";
-  position:absolute;
-  right:18px;
-  top:54px;
-  width:44px;
-  height:72px;
-  border:1px solid #49525d;
-  background:linear-gradient(90deg,transparent 48%,#49525d 49% 51%,transparent 52%);
-}
-body[data-instrument="pf02"] .personDot{
-  position:absolute;
-  right:15px;
-  bottom:14px;
-  min-width:34px;
-  padding:5px 7px;
-  border-radius:999px;
-  background:#252d36;
-  color:#b9c2cb;
-  font:8px ui-monospace,monospace;
-  font-style:normal;
-  text-align:center;
-}
-body[data-instrument="pf02"] .personDot.you{background:#29345f;color:#bec8ff}
-body[data-instrument="pf02"] .personDot.mate{background:#4e332b;color:#efb9a8}
-body[data-instrument="pf02"] .personDot.guestP{background:#264237;color:#a8d8bb}
-body[data-instrument="pf02"] .voiceThread,
-body[data-instrument="pf02"] .nightConversation{
-  background:#10151a;
-  border-top:1px solid #293039;
-}
-body[data-instrument="pf02"] .voiceThread>div,
-body[data-instrument="pf02"] .nightConversation>div{
+body[data-instrument="pf02"] .orderLive{
+  width:100%;
+  min-height:66px;
   display:grid;
-  grid-template-columns:48px 82px minmax(0,1fr);
+  grid-template-columns:34px minmax(0,1fr) auto;
   gap:10px;
-  padding:10px 14px;
-  border-bottom:1px solid #252c33;
-  align-items:start;
-}
-body[data-instrument="pf02"] .voiceThread>div:last-child,
-body[data-instrument="pf02"] .nightConversation>div:last-child{border-bottom:0}
-body[data-instrument="pf02"] .voiceThread time,
-body[data-instrument="pf02"] .nightConversation time{
-  color:#59636e;
-  font:8px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .voiceThread b,
-body[data-instrument="pf02"] .nightConversation b{
-  color:#9da8b2;
-  font-size:9px;
-}
-body[data-instrument="pf02"] .voiceThread p,
-body[data-instrument="pf02"] .nightConversation p{
-  margin:0;
-  color:#c9d1d8;
-  font-size:11px;
-  line-height:1.45;
-}
-body[data-instrument="pf02"] .voiceThread .agentLine,
-body[data-instrument="pf02"] .nightConversation .agentLine{background:#121d18}
-body[data-instrument="pf02"] .voiceThread .conflictLine{background:#211817}
-
-/* Act 2: the dinner table, not logistics SaaS */
-body[data-instrument="pf02"] .deliveryScene{
-  background:#f6f3ee;
-  border-color:#ddd5ca;
-}
-body[data-instrument="pf02"] .deliveryScene .sceneTopline{
-  background:#eee8df;
-  border-color:#ded5ca;
-}
-body[data-instrument="pf02"] .deliveryTable{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:1px;
-  background:#d8d0c4;
-  padding:1px;
-}
-body[data-instrument="pf02"] .orderCard{
-  position:relative;
-  min-height:174px;
-  padding:16px;
+  align-items:center;
+  padding:10px 15px;
   border:0;
+  border-bottom:1px solid #ece5dc;
   background:#fffdf9;
   text-align:left;
   cursor:pointer;
 }
-body[data-instrument="pf02"] .orderCard:hover{background:#fff}
-body[data-instrument="pf02"] .orderCard.inspected{box-shadow:inset 0 0 0 2px #556aff}
-body[data-instrument="pf02"] .orderCard>span{
-  color:#aaa095;
-  font:9px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .orderCard>b{
+body[data-instrument="pf02"] .orderLive:hover{background:#faf6ef}
+body[data-instrument="pf02"] .orderLive>span{font-size:17px}
+body[data-instrument="pf02"] .orderLive b{
   display:block;
-  margin-top:14px;
-  color:#372f29;
-  font-size:14px;
+  color:#443d37;
+  font-size:11px;
 }
-body[data-instrument="pf02"] .orderCard>strong{
+body[data-instrument="pf02"] .orderLive small{
   display:block;
-  margin-top:10px;
-  color:#2d2925;
-  font-size:30px;
-  letter-spacing:-.04em;
+  margin-top:2px;
+  color:#8f857c;
+  font-size:9px;
 }
-body[data-instrument="pf02"] .orderCard>small{
+body[data-instrument="pf02"] .orderLive>strong{
+  color:#a25f4d;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .orderLive.ok>strong{color:#5c8b67}
+body[data-instrument="pf02"] .chatIncoming{
+  margin:14px;
+  padding:12px 13px;
+  border-radius:10px;
+  background:#f0ece5;
+}
+body[data-instrument="pf02"] .chatIncoming span{
   display:block;
-  margin-top:6px;
-  color:#81776d;
+  color:#989086;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .chatIncoming b{
+  display:block;
+  margin-top:5px;
+  color:#514941;
   font-size:10px;
 }
-body[data-instrument="pf02"] .orderCard.critical:after,
-body[data-instrument="pf02"] .orderCard.warning:after,
-body[data-instrument="pf02"] .orderCard.good:after{
-  content:"";
+body[data-instrument="pf02"] .deliveryMapLive{
+  position:relative;
+  min-height:430px;
+  overflow:hidden;
+  background:#e8e5dd;
+}
+body[data-instrument="pf02"] .mapRoad{
   position:absolute;
-  right:14px;
-  top:14px;
-  width:8px;height:8px;border-radius:50%;
+  height:8px;
+  border-radius:999px;
+  background:#f6f4ef;
+  transform-origin:left center;
 }
-body[data-instrument="pf02"] .orderCard.critical:after{background:#ca654d}
-body[data-instrument="pf02"] .orderCard.warning:after{background:#c79a48}
-body[data-instrument="pf02"] .orderCard.good:after{background:#5c9b6c}
-body[data-instrument="pf02"] .messageThread{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:1px;
-  background:#ddd5cb;
-}
-body[data-instrument="pf02"] .messageThread>div{
-  display:grid;
-  grid-template-columns:38px 1fr;
-  gap:10px;
-  padding:14px;
-  background:#faf7f2;
-}
-body[data-instrument="pf02"] .avatar{
+body[data-instrument="pf02"] .mapRoad.r1{left:9%;top:31%;width:76%;transform:rotate(14deg)}
+body[data-instrument="pf02"] .mapRoad.r2{left:15%;top:65%;width:68%;transform:rotate(-17deg)}
+body[data-instrument="pf02"] .mapRoad.r3{left:41%;top:12%;width:48%;transform:rotate(63deg)}
+body[data-instrument="pf02"] .pin{
+  position:absolute;
+  z-index:3;
   display:grid;
   place-items:center;
-  width:30px;height:30px;border-radius:50%;
-  background:#e4e0fa;
-  color:#5f55a7;
-  font-size:10px;
+  width:34px;height:34px;
+  border-radius:50%;
+  border:4px solid #fff;
+  box-shadow:0 4px 14px rgba(55,52,47,.16);
+  font-size:9px;
+  font-style:normal;
 }
-body[data-instrument="pf02"] .avatar.store{background:#e0eee4;color:#4d7c59}
-body[data-instrument="pf02"] .messageThread p{
+body[data-instrument="pf02"] .pin.store{left:16%;top:25%;background:#c9d9cb;color:#476752}
+body[data-instrument="pf02"] .pin.home{right:15%;bottom:18%;background:#d9d0ee;color:#65588b}
+body[data-instrument="pf02"] .pin.rider{left:52%;top:48%;background:#ead7c5;color:#875d3e}
+body[data-instrument="pf02"] .rainPatch{
+  position:absolute;
+  right:10%;
+  top:10%;
+  width:120px;height:90px;
+  border-radius:50%;
+  background:#cfd8dd;
+  opacity:.8;
+}
+body[data-instrument="pf02"] .deliveryMapLive p{
+  position:absolute;
+  left:16px;right:16px;bottom:16px;
   margin:0;
-  color:#514940;
-  font-size:10px;
+  padding:10px 12px;
+  border-radius:9px;
+  background:#f4f1ea;
+  color:#696159;
+  font-size:9px;
   line-height:1.5;
 }
-body[data-instrument="pf02"] .messageThread b{font-size:9px;color:#7f756b}
 
-/* Act 3: late-night house */
-body[data-instrument="pf02"] .nightScene{
-  background:#121814;
-  border-color:#263129;
+/* Act 3 — quiet night */
+body[data-instrument="pf02"][data-world="far"]{
+  background:#172019!important;
 }
-body[data-instrument="pf02"] .nightScene .sceneTopline{
-  background:#18201a;
-  border-color:#2b372e;
+body[data-instrument="pf02"][data-world="far"] .top select{
+  border-color:#344238!important;
+  background:#1d2820!important;
+  color:#9aad9f!important;
 }
-body[data-instrument="pf02"] .nightScene .sceneTopline>span{color:#809087}
-body[data-instrument="pf02"] .nightScene .sceneTopline>b{color:#d9e3dc}
-body[data-instrument="pf02"] .nightScene .sceneTopline>small{color:#7e8d84}
-body[data-instrument="pf02"] .nightPlan{
+body[data-instrument="pf02"][data-world="far"] .diegeticScene{
+  border-color:#334139;
+  background:#1a241d;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);
+}
+body[data-instrument="pf02"][data-world="far"] .nightHeader{
+  border-color:#334139;
+  background:#202b23;
+}
+body[data-instrument="pf02"][data-world="far"] .nightHeader span{color:#819387}
+body[data-instrument="pf02"][data-world="far"] .nightHeader b{color:#e0e9e2}
+body[data-instrument="pf02"][data-world="far"] .nightHeader small{color:#829087}
+body[data-instrument="pf02"] .nightRooms{
   display:grid;
-  grid-template-columns:repeat(2,1fr);
+  grid-template-columns:repeat(3,1fr);
   gap:1px;
-  background:#2a362d;
+  background:#334139;
 }
 body[data-instrument="pf02"] .nightRoom{
-  min-height:145px;
-  padding:17px;
+  position:relative;
+  min-height:180px;
+  padding:18px;
   border:0;
-  background:#172019;
-  color:#dce5df;
+  background:#1b261f;
+  color:#e2ebe4;
   text-align:left;
   cursor:pointer;
-  transition:background .18s ease,box-shadow .18s ease;
 }
-body[data-instrument="pf02"] .nightRoom:hover{background:#1d2820}
-body[data-instrument="pf02"] .nightRoom.active{
-  background:
-    radial-gradient(circle at 86% 20%,rgba(78,143,96,.16),transparent 27%),
-    #19241c;
-}
-body[data-instrument="pf02"] .nightRoom.inspected{box-shadow:inset 0 0 0 1px #6a8f76}
-body[data-instrument="pf02"] .nightRoom.empty{opacity:.66}
+body[data-instrument="pf02"] .nightRoom:hover{background:#202c23}
+body[data-instrument="pf02"] .nightRoom.guestRoom{background:#223126}
 body[data-instrument="pf02"] .nightRoom span{
-  color:#85948a;
-  font:9px ui-monospace,monospace;
+  display:block;
+  color:#87998d;
+  font:8px ui-monospace,monospace;
   letter-spacing:.08em;
 }
 body[data-instrument="pf02"] .nightRoom b{
   display:block;
-  margin-top:12px;
-  color:#eef4f0;
-  font-size:28px;
+  margin-top:14px;
+  color:#f1f5f2;
+  font-size:26px;
+  letter-spacing:-.04em;
 }
 body[data-instrument="pf02"] .nightRoom small{
   display:block;
-  margin-top:5px;
-  color:#8e9f94;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .nightConversation{
-  background:#101611;
-  border-color:#283329;
-}
-
-/* The old KPI strip is secondary after the scene */
-body[data-instrument="pf02"] .diegeticScene + .signalStrip{
-  margin-top:10px!important;
-  opacity:.78;
-}
-body[data-instrument="pf02"] .diegeticScene + .signalStrip:hover{opacity:1}
-
-@media(max-width:820px){
-  body[data-instrument="pf02"] .homePlan,
-  body[data-instrument="pf02"] .deliveryTable,
-  body[data-instrument="pf02"] .messageThread,
-  body[data-instrument="pf02"] .nightPlan{
-    grid-template-columns:1fr;
-  }
-  body[data-instrument="pf02"] .homePlan{grid-template-rows:none}
-  body[data-instrument="pf02"] .sceneTopline{
-    align-items:flex-start;
-    flex-wrap:wrap;
-    padding:10px 12px;
-  }
-  body[data-instrument="pf02"] .sceneTopline>small{margin-left:0;width:100%}
-}
-
-
-body[data-instrument="pf02"] .reactionLine{
-  background:linear-gradient(90deg,rgba(78,155,102,.10),rgba(78,155,102,.025))!important;
-  animation:pf02-reaction-in .34s cubic-bezier(.2,.8,.2,1) both;
-}
-body[data-instrument="pf02"] .reactionLine b{color:#9bc9aa!important}
-body[data-instrument="pf02"] .deliveryReaction{
-  display:grid;
-  grid-template-columns:26px minmax(0,1fr);
-  gap:8px;
-  align-items:start;
-  padding:12px 14px;
-  border-top:1px solid #ded5ca;
-  background:#fff8ec;
-  animation:pf02-reaction-in .34s cubic-bezier(.2,.8,.2,1) both;
-}
-body[data-instrument="pf02"] .deliveryReaction span{
-  color:#b27b3a;
-  font-size:16px;
-}
-body[data-instrument="pf02"] .deliveryReaction p{
-  margin:0;
-  color:#5e5145;
-  font-size:10px;
-  line-height:1.55;
-}
-@keyframes pf02-reaction-in{
-  from{opacity:0;transform:translateY(7px)}
-  to{opacity:1;transform:translateY(0)}
-}
-
-
-/* Flow simplification: one obvious next step */
-body[data-instrument="pf02"] .workspace{
-  grid-template-columns:1fr!important;
-  min-height:0!important;
-}
-body[data-instrument="pf02"] .nav{
-  display:none!important;
-}
-body[data-instrument="pf02"] .main{
-  padding:18px!important;
-}
-body[data-instrument="pf02"] .missionHud,
-body[data-instrument="pf02"] .signalStrip,
-body[data-instrument="pf02"] .fieldFeed,
-body[data-instrument="pf02"] .sceneChrome{
-  display:none!important;
-}
-body[data-instrument="pf02"] .crumb{
-  margin:0 0 8px!important;
-  opacity:.65;
-}
-body[data-instrument="pf02"] .actions{
-  margin-top:14px!important;
-}
-
-/* step 1 */
-body[data-instrument="pf02"] .flowNudge{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:18px;
-  padding:15px 16px;
-  border:1px solid #d9ded9;
-  background:#fff;
-}
-body[data-instrument="pf02"] .flowNudge>div{
-  display:grid;
-  grid-template-columns:28px minmax(0,1fr);
-  grid-template-rows:auto auto;
-  column-gap:10px;
-}
-body[data-instrument="pf02"] .flowNudge span{
-  grid-row:1/3;
-  color:#7f8882;
-  font:10px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .flowNudge b{
-  font-size:12px;
-  color:#344039;
-}
-body[data-instrument="pf02"] .flowNudge p{
-  margin:3px 0 0;
-  color:#747d77;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .skipExplore{
-  flex:0 0 auto;
-  border:0;
-  background:transparent;
-  color:#707a73;
-  cursor:pointer;
-  font-size:10px;
-}
-
-/* step 2 */
-body[data-instrument="pf02"] .simpleDecision{
-  border:1px solid #d9ded9;
-  background:#fbfcfb;
-}
-body[data-instrument="pf02"] .simpleDecisionHead{
-  display:flex;
-  gap:10px;
-  align-items:flex-start;
-  padding:13px 14px 11px;
-  border-bottom:1px solid #e2e5e2;
-}
-body[data-instrument="pf02"] .simpleDecisionHead>span{
-  color:#808a83;
-  font:10px ui-monospace,monospace;
-}
-body[data-instrument="pf02"] .simpleDecisionHead b{
-  display:block;
-  font-size:12px;
-  color:#344039;
-}
-body[data-instrument="pf02"] .simpleDecisionHead small{
-  display:block;
-  margin-top:3px;
-  color:#818983;
-  font-size:9px;
-}
-body[data-instrument="pf02"] .simpleChoices{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-}
-body[data-instrument="pf02"] .simpleChoice{
-  min-height:52px;
-  padding:10px 12px;
-  border:0;
-  border-right:1px solid #e1e5e2;
-  background:#fff;
-  text-align:left;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .simpleChoice:last-child{border-right:0}
-body[data-instrument="pf02"] .simpleChoice:hover{background:#f5f7f5}
-body[data-instrument="pf02"] .simpleChoice.selected{
-  background:#f0f3ff;
-  box-shadow:inset 0 -2px 0 #6474ff;
-}
-body[data-instrument="pf02"] .simpleChoice b{
-  color:#344039;
-  font-size:11px;
-}
-body[data-instrument="pf02"] .simplePreview{
-  display:grid;
-  grid-template-columns:1.1fr 1fr auto;
-  gap:12px;
-  align-items:center;
-  padding:12px 14px;
-  border-top:1px solid #e1e5e2;
-  background:#f7f9f7;
-}
-body[data-instrument="pf02"] .simplePreview>p{
-  margin:0;
-  color:#58635b;
+  max-width:180px;
+  margin-top:7px;
+  color:#9cad9f;
   font-size:10px;
   line-height:1.45;
 }
-body[data-instrument="pf02"] .simplePreview>div{
-  padding-left:12px;
-  border-left:1px solid #dde2de;
+body[data-instrument="pf02"] .nightRoom i{
+  position:absolute;
+  right:15px;
+  top:15px;
+  color:#607568;
+  font:9px ui-monospace,monospace;
+  font-style:normal;
 }
-body[data-instrument="pf02"] .simplePreview span{
-  display:block;
-  color:#8b938d;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
+body[data-instrument="pf02"] .nightConversation{
+  border-top:1px solid #334139;
+  background:#151d18;
 }
-body[data-instrument="pf02"] .simplePreview b{
-  display:block;
-  margin-top:4px;
-  color:#465149;
-  font-size:10px;
-  line-height:1.4;
-}
-body[data-instrument="pf02"] .simplePreview .executeCommand{
-  position:static!important;
-  min-width:110px!important;
-  min-height:38px!important;
-}
-
-/* step 3 */
-body[data-instrument="pf02"] .simpleResolution{
-  padding:14px 15px;
-  border:1px solid #d8ded9;
-  background:#f2f7f3;
-}
-body[data-instrument="pf02"] .simpleResolution span{
-  color:#6f7f73;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
-}
-body[data-instrument="pf02"] .simpleResolution p{
-  margin:6px 0 0;
-  color:#3f4a42;
-  font-size:11px;
-  line-height:1.55;
-}
-body[data-instrument="pf02"] .simpleNext{
-  display:flex;
-  gap:8px;
-  justify-content:flex-end;
-  margin-top:8px;
-}
-body[data-instrument="pf02"] .simpleNext .commitWorld{
-  order:3;
-}
-
-/* Dark home act still feels like the same product */
-body[data-instrument="pf02"][data-world="seed"] .flowNudge,
-body[data-instrument="pf02"][data-world="seed"] .simpleDecision{
-  border-color:#2b323a;
-  background:#14191f;
-}
-body[data-instrument="pf02"][data-world="seed"] .flowNudge b,
-body[data-instrument="pf02"][data-world="seed"] .simpleDecisionHead b,
-body[data-instrument="pf02"][data-world="seed"] .simpleChoice b{color:#e6ebef}
-body[data-instrument="pf02"][data-world="seed"] .flowNudge p,
-body[data-instrument="pf02"][data-world="seed"] .skipExplore,
-body[data-instrument="pf02"][data-world="seed"] .simpleDecisionHead small{color:#8e98a2}
-body[data-instrument="pf02"][data-world="seed"] .simpleDecisionHead,
-body[data-instrument="pf02"][data-world="seed"] .simplePreview{border-color:#2a3139}
-body[data-instrument="pf02"][data-world="seed"] .simpleChoice{
-  background:#151a20;
-  border-color:#293039;
-}
-body[data-instrument="pf02"][data-world="seed"] .simpleChoice:hover{background:#1b2128}
-body[data-instrument="pf02"][data-world="seed"] .simpleChoice.selected{
-  background:#1e2432;
-}
-body[data-instrument="pf02"][data-world="seed"] .simplePreview{
-  background:#11161b;
-}
-body[data-instrument="pf02"][data-world="seed"] .simplePreview>p,
-body[data-instrument="pf02"][data-world="seed"] .simplePreview b{color:#aeb7bf}
-body[data-instrument="pf02"][data-world="seed"] .simplePreview>div{border-color:#2c333b}
-body[data-instrument="pf02"][data-world="seed"] .simpleResolution{
-  border-color:#31513d;
-  background:#132019;
-}
-body[data-instrument="pf02"][data-world="seed"] .simpleResolution p{color:#c8d8ce}
-
-@media(max-width:760px){
-  body[data-instrument="pf02"] .flowNudge{
-    align-items:flex-start;
-    flex-direction:column;
-  }
-  body[data-instrument="pf02"] .simpleChoices{grid-template-columns:1fr}
-  body[data-instrument="pf02"] .simpleChoice{
-    border-right:0;
-    border-bottom:1px solid #e1e5e2;
-  }
-  body[data-instrument="pf02"] .simplePreview{
-    grid-template-columns:1fr;
-  }
-  body[data-instrument="pf02"] .simplePreview>div{
-    padding-left:0;
-    border-left:0;
-  }
-  body[data-instrument="pf02"] .simpleNext{
-    flex-direction:column;
-  }
-}
-
-
-/* Ultra-simple decision layer */
-body[data-instrument="pf02"] .flowNudge,
-body[data-instrument="pf02"] .simpleDecision,
-body[data-instrument="pf02"] .simpleResolution,
-body[data-instrument="pf02"] .simpleNext{
-  display:none!important;
-}
-body[data-instrument="pf02"] .instantDecision{
-  margin-top:12px;
-  border-top:1px solid #dfe3df;
-  padding-top:14px;
-}
-body[data-instrument="pf02"] .instantQuestion{
-  margin-bottom:10px;
-  color:#2f3932;
-  font-size:14px;
-  font-weight:700;
-}
-body[data-instrument="pf02"] .instantChoices{
+body[data-instrument="pf02"] .nightConversation>div{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:56px minmax(0,1fr);
   gap:8px;
+  padding:10px 16px;
+  border-bottom:1px solid #28352d;
 }
-body[data-instrument="pf02"] .instantChoice{
-  min-height:58px;
-  padding:12px 14px;
-  border:1px solid #d8ddd9;
-  background:#fff;
-  color:#334039;
-  text-align:left;
-  cursor:pointer;
-  transition:transform .14s ease,background .14s ease,border-color .14s ease;
-}
-body[data-instrument="pf02"] .instantChoice:hover{
-  transform:translateY(-1px);
-  background:#f7f9f7;
-  border-color:#bfc7c1;
-}
-body[data-instrument="pf02"] .instantChoice b{
-  font-size:12px;
-  line-height:1.35;
-}
-body[data-instrument="pf02"] .optionalClue{
-  margin-top:8px;
-  padding:0;
-  border:0;
-  background:transparent;
-  color:#8a928d;
-  font-size:10px;
-  cursor:pointer;
-}
-body[data-instrument="pf02"] .optionalClue:hover{
-  color:#5e6962;
-  text-decoration:underline;
-}
-body[data-instrument="pf02"] .instantResult{
-  padding:14px 15px;
-  border:1px solid #d9dfda;
-  background:#f2f7f3;
-}
-body[data-instrument="pf02"] .instantResult span{
-  display:block;
-  color:#718078;
+body[data-instrument="pf02"] .nightConversation>div:last-child{border-bottom:0}
+body[data-instrument="pf02"] .nightConversation span{
+  color:#63776a;
   font:8px ui-monospace,monospace;
-  letter-spacing:.08em;
 }
-body[data-instrument="pf02"] .instantResult p{
-  margin:6px 0 0;
-  color:#3d4941;
-  font-size:11px;
-  line-height:1.55;
-}
-body[data-instrument="pf02"] .instantNext{
-  display:flex!important;
-  justify-content:flex-end;
-  gap:8px;
-  margin-top:8px;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantDecision{
-  border-color:#2b323a;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantQuestion{
-  color:#edf1f4;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantChoice{
-  border-color:#2c333b;
-  background:#151a20;
-  color:#e7edf2;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantChoice:hover{
-  background:#1b2128;
-  border-color:#3a444f;
-}
-body[data-instrument="pf02"][data-world="seed"] .optionalClue{
-  color:#7f8994;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantResult{
-  border-color:#31513d;
-  background:#132019;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantResult p{
-  color:#c8d8ce;
-}
-@media(max-width:760px){
-  body[data-instrument="pf02"] .instantChoices{grid-template-columns:1fr}
+body[data-instrument="pf02"] .nightConversation p{
+  margin:0;
+  color:#aebdb2;
+  font-size:10px;
+  line-height:1.45;
 }
 
-
-/* Instant flow: scene -> one question -> three choices */
-body[data-instrument="pf02"] .flowNudge,
-body[data-instrument="pf02"] .simpleDecision,
-body[data-instrument="pf02"] .simpleResolution,
-body[data-instrument="pf02"] .simpleNext{
-  display:none!important;
-}
+/* Single decision block */
 body[data-instrument="pf02"] .instantDecision{
   margin-top:12px;
   padding:16px;
-  border:1px solid #d9ded9;
-  background:#fff;
+  border:1px solid var(--pf-line);
+  border-radius:12px;
+  background:var(--pf-paper);
+  box-shadow:0 10px 30px rgba(29,32,34,.04);
 }
 body[data-instrument="pf02"] .instantDecision h3{
   max-width:760px;
   margin:0 0 14px!important;
-  color:#2d3731!important;
-  font-size:18px!important;
-  line-height:1.35!important;
+  color:#252b2f!important;
+  font-size:17px!important;
+  line-height:1.4!important;
   letter-spacing:-.02em!important;
 }
 body[data-instrument="pf02"] .instantChoices{
@@ -3474,126 +598,341 @@ body[data-instrument="pf02"] .instantChoices{
 body[data-instrument="pf02"] .instantChoice{
   min-height:56px;
   padding:0 14px;
-  border:1px solid #d9ded9;
-  background:#f7f9f7;
-  color:#354039;
+  border:1px solid var(--pf-line);
+  border-radius:8px;
+  background:#f5f3ee;
+  color:#32383c;
   text-align:left;
   cursor:pointer;
-  transition:transform .14s ease,background .14s ease,border-color .14s ease;
+  transition:transform .14s ease,border-color .14s ease,background .14s ease;
 }
 body[data-instrument="pf02"] .instantChoice:hover{
   transform:translateY(-1px);
+  border-color:#bfc2bd;
   background:#fff;
-  border-color:#bfc8c1;
 }
 body[data-instrument="pf02"] .instantChoice b{
-  font-size:12px;
+  font-size:11px;
   font-weight:680;
 }
+body[data-instrument="pf02"][data-world="seed"] .instantDecision{
+  border-color:#30363c;
+  background:#181d21;
+  box-shadow:none;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantDecision h3{color:#eef2f4!important}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice{
+  border-color:#323941;
+  background:#1d2328;
+  color:#e4e9ec;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantChoice:hover{
+  border-color:#4a555f;
+  background:#242b31;
+}
+body[data-instrument="pf02"][data-world="far"] .instantDecision{
+  border-color:#334139;
+  background:#1c2720;
+}
+body[data-instrument="pf02"][data-world="far"] .instantDecision h3{color:#e7eee9!important}
+body[data-instrument="pf02"][data-world="far"] .instantChoice{
+  border-color:#39483f;
+  background:#223027;
+  color:#e0e8e2;
+}
+body[data-instrument="pf02"][data-world="far"] .instantChoice:hover{
+  border-color:#52665a;
+  background:#28382d;
+}
+
+/* Result of one choice */
 body[data-instrument="pf02"] .instantResult{
   padding:15px 16px;
-  border:1px solid #d3ddd5;
-  background:#f1f7f2;
+  border:1px solid #cfdbd1;
+  border-radius:10px;
+  background:#f2f7f3;
 }
 body[data-instrument="pf02"] .instantResult span{
-  color:#748078;
+  color:#6f7c73;
   font:8px ui-monospace,monospace;
-  letter-spacing:.09em;
+  letter-spacing:.08em;
 }
 body[data-instrument="pf02"] .instantResult p{
   margin:6px 0 0;
-  color:#3f4b43;
-  font-size:12px;
-  line-height:1.55;
+  color:#3e4941;
+  font-size:11px;
+  line-height:1.58;
 }
+body[data-instrument="pf02"][data-world="seed"] .instantResult{
+  border-color:#31513c;
+  background:#17231b;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult p{color:#cbd8cf}
+body[data-instrument="pf02"][data-world="far"] .instantResult{
+  border-color:#3a5543;
+  background:#1b2a20;
+}
+body[data-instrument="pf02"][data-world="far"] .instantResult p{color:#c6d5ca}
+
 body[data-instrument="pf02"] .instantNext{
-  display:flex!important;
+  display:flex;
   justify-content:flex-end;
   align-items:center;
-  gap:12px;
+  gap:10px;
   margin-top:9px;
 }
 body[data-instrument="pf02"] .textUndo{
+  padding:9px 10px;
   border:0;
   background:transparent;
-  color:#7c857f;
-  font-size:10px;
+  color:#7b8185;
   cursor:pointer;
+  font-size:10px;
 }
-body[data-instrument="pf02"] .instantNext .commitWorld{
+body[data-instrument="pf02"] .commitWorld{
   min-height:40px;
-  padding:0 16px;
+  padding:0 16px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#20262a!important;
+  color:#fff!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .textUndo{color:#879199}
+body[data-instrument="pf02"][data-world="seed"] .commitWorld{
+  background:#f0f3f5!important;
+  color:#171b1e!important;
+}
+body[data-instrument="pf02"][data-world="far"] .textUndo{color:#819287}
+body[data-instrument="pf02"][data-world="far"] .commitWorld{
+  background:#dfe9e2!important;
+  color:#1c2a20!important;
+}
+
+/* Cue between acts */
+body[data-instrument="pf02"] #cue .moment{
+  width:min(700px,100%);
+  margin:auto;
+  padding:34px 36px;
+  border:1px solid #d7d4cd;
+  border-radius:14px;
+  background:#fbfaf7;
+  text-align:left;
+  box-shadow:0 18px 52px rgba(28,31,34,.06);
+}
+body[data-instrument="pf02"] #cue .ey{
+  color:#8c9194!important;
+  font-size:9px!important;
+}
+body[data-instrument="pf02"] #cue .signal{
+  margin:12px 0 24px!important;
+  color:#282e32!important;
+  font:26px/1.45 Inter,"Noto Sans SC",system-ui,sans-serif!important;
+  letter-spacing:-.035em!important;
+}
+body[data-instrument="pf02"] #cue .primary{
+  min-height:42px!important;
+  padding:0 15px!important;
+  border-radius:7px!important;
+  background:#20262a!important;
+  color:#fff!important;
+}
+body[data-instrument="pf02"] #cue .progress{display:none!important}
+
+/* Done */
+body[data-instrument="pf02"] #done{
+  align-items:flex-start!important;
+  padding:36px 0 52px!important;
+}
+body[data-instrument="pf02"] #done>div{
+  width:min(940px,100%)!important;
+  margin:auto!important;
+}
+body[data-instrument="pf02"] #done h1{
+  margin:8px 0 14px!important;
+  color:#20262a!important;
+  font-size:clamp(38px,5vw,56px)!important;
+  letter-spacing:-.05em!important;
+}
+body[data-instrument="pf02"] #done .lead{
+  max-width:720px!important;
+  color:#62686c!important;
+  font-size:15px!important;
+}
+body[data-instrument="pf02"] #done .summary{
+  display:block!important;
+  margin-top:22px!important;
+}
+body[data-instrument="pf02"] #done .summary>.card:first-child{
+  display:none!important;
+}
+body[data-instrument="pf02"] #done .summary>.card{
+  border:0!important;
   border-radius:0!important;
+  background:transparent!important;
+  padding:0!important;
+  box-shadow:none!important;
 }
+body[data-instrument="pf02"] .journeyReplay{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+body[data-instrument="pf02"] .replayStage{
+  padding:15px;
+  border:1px solid var(--pf-line);
+  border-radius:10px;
+  background:#fbfaf7;
+}
+body[data-instrument="pf02"] .replayIndex{
+  color:#9a9da0;
+  font:9px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .replayBrand{
+  margin-top:8px;
+  color:#7d8387;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .replayStage h3{
+  margin:5px 0 12px;
+  font-size:13px;
+}
+body[data-instrument="pf02"] .replayLine{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:6px 0;
+  border-top:1px solid #ebe8e2;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .replayLine span{color:#8a8f92}
+body[data-instrument="pf02"] .replayOutcome{
+  display:flex;
+  gap:7px;
+  margin-top:8px;
+}
+body[data-instrument="pf02"] .replayOutcome span{color:#8a8f92}
+body[data-instrument="pf02"] .replayOutcome p{
+  margin:0;
+  color:#5b6266;
+  font-size:9px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .replayArrow,
+body[data-instrument="pf02"] .replayTotals{display:none!important}
 
-/* First act dark variant */
-body[data-instrument="pf02"][data-world="seed"] .instantDecision{
-  border-color:#2b323a;
-  background:#14191f;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantDecision h3{
-  color:#edf2f5!important;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantChoice{
-  border-color:#303842;
-  background:#171d24;
-  color:#e5ebef;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantChoice:hover{
-  background:#1d242c;
-  border-color:#46515d;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantResult{
-  border-color:#31513d;
-  background:#132019;
-}
-body[data-instrument="pf02"][data-world="seed"] .instantResult p{color:#cbd9d0}
-
-/* Results: artifact stays optional instead of taking over */
 body[data-instrument="pf02"] .artifactReveal{
-  margin-top:16px;
+  margin-top:12px;
 }
 body[data-instrument="pf02"] .artifactRevealBtn{
   width:100%;
-  min-height:46px;
-  border:1px solid #d5dbd6;
-  background:#f8faf8;
-  color:#455048;
-  cursor:pointer;
-  text-align:left;
+  min-height:44px;
   padding:0 14px;
-  font-size:11px;
+  border:1px solid var(--pf-line);
+  border-radius:8px;
+  background:#f5f3ee;
+  color:#4a5155;
+  text-align:left;
+  cursor:pointer;
+  font-size:10px;
 }
 body[data-instrument="pf02"] .artifactRevealBtn:hover{background:#fff}
-
-/* Remove remaining instructional clutter */
-body[data-instrument="pf02"] #intro .introMission{display:none!important}
-body[data-instrument="pf02"] .scenePrompt span{display:none!important}
-body[data-instrument="pf02"] .scenePrompt p{
-  margin:0!important;
-  font-size:11px!important;
-  line-height:1.5!important;
+body[data-instrument="pf02"] .artifactForge{
+  margin-top:12px;
+  padding:16px;
+  border:1px solid var(--pf-line);
+  border-radius:10px;
+  background:#fbfaf7;
 }
-
-/* Keep scenes visually dominant */
-body[data-instrument="pf02"] .diegeticScene{
-  margin-bottom:10px!important;
-}
-body[data-instrument="pf02"] .crumb{
+body[data-instrument="pf02"] .artifactForge.hidden{display:none!important}
+body[data-instrument="pf02"] .artifactPipeline,
+body[data-instrument="pf02"] .artifactWorkbench{
   display:none!important;
 }
-body[data-instrument="pf02"] .top{
-  min-height:34px!important;
-  margin-bottom:4px!important;
-  border-bottom:0!important;
+body[data-instrument="pf02"] .artifactHead{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
 }
-body[data-instrument="pf02"] .top .pill{
+body[data-instrument="pf02"] .artifactHead span{
+  color:#8a8f92;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .artifactHead h2{
+  margin:4px 0 0!important;
+  font-size:16px!important;
+}
+body[data-instrument="pf02"] .artifactHead>b{
+  color:#4e7d5a;
+  font:8px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] #done>.row{
+  margin-top:14px!important;
+}
+body[data-instrument="pf02"] #done>.row .primary,
+body[data-instrument="pf02"] #done>.row .btn{
+  border-radius:7px!important;
+}
+
+/* Hide legacy structures that should never compete with the main flow */
+body[data-instrument="pf02"] .metricGrid,
+body[data-instrument="pf02"] .spark,
+body[data-instrument="pf02"] .commandDeck,
+body[data-instrument="pf02"] .decisionGrid,
+body[data-instrument="pf02"] .decisionDiff,
+body[data-instrument="pf02"] .outcomePanel,
+body[data-instrument="pf02"] .postActionBar,
+body[data-instrument="pf02"] .energyRoomTabs,
+body[data-instrument="pf02"] .energyTimeline,
+body[data-instrument="pf02"] .intervalBtn,
+body[data-instrument="pf02"] .executionOverlay{
   display:none!important;
 }
-@media(max-width:720px){
+
+/* Secondary detail surfaces still work when explicitly reached */
+body[data-instrument="pf02"] .detailDrawer,
+body[data-instrument="pf02"] .notice,
+body[data-instrument="pf02"] .contextPanel,
+body[data-instrument="pf02"] .generationSurface,
+body[data-instrument="pf02"] .networkBoard,
+body[data-instrument="pf02"] .sliceBoard,
+body[data-instrument="pf02"] .corpusBoard,
+body[data-instrument="pf02"] .releaseRail,
+body[data-instrument="pf02"] .requestBoard,
+body[data-instrument="pf02"] .carrierBoard,
+body[data-instrument="pf02"] .cityBoard,
+body[data-instrument="pf02"] .scheduleBoard{
+  margin-top:12px;
+}
+
+@media(max-width:820px){
+  body[data-instrument="pf02"] .app{padding:12px 14px 30px!important}
+  body[data-instrument="pf02"] .homeStage{height:560px}
+  body[data-instrument="pf02"] .roomTile.living{left:5%;bottom:8%;width:42%;height:23%}
+  body[data-instrument="pf02"] .roomTile.kitchen{left:28%;bottom:35%;width:45%;height:25%}
+  body[data-instrument="pf02"] .roomTile.bedroom{right:5%;bottom:8%;width:42%;height:23%}
+  body[data-instrument="pf02"] .voiceBubble.you{left:5%;top:14%}
+  body[data-instrument="pf02"] .voiceBubble.mate{right:5%;top:25%}
+  body[data-instrument="pf02"] .agentNode{top:48%}
+  body[data-instrument="pf02"][data-world="near"] .diegeticScene{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .phoneShell{border-right:0;border-bottom:1px solid #ddd7cc}
+  body[data-instrument="pf02"] .deliveryMapLive{min-height:300px}
+  body[data-instrument="pf02"] .nightRooms{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .nightRoom{min-height:120px}
   body[data-instrument="pf02"] .instantChoices{grid-template-columns:1fr}
   body[data-instrument="pf02"] .instantNext{
     align-items:stretch;
     flex-direction:column-reverse;
   }
+  body[data-instrument="pf02"] .journeyReplay{grid-template-columns:1fr}
+}
+
+@media(max-width:520px){
+  body[data-instrument="pf02"] #intro h1{font-size:42px!important}
+  body[data-instrument="pf02"] .homeStage{height:600px}
+  body[data-instrument="pf02"] .roomTile.living{left:4%;bottom:5%;width:44%}
+  body[data-instrument="pf02"] .roomTile.bedroom{right:4%;bottom:5%;width:44%}
+  body[data-instrument="pf02"] .roomTile.kitchen{left:14%;bottom:33%;width:72%}
+  body[data-instrument="pf02"] .voiceBubble{max-width:170px;font-size:9px}
 }
