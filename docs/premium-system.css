@@ -509,3 +509,22 @@ body[data-instrument^="pf0"] .object:last-child{border-bottom:0!important}
  body[data-instrument^="pf0"] .screen{min-height:88vh}
  body[data-instrument^="pf0"] .hero h1{font-size:38px!important}
 }
+
+/* --- Journey 07 object interaction pass --- */
+body[data-instrument="pf07"] .briefStep,
+body[data-instrument="pf07"] .ruleRow,
+body[data-instrument="pf07"] .scheduleRow{
+  width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer
+}
+body[data-instrument="pf07"] .briefStep{background:transparent;border:0;border-bottom:1px solid #dfe1dd}
+body[data-instrument="pf07"] .ruleRow{border:0;border-bottom:1px solid #d8dee4}
+body[data-instrument="pf07"] .scheduleRow{background:transparent;border:0;border-bottom:1px solid #d9d6cf}
+body[data-instrument="pf07"] .briefStep:hover,
+body[data-instrument="pf07"] .briefStep.selected{background:#f5f6f4;padding-left:8px!important}
+body[data-instrument="pf07"] .ruleRow:hover,
+body[data-instrument="pf07"] .ruleRow.selected{background:#f3f7fa}
+body[data-instrument="pf07"] .scheduleRow:hover,
+body[data-instrument="pf07"] .scheduleRow.selected{background:#f5f1ea;padding-left:8px!important}
+body[data-instrument="pf07"] .planArtifact{transition:background .12s ease,padding-left .12s ease}
+body[data-instrument="pf07"] .artifactDetail{margin-top:14px}
+body[data-instrument="pf07"] .artifactDetail b{display:block;margin-top:4px;font-size:14px}
