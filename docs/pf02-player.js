@@ -23,7 +23,7 @@ function active(el,i){
   });
 }
 function markView(world,i){const key='nav_'+i;if(!S.views[world].includes(key)){S.views[world].push(key);bumpPressure(world,-2,'open_object')}log('open_object',{world,object:key});refreshSignal(world);refreshMissionHud(world);animateWorld(world,'investigate')}
-function markDetail(world,key){S.flowReady[world]=true;if(!S.detail[world].includes(key)){S.detail[world].push(key);bumpPressure(world,-3,'open_detail')}log('open_detail',{world,object:key});refreshSignal(world);refreshMissionHud(world);animateWorld(world,'investigate');renderActions(world)}
+function markDetail(world,key){S.flowReady[world]=true;if(!S.detail[world].includes(key)){S.detail[world].push(key);bumpPressure(world,-3,'open_detail')}log('open_detail',{world,object:key});refreshSignal(world);refreshMissionHud(world);animateWorld(world,'investigate')}
 function metrics(rows){return `<div class="metricGrid">${rows.map(r=>`<div class="card metric"><span class="meta">${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>`}
 function spark(values=[85,86,84,87,85,72,68]){return `<div class="spark">${values.map(v=>`<i style="height:${v}%"></i>`).join('')}</div>`}
 function table(head,rows,detailClass='',detailLabel=''){return `<table class="table"><tr>${head.map(x=>`<th>${x}</th>`).join('')}${detailClass?'<th></th>':''}</tr>${rows.map((r,i)=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}${detailClass?`<td><button class="link ${detailClass}" data-j="${i}">${detailLabel||P.seed.open}</button></td>`:''}</tr>`).join('')}</table>`}
@@ -278,7 +278,7 @@ function playExecution(world,a){
 }
 function commandDeck(world){
   const w=P[world],order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world),p=S.preview[world],zh=locale.startsWith('zh');
-  if(!S.detail[world].length&&!S.flowReady[world]){
+  if(false){
     return `<div class="flowNudge">
       <div><span>01</span><b>${zh?'先看一眼现场':'LOOK AT THE SCENE'}</b><p>${zh?'点一个你最在意的人、房间或订单。只看一个就够。':'Tap one person, room, or order you care about. One is enough.'}</p></div>
       <button class="skipExplore">${zh?'我已经知道要怎么做 →':'I already know what to do →'}</button>
@@ -574,30 +574,52 @@ function nightLiveScene(){
 function renderSeed(i){const w=P.seed,c=$('seedContent');if(i===0)c.innerHTML=`${homeLiveScene()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${sliceBoard(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${generationSurface(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${corpusBoard(w)}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${releaseRail(w)}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${requestBoard(w)}`;document.querySelectorAll('.seedSlice').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','slice_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>SLICE ${String(j+1).padStart(2,'0')}</span><h4>${w.slices[j][0]}</h4><div><b>${w.slices[j][1]}</b><small>${w.sliceCols[1]}</small><b>${w.slices[j][2]}</b><small>${w.sliceCols[2]}</small></div></div>`});document.querySelectorAll('.seedReq').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','request_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>REQUEST SAMPLE</span><h4>${w.requests[j][0]}</h4><div><b>${w.requests[j][1]}</b><small>segment</small><b>${w.requests[j][2]}</b><small>serving</small></div></div>`});if($('compareGen'))$('compareGen').onclick=()=>{markDetail('seed','serving_generation_compare');$('genDetail').innerHTML=`<div class="notice"><b>${w.generation.traffic}</b><p>${w.generation.detail}</p></div>`}}
 function renderNear(i){const w=P.near,c=$('nearContent');if(i===0)c.innerHTML=`${deliveryLiveScene()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${fulfillmentSurface(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${carrierBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('DELIVERY ROUTE',w.routes,'routeContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('RAIN WINDOW',w.weather,'weatherContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${cityBoard(w)}`;document.querySelectorAll('.nearScan').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','scan_'+j);$('nearDetail').innerHTML=`<div class="notice">${w.nested.scan}: ${w.depots[j].join(' · ')}</div>`});document.querySelectorAll('.nearCity').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','city_'+j);$('nearDetail').innerHTML=`<div class="detailDrawer light"><span>REGION DETAIL</span><h4>${w.cities[j][0]}</h4><div><b>${w.cities[j][1]}</b><small>delay</small><b>${w.cities[j][2]}</b><small>depot</small></div></div>`})}
 function renderFar(i){const w=P.far,c=$('farContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${diegeticScene('far')}${signalStrip('far')}<div class="energyRoomTabs">${w.schedules.map((r,i)=>`<button class="energyRoom ${(S.selection.far||0)===i?'selected':''}" data-j="${i}"><b>${r[0]}</b><span>${r[1]}</span></button>`).join('')}</div>${energyTimeline()}<button id="interval" class="btn intervalBtn">${w.nested.interval}</button><div id="farDetail"></div>`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${contextPanel('OUTDOOR NIGHT',w.weather,'energyContext')}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${scheduleBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('AGENT POLICY',w.firmware,'firmwareContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('WHO SLEEPS WHERE',w.occupancy,'occupancyContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${contextPanel('NIGHT LOAD',w.tariff,'tariffContext')}`;if($('interval'))$('interval').onclick=()=>{markDetail('far','interval_15m');$('farDetail').innerHTML='<div class="intervalDetail"><span>00:00</span><b>1.0</b><span>00:15</span><b>1.1</b><span>00:30</span><b>1.2</b><span>00:45</span><b>1.2</b><span>01:00</span><b>1.3</b></div>'};document.querySelectorAll('.farRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('far','room_'+j);$('farDetail').innerHTML=`<div class="detailDrawer light"><span>ROOM DETAIL</span><h4>${w.schedules[j][0]}</h4><p>${w.schedules[j][1]}</p></div>`})}
+function visibleActionLabel(world,key){
+  const zh=locale.startsWith('zh');
+  if(!zh)return P[world].actions[key];
+  const labels={
+    seed:{rollback:'撤销刚才的全屋关窗',repin:'只把厨房窗打开到 20%',hold:'先不动'},
+    near:{rollback:'我自己去附近拿',reroute:'只改派冰块和饮料',hold:'继续等'},
+    far:{revert:'恢复原来的夜间规则',schedule:'只给客房临时调节',hold:'先不动'}
+  };
+  return labels[world][key];
+}
 function renderActions(world){
   const w=P[world],el=$(world+'Actions'),a=S.action[world],zh=locale.startsWith('zh');
   if(!a){
-    el.innerHTML=commandDeck(world);
-    const skip=el.querySelector('.skipExplore');
-    if(skip)skip.onclick=()=>{S.flowReady[world]=true;renderActions(world)};
-    el.querySelectorAll('.simpleChoice').forEach(b=>b.onclick=()=>previewAction(world,b.dataset.a));
-    const ex=el.querySelector('.executeCommand');
-    if(ex)ex.onclick=()=>{const p=S.preview[world];if(p)takeAction(world,p)};
+    const order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world);
+    el.innerHTML=`<div class="instantDecision">
+      <div class="instantQuestion">${zh?'你现在怎么做？':'What do you do?'}</div>
+      <div class="instantChoices">
+        ${order.map(key=>`<button class="instantChoice" data-a="${key}"><b>${visibleActionLabel(world,key)}</b></button>`).join('')}
+      </div>
+      <button class="optionalClue">${zh?'想再看一点现场信息':'Inspect more context'}</button>
+    </div>`;
+    el.querySelectorAll('.instantChoice').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));
+    const more=el.querySelector('.optionalClue');
+    if(more)more.onclick=()=>{
+      const target=world==='seed'?2:world==='near'?5:2;
+      renderWorld(world,target,true);
+    };
     return;
   }
   const post=w.post;
-  el.innerHTML=`<div class="simpleResolution">
-    <span>03 · ${zh?'刚刚发生了什么':'WHAT JUST HAPPENED'}</span>
-    <p>${w.consequence[a]}</p>
-  </div>
-  <div class="simpleNext">
-    <button class="btn inspectCurrent">${post.inspect}</button>
-    <button class="btn switchAction">${post.switch}</button>
-    <button class="primary commitWorld">${post.commit}</button>
-  </div>`;
-  const ins=el.querySelector('.inspectCurrent'),sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');
-  ins.onclick=()=>{log('post_consequence_action',{world,action:'inspect_more',after:a});const target=world==='seed'?2:world==='near'?5:0;renderWorld(world,target,true)};
-  sw.onclick=()=>{log('post_consequence_action',{world,action:'switch_mitigation',from:a});S.action[world]=null;S.preview[world]=null;S.flowReady[world]=true;S.worldState[world]={};bumpPressure(world,4,'switch_mitigation');delete document.body.dataset.action;refreshSignal(world);refreshMissionHud(world);renderWorld(world,0,false)};
+  el.innerHTML=`<div class="instantResult">
+      <span>${zh?'结果':'RESULT'}</span>
+      <p>${w.consequence[a]}</p>
+    </div>
+    <div class="instantNext">
+      <button class="btn switchAction">${zh?'换一个做法':'Try another'}</button>
+      <button class="primary commitWorld">${world==='far'?(zh?'结束今晚':'Finish the night'):(zh?'继续':'Continue')}</button>
+    </div>`;
+  const sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');
+  sw.onclick=()=>{
+    log('post_consequence_action',{world,action:'switch_mitigation',from:a});
+    S.action[world]=null;S.preview[world]=null;S.worldState[world]={};
+    bumpPressure(world,4,'switch_mitigation');
+    delete document.body.dataset.action;
+    renderWorld(world,0,false);
+  };
   co.onclick=()=>commitWorld(world);
 }
 function takeAction(world,a){
