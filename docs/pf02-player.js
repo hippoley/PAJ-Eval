@@ -206,7 +206,8 @@ function bindWorldMicroInteractions(world){
     document.querySelectorAll('.generationRow').forEach(b=>b.onclick=()=>{S.selection.seed=b.dataset.k;log('open_detail',{world:'seed',object:'serving_pool_'+b.dataset.k});renderWorld('seed',2,false)});
   }
   if(world==='near'){
-    document.querySelectorAll('.depotNode,.cityNode').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);S.selection.near=j;markDetail('near','network_'+j);renderWorld('near',1,false)});
+    document.querySelectorAll('.depotNode').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);S.selection.near=j;markDetail('near','scan_'+j);renderWorld('near',1,false)});
+    document.querySelectorAll('.cityNode').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);S.selection.near=j;markDetail('near','city_'+j);renderWorld('near',1,false)});
   }
   if(world==='far'){
     document.querySelectorAll('.energyRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);S.selection.far=j;markDetail('far','room_'+j);renderWorld('far',0,false)});
