@@ -819,3 +819,79 @@ body[data-instrument="pf02"][data-world="seed"][data-action] .signalAction{
   body[data-instrument="pf02"] .energyRoom{border-right:0;border-bottom:1px solid #d3ddd5}
   body[data-instrument="pf02"] .intervalDetail{grid-template-columns:auto 1fr auto 1fr}
 }
+
+
+/* Journey 02 state mutation feedback */
+body[data-instrument="pf02"] .genTone.warn{
+  color:#e6c178;
+  border-color:#6c5832;
+  background:#221e14;
+}
+body[data-instrument="pf02"] .networkNode.recovered{
+  border-color:#9dc2a6!important;
+  background:#eef7f0!important;
+  box-shadow:inset 3px 0 0 #4f9665!important;
+}
+body[data-instrument="pf02"] .networkNode.affected{
+  border-color:#dfb7a9!important;
+  background:#fff5f1!important;
+  box-shadow:inset 3px 0 0 #cb7254!important;
+}
+body[data-instrument="pf02"] .networkNode.watch{
+  border-color:#decba5!important;
+  background:#fffaf0!important;
+  box-shadow:inset 3px 0 0 #c79746!important;
+}
+body[data-instrument="pf02"] .networkLinks i.recovered{
+  background:#4f9665!important;
+}
+body[data-instrument="pf02"] .networkLinks i.recovered:after{
+  border-color:#4f9665!important;
+}
+body[data-instrument="pf02"] .networkLinks i.affected{
+  background:#cb7254!important;
+}
+body[data-instrument="pf02"] .networkLinks i.affected:after{
+  border-color:#cb7254!important;
+}
+body[data-instrument="pf02"] .networkLinks i.watch{
+  background:#c79746!important;
+}
+body[data-instrument="pf02"] .networkLinks i.watch:after{
+  border-color:#c79746!important;
+}
+body[data-instrument="pf02"] .networkImpact{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  gap:8px;
+  align-items:start;
+  padding:12px 16px;
+  border-top:1px solid #dde2de;
+  background:#f4f7f4;
+  color:#445249;
+}
+body[data-instrument="pf02"] .networkImpact span{
+  color:#6d8f77;
+  font-size:15px;
+  line-height:1.2;
+}
+body[data-instrument="pf02"] .networkImpact b{
+  font-size:11px;
+  line-height:1.55;
+  font-weight:580;
+}
+body[data-instrument="pf02"] .energyTimeline{
+  transition:background .2s ease,border-color .2s ease;
+}
+body[data-instrument="pf02"][data-action="revert"] .energyTimeline{
+  border-color:#b7cfbd!important;
+  background:
+    linear-gradient(to top,rgba(76,139,94,.075) 1px,transparent 1px) 0 0/100% 25%,
+    #f5faf6!important;
+}
+body[data-instrument="pf02"][data-action="schedule"] .energyTimeline{
+  border-color:#c8d4ba!important;
+}
+body[data-instrument="pf02"][data-action="hold"] .energyTimeline{
+  border-color:#dfcda7!important;
+}
