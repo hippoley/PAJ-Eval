@@ -1585,3 +1585,239 @@ body[data-instrument="pf02"][data-world="seed"] .systemPingToast b{color:#dce2e8
     width:calc(100% - 24px);
   }
 }
+
+
+/* Journey 02 legible decision semantics */
+body[data-instrument="pf02"] .actionExplain{
+  max-width:720px;
+  margin:6px 0 0;
+  color:#7f878f;
+  font-size:11px;
+  line-height:1.55;
+}
+body[data-instrument="pf02"] .decisionGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+body[data-instrument="pf02"] .decisionCard{
+  position:relative;
+  min-height:250px;
+  padding:15px;
+  border:1px solid #d9ddda;
+  background:#fff;
+  text-align:left;
+  cursor:pointer;
+  color:#2e353b;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
+}
+body[data-instrument="pf02"] .decisionCard:hover{
+  transform:translateY(-2px);
+  border-color:#bfc6c1;
+  box-shadow:0 12px 28px rgba(31,37,33,.08);
+}
+body[data-instrument="pf02"] .decisionCardTop{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+body[data-instrument="pf02"] .decisionKey{
+  flex:0 0 auto;
+  padding:3px 5px;
+  border:1px solid #d5dad6;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#8a9196;
+}
+body[data-instrument="pf02"] .decisionCardTop b{
+  font-size:13px;
+  font-weight:680;
+}
+body[data-instrument="pf02"] .decisionIntent{
+  min-height:54px;
+  margin:12px 0 14px;
+  color:#636b72;
+  font-size:11px;
+  line-height:1.55;
+}
+body[data-instrument="pf02"] .decisionMeta{
+  display:grid;
+  gap:7px;
+  padding-top:12px;
+  border-top:1px solid #e5e8e5;
+}
+body[data-instrument="pf02"] .decisionMeta>div{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+}
+body[data-instrument="pf02"] .decisionMeta span,
+body[data-instrument="pf02"] .decisionEvidence span{
+  font:8px ui-monospace,monospace;
+  letter-spacing:.06em;
+  color:#92999e;
+}
+body[data-instrument="pf02"] .decisionMeta b{
+  font-size:10px;
+  line-height:1.45;
+  font-weight:590;
+  color:#4b5359;
+}
+body[data-instrument="pf02"] .decisionEvidence{
+  margin-top:12px;
+  padding-top:11px;
+  border-top:1px dashed #e1e4e1;
+}
+body[data-instrument="pf02"] .decisionEvidence small{
+  display:block;
+  margin-top:5px;
+  color:#7d858b;
+  font-size:9px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .decisionCard>i{
+  position:absolute;
+  right:14px;
+  bottom:12px;
+  font-style:normal;
+  color:#a0a7ac;
+}
+body[data-instrument="pf02"][data-world="seed"] .decisionCard{
+  border-color:#2b323a;
+  background:#151a20;
+  color:#e7ecf1;
+}
+body[data-instrument="pf02"][data-world="seed"] .decisionCard:hover{
+  background:#1a2027;
+  border-color:#3a444f;
+  box-shadow:0 16px 32px rgba(0,0,0,.2);
+}
+body[data-instrument="pf02"][data-world="seed"] .decisionKey{
+  border-color:#39424c;
+  color:#87929e;
+}
+body[data-instrument="pf02"][data-world="seed"] .decisionIntent,
+body[data-instrument="pf02"][data-world="seed"] .decisionEvidence small{color:#9da7b1}
+body[data-instrument="pf02"][data-world="seed"] .decisionMeta{border-color:#2b323a}
+body[data-instrument="pf02"][data-world="seed"] .decisionMeta span,
+body[data-instrument="pf02"][data-world="seed"] .decisionEvidence span{color:#74808c}
+body[data-instrument="pf02"][data-world="seed"] .decisionMeta b{color:#cdd4db}
+body[data-instrument="pf02"][data-world="seed"] .decisionEvidence{border-color:#2c333b}
+
+/* before -> after relationship */
+body[data-instrument="pf02"] .decisionDiff{
+  border:1px solid #d9ddda;
+  background:#fff;
+  margin-bottom:10px;
+}
+body[data-instrument="pf02"] .diffHead{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:center;
+  padding:10px 13px;
+  border-bottom:1px solid #e3e6e3;
+}
+body[data-instrument="pf02"] .diffHead span,
+body[data-instrument="pf02"] .diffWhy span{
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#8b9399;
+}
+body[data-instrument="pf02"] .diffHead b{
+  font-size:11px;
+  color:#3d454b;
+}
+body[data-instrument="pf02"] .diffGrid{
+  display:grid;
+  grid-template-columns:1fr 34px 1fr;
+  gap:10px;
+  align-items:stretch;
+  padding:13px;
+}
+body[data-instrument="pf02"] .diffSide{
+  padding:12px;
+  border:1px solid #e1e5e2;
+  background:#fafbfa;
+}
+body[data-instrument="pf02"] .diffSide.after{
+  border-color:#b9cebF;
+  background:#f1f7f2;
+}
+body[data-instrument="pf02"] .diffSide span{
+  display:block;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#91989d;
+}
+body[data-instrument="pf02"] .diffSide strong{
+  display:block;
+  margin-top:7px;
+  font-size:24px;
+  letter-spacing:-.03em;
+  color:#2d353a;
+}
+body[data-instrument="pf02"] .diffSide small{
+  display:block;
+  margin-top:4px;
+  color:#727b81;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .diffSide em{
+  display:inline-block;
+  margin-top:9px;
+  padding:3px 6px;
+  border:1px solid #d3d9d4;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.07em;
+  font-style:normal;
+  color:#737c77;
+}
+body[data-instrument="pf02"] .diffSide.after em{
+  border-color:#aac5b1;
+  color:#4e7e5d;
+}
+body[data-instrument="pf02"] .diffArrow{
+  display:grid;
+  place-items:center;
+  color:#8e969c;
+  font-size:18px;
+}
+body[data-instrument="pf02"] .diffWhy{
+  padding:12px 13px 13px;
+  border-top:1px solid #e3e6e3;
+}
+body[data-instrument="pf02"] .diffWhy p{
+  margin:5px 0 0;
+  color:#596168;
+  font-size:10px;
+  line-height:1.5;
+}
+body[data-instrument="pf02"][data-world="seed"] .decisionDiff{
+  border-color:#2b323a;
+  background:#151a20;
+}
+body[data-instrument="pf02"][data-world="seed"] .diffHead,
+body[data-instrument="pf02"][data-world="seed"] .diffWhy{border-color:#2b323a}
+body[data-instrument="pf02"][data-world="seed"] .diffHead b{color:#e1e6eb}
+body[data-instrument="pf02"][data-world="seed"] .diffSide{
+  border-color:#2c333b;
+  background:#11161b;
+}
+body[data-instrument="pf02"][data-world="seed"] .diffSide.after{
+  border-color:#365a46;
+  background:#15221a;
+}
+body[data-instrument="pf02"][data-world="seed"] .diffSide strong{color:#eef2f5}
+body[data-instrument="pf02"][data-world="seed"] .diffSide small,
+body[data-instrument="pf02"][data-world="seed"] .diffWhy p{color:#9ba5af}
+body[data-instrument="pf02"][data-world="seed"] .diffSide em{border-color:#39414a;color:#929ca6}
+body[data-instrument="pf02"][data-world="seed"] .diffSide.after em{border-color:#3f7054;color:#79ac89}
+
+@media(max-width:900px){
+  body[data-instrument="pf02"] .decisionGrid{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .decisionCard{min-height:0}
+  body[data-instrument="pf02"] .diffGrid{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .diffArrow{transform:rotate(90deg)}
+}
