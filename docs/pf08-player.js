@@ -61,7 +61,7 @@ function maybeRelations(world){
   if(d.includes('external_1')&&d.includes('group_1'))addRelation(world,'eg');
   if(d.includes('limit_0')&&d.includes('record_0'))addRelation(world,'lr');
 }
-function relationStrip(world){const w=P[world],rels=S.relations[world];const items=rels.map(k=>w.relation?.[k]||k);return '<div id="'+world+'Relations" class="relationStrip '+(items.length?'hasRelations':'')+'">'+(items.length?items.map(x=>'<span>↳ '+x+'</span>').join(''):'<span>·</span>')+'</div>'}
+function relationStrip(world){const w=P[world],rels=S.relations[world],items=rels.map(k=>w.relation?.[k]||k);return '<div id="'+world+'Relations" class="relationStrip '+(items.length?'hasRelations':'')+'"><div class="relationGraph"><b>RELATION MAP</b><i class="relationNode on"></i><em></em><i class="relationNode '+(items.length?'on':'')+'"></i><em></em><i class="relationNode '+(items.length>1?'on':'')+'"></i></div><div class="relationLinks">'+(items.length?items.map(x=>'<span>↳ '+x+'</span>').join(''):'<span>open records to connect evidence</span>')+'</div></div>'}
 function refreshRelationStrip(world){const el=$(world+'Relations');if(el)el.outerHTML=relationStrip(world)}
 function detailList(world,items,prefix){
   return '<div class="card">'+items.map((x,i)=>'<div class="object"><span>'+x+'</span><button class="link detailBtn" data-world="'+world+'" data-key="'+prefix+'_'+i+'" data-text="'+String(x).replace(/"/g,'&quot;')+'">⋯</button></div>').join('')+'</div>';
@@ -127,7 +127,7 @@ function renderActions(world){
     el.querySelectorAll('.worldAction').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));return;
   }
   el.innerHTML='<div class="notice"><b>'+w.consequence[a]+'</b></div><div class="row"><button class="btn inspectCurrent">'+P.post.inspect+'</button><button class="btn switchAction">'+P.post.switch+'</button><button class="primary commitWorld">'+P.post.commit+'</button></div>';
-  el.querySelector('.inspectCurrent').onclick=()=>{log('post_consequence_action',{world,action:'continue_browsing',from:a});S.action[world]=null;decorateScene(world,i);renderActions(world)};
+  el.querySelector('.inspectCurrent').onclick=()=>{log('post_consequence_action',{world,action:'continue_browsing',from:a});S.action[world]=null;decorateScene(world,S.view[world]);renderActions(world)};
   el.querySelector('.switchAction').onclick=()=>{log('post_consequence_action',{world,action:'switch_decision',from:a});S.action[world]=null;renderActions(world)};
   el.querySelector('.commitWorld').onclick=()=>commitWorld(world);
 }
