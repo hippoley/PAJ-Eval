@@ -1,5 +1,6 @@
 (()=>{
 const $=id=>document.getElementById(id);
+document.body.dataset.instrument='pf03';
 const packs=window.PAJ_PF03_PACKS;
 const q=new URLSearchParams(location.search);
 const dev=q.get('dev')==='1';
