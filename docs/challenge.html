@@ -231,6 +231,8 @@ h1,h2,h3{font-weight:680;text-wrap:balance}.btn,.primary{border-radius:8px}.prim
 .mapArrow{margin-top:28px!important;height:1px!important;background:#34363d!important}.mapArrow:before{width:5px!important;height:5px!important;top:-2px!important;background:#6668ff!important}.mapArrow:after{width:6px!important;height:6px!important;top:-3px!important;border-color:#6668ff!important}
 .mapInspector{margin-top:2px!important;background:#111216;border:1px solid #25272c!important;border-radius:10px;padding:16px!important}.inspectGrid{gap:8px!important}.inspectCol{border:0!important;background:#17181d!important;border-radius:8px!important}.inspectMeta{padding:10px 2px 0}
 @media(max-width:900px){.mapArrow{width:1px!important;height:26px!important;margin:8px auto!important}.mapWorld{min-height:210px}}
+
+.mapPulse{display:flex;align-items:center;gap:4px;height:18px;margin-top:12px}.mapPulseDot{display:block;width:5px;height:5px;border-radius:50%;background:#50535b}.mapPulseDot.detail{background:#7779ff}.mapPulseDot.revision{width:9px;border-radius:3px;background:#d89555}.mapPulseDot.commit{width:7px;height:7px;background:#44a68b;box-shadow:0 0 0 3px rgba(68,166,139,.08)}
 </style><script src="challenge-packs.js"></script><script src="challenge-depth.js"></script>\n<script src="journey01-ui.js"></script>\n<script src="golden-study-bridge.js"></script></head>
 <body><div class="app"><header id="researchChrome" class="top hidden"><div class="row" style="margin:0"><span id="market" class="badge"></span><select id="locale"></select></div></header>
 <section id="intro" class="screen"><div class="hero"><div id="introEy" class="ey"></div><h1 id="introTitle"></h1><p id="introLead" class="lead"></p><button id="startBtn" class="primary"></button><p id="introHelp" class="help"></p><div id="introPath" class="worldPath"></div><div id="localeNote" class="localeNote"></div></div></section>
@@ -463,10 +465,14 @@ function mapWorldData(world){
   const revisions=S.events.filter(e=>e.type==='post_consequence_action'&&e.world===world).length;
   return {world,opened,details,missed,choice,choiceLabel:choiceLabel(world,choice),consequence:consequenceLabel(world,choice),revisions};
 }
+function eventSignature(world){
+  const types=['open_object','open_detail','post_consequence_action','commit'];
+  return S.events.filter(e=>e.world===world&&types.includes(e.type)).slice(0,20).map(e=>`<i class="mapPulseDot ${e.type==='open_detail'?'detail':e.type==='post_consequence_action'?'revision':e.type==='commit'?'commit':'open'}"></i>`).join('');
+}
 function renderDecisionMap(){
   const worlds=['shop','career','travel'],data=worlds.map(mapWorldData);
   $('shapeTitle').textContent=U.map.title;$('mapSub').textContent=U.map.sub;$('mapCount').textContent=U.map.stages;
-  $('journeyShape').innerHTML=data.map((d,i)=>`<button type="button" class="mapWorld ${i===0?'active':''}" data-world="${d.world}"><div class="mapOrb"><span>0${i+1}</span></div><h3>${d.world==='shop'?P.shop.brand:d.world==='career'?P.career.brand:P.travel.brand}</h3><div class="mapChoice">${d.choiceLabel}</div><div class="mapOutcome"><span class="ey">${U.map.consequence}</span><div>${d.consequence}</div></div><div class="mapStats"><span class="mapStat">${U.map.opened} · ${d.opened.length}</span><span class="mapStat">${U.map.details} · ${d.details.length}</span><span class="mapStat missed">${U.map.missed} · ${d.missed.length}</span></div></button>${i<2?'<div class="mapArrow"></div>':''}`).join('');
+  $('journeyShape').innerHTML=data.map((d,i)=>`<button type="button" class="mapWorld ${i===0?'active':''}" data-world="${d.world}"><div class="mapOrb"><span>0${i+1}</span></div><h3>${d.world==='shop'?P.shop.brand:d.world==='career'?P.career.brand:P.travel.brand}</h3><div class="mapChoice">${d.choiceLabel}</div><div class="mapPulse">${eventSignature(d.world)}</div><div class="mapOutcome"><span class="ey">${U.map.consequence}</span><div>${d.consequence}</div></div><div class="mapStats"><span class="mapStat">${U.map.opened} · ${d.opened.length}</span><span class="mapStat">${U.map.details} · ${d.details.length}</span><span class="mapStat missed">${U.map.missed} · ${d.missed.length}</span></div></button>${i<2?'<div class="mapArrow"></div>':''}`).join('');
   document.querySelectorAll('.mapWorld').forEach(b=>b.onclick=()=>inspectMapWorld(b.dataset.world));
   inspectMapWorld('shop');
 }
