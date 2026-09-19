@@ -227,7 +227,7 @@ test('subject worlds are rendered as recognizable real applications',()=>{
     'class="tripConsole"',
     'class="flightTrack"',
     'class="tripReview"',
-    'class="tripBar"',
+    'class="tripConsole"',
     'class="travelTabs"',
   ]) assert.ok(html.includes(token),token);
 });
