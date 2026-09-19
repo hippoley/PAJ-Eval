@@ -849,3 +849,55 @@ body[data-instrument^="pf0"] #done .trace{
   body[data-instrument^="pf0"] .workspace{border-radius:7px!important}
   body[data-instrument^="pf0"] .main{padding:20px!important}
 }
+
+
+/* unified participant shell */
+body[data-instrument^="pf0"]>.journeyShellBar{
+  height:48px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:16px;
+  padding:0 4px;
+  border-bottom:1px solid var(--paj-line-2);
+  color:#6f767f;
+  background:rgba(238,240,238,.96);
+  position:sticky;
+  top:0;
+  z-index:50;
+  backdrop-filter:blur(12px);
+}
+body[data-instrument^="pf0"]>.journeyShellBar a{
+  color:inherit;
+  text-decoration:none;
+}
+body[data-instrument^="pf0"] .journeyShellHome{
+  font:700 10px ui-monospace,monospace;
+  letter-spacing:.11em;
+  color:#30363d!important;
+}
+body[data-instrument^="pf0"] .journeyShellIndex{
+  font:10px ui-monospace,monospace;
+  letter-spacing:.09em;
+  color:#8b929a;
+}
+body[data-instrument^="pf0"] .journeyShellBack{
+  font-size:11px;
+  color:#747b83!important;
+}
+body[data-instrument^="pf0"] .journeyShellBack:hover,
+body[data-instrument^="pf0"] .journeyShellHome:hover{color:#171b20!important}
+body[data-instrument^="pf0"]>.app>.top{
+  display:none!important;
+}
+body[data-instrument^="pf0"] #intro.screen,
+body[data-instrument^="pf0"] #cue.screen,
+body[data-instrument^="pf0"] #transition.screen,
+body[data-instrument^="pf0"] #done.screen{
+  min-height:calc(100vh - 76px)!important;
+}
+@media(max-width:700px){
+  body[data-instrument^="pf0"]>.journeyShellBar{grid-template-columns:auto 1fr;padding:0 2px}
+  body[data-instrument^="pf0"] .journeyShellIndex{text-align:right}
+  body[data-instrument^="pf0"] .journeyShellBack{display:none}
+}
