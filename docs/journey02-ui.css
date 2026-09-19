@@ -18,3 +18,467 @@ body[data-instrument="pf02"][data-world="near"] .main{background:#f7f8f6!importa
 body[data-instrument="pf02"][data-world="far"] .main{background:#eef3ef!important}
 body[data-instrument="pf02"] .sceneChrome:after{content:"INCIDENT / FULFILLMENT / ENERGY";margin-left:auto;color:#8b929a;font:9px ui-monospace,monospace;letter-spacing:.08em}
 @media(max-width:800px){body[data-instrument="pf02"] .main{padding:19px!important}body[data-instrument="pf02"] .workspace{border-radius:7px!important}}
+
+
+/* High-fidelity Journey 02 product surfaces */
+body[data-instrument="pf02"]{
+  background:#eef0ee!important;
+  color:#15191e!important;
+}
+body[data-instrument="pf02"] .top{
+  min-height:48px!important;
+  margin-bottom:8px!important;
+  padding:0 2px!important;
+  border-bottom:1px solid #d8ddda!important;
+  color:#7a8189!important;
+}
+body[data-instrument="pf02"] .top select{
+  height:30px!important;
+  border:1px solid #d6dbd8!important;
+  border-radius:5px!important;
+  background:#fafbf9!important;
+  color:#5d646d!important;
+  padding:0 8px!important;
+}
+body[data-instrument="pf02"] #intro.screen{
+  min-height:calc(100vh - 72px)!important;
+  padding:54px 0 70px!important;
+}
+body[data-instrument="pf02"] #intro .progress{
+  width:min(430px,100%)!important;
+  gap:5px!important;
+  margin-top:28px!important;
+}
+body[data-instrument="pf02"] #intro .progress span{
+  height:2px!important;
+  border-radius:0!important;
+}
+body[data-instrument="pf02"] .nav{
+  padding:14px 10px 18px!important;
+}
+body[data-instrument="pf02"] .nav .brand{
+  padding:4px 8px 13px!important;
+  margin:0 0 4px!important;
+  font-size:10px!important;
+  letter-spacing:.1em!important;
+}
+body[data-instrument="pf02"] .nav button{
+  min-height:38px!important;
+  margin:1px 0!important;
+  padding:9px 10px!important;
+  border-radius:5px!important;
+  font-size:12px!important;
+}
+body[data-instrument="pf02"] .sceneChrome{
+  min-height:40px!important;
+  padding:0 0 10px!important;
+}
+
+/* shared operational state rail */
+body[data-instrument="pf02"] .signalStrip{
+  display:grid;
+  grid-template-columns:minmax(150px,1.2fr) repeat(3,minmax(86px,.55fr)) minmax(170px,1.2fr);
+  gap:0;
+  margin:17px 0 18px;
+  border:1px solid #d9ddda;
+  background:#fff;
+}
+body[data-instrument="pf02"] .signalStrip>div{
+  min-height:58px;
+  padding:10px 12px;
+  border-right:1px solid #e3e6e3;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+body[data-instrument="pf02"] .signalStrip>div:last-child{border-right:0}
+body[data-instrument="pf02"] .signalStrip span,
+body[data-instrument="pf02"] .signalStrip small{
+  display:block;
+  font:9px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#8a9199;
+}
+body[data-instrument="pf02"] .signalStrip b{
+  display:block;
+  margin-top:3px;
+  font-size:12px;
+  font-weight:680;
+  color:#283039;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body[data-instrument="pf02"] .signalIdentity{
+  position:relative;
+  padding-left:30px!important;
+}
+body[data-instrument="pf02"] .signalPulse{
+  position:absolute;
+  left:13px;
+  top:50%;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  transform:translateY(-50%);
+  background:#42a675;
+  box-shadow:0 0 0 4px rgba(66,166,117,.11);
+}
+body[data-instrument="pf02"] .signalAction.active b{color:#2f7154}
+
+/* action area becomes an operating control, not a survey */
+body[data-instrument="pf02"] .actionHeader{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:end;
+  margin-bottom:10px;
+}
+body[data-instrument="pf02"] .actionHeader h3{
+  margin:2px 0 0!important;
+  font-size:15px!important;
+  color:inherit!important;
+}
+body[data-instrument="pf02"] .actionHint{
+  font:9px ui-monospace,monospace;
+  letter-spacing:.07em;
+  color:#90969d;
+}
+body[data-instrument="pf02"] .actionGrid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  border:1px solid #d9ddda;
+  background:#fff;
+}
+body[data-instrument="pf02"] .actionGrid .worldAction{
+  width:100%;
+  min-height:58px!important;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0!important;
+  padding:12px 14px!important;
+  border:0!important;
+  border-right:1px solid #e2e5e2!important;
+  border-radius:0!important;
+  background:#fff!important;
+  text-align:left;
+  color:#303740!important;
+}
+body[data-instrument="pf02"] .actionGrid .worldAction:last-child{border-right:0!important}
+body[data-instrument="pf02"] .actionGrid .worldAction:hover{background:#f6f8f6!important}
+body[data-instrument="pf02"] .actionGrid .worldAction i{
+  font-style:normal;
+  color:#a2a8ae;
+}
+body[data-instrument="pf02"] .outcomePanel{
+  display:grid;
+  grid-template-columns:minmax(180px,.8fr) 28px minmax(280px,1.6fr);
+  align-items:center;
+  gap:12px;
+  border:1px solid #d9ddda;
+  background:#fff;
+  padding:14px 16px;
+}
+body[data-instrument="pf02"] .outcomePanel span{
+  display:block;
+  font:9px ui-monospace,monospace;
+  letter-spacing:.08em;
+  color:#8a9199;
+}
+body[data-instrument="pf02"] .outcomePanel b{
+  display:block;
+  margin-top:5px;
+  font-size:13px;
+  line-height:1.48;
+}
+body[data-instrument="pf02"] .outcomeArrow{
+  text-align:center;
+  color:#a4abb1;
+}
+body[data-instrument="pf02"] .outcomeResult{
+  padding-left:15px;
+  border-left:1px solid #e2e5e2;
+}
+body[data-instrument="pf02"] .postActionBar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+/* World 01 — production incident console */
+body[data-instrument="pf02"][data-world="seed"] .workspace{
+  grid-template-columns:174px minmax(0,1fr)!important;
+  border-color:#2a3038!important;
+  background:#11151a!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .nav{
+  background:#0d1014!important;
+  border-color:#252b33!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .nav .brand{color:#8d96a2!important}
+body[data-instrument="pf02"][data-world="seed"] .nav button{color:#8e98a4!important}
+body[data-instrument="pf02"][data-world="seed"] .nav button:hover{background:#171c22!important;color:#eef2f5!important}
+body[data-instrument="pf02"][data-world="seed"] .nav button.active{
+  background:#1d232b!important;
+  color:#fff!important;
+  box-shadow:inset 2px 0 0 #ef6c4f!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .main{color:#e8edf2!important}
+body[data-instrument="pf02"][data-world="seed"] h2{color:#f5f7f9!important}
+body[data-instrument="pf02"][data-world="seed"] .lead,
+body[data-instrument="pf02"][data-world="seed"] .meta,
+body[data-instrument="pf02"][data-world="seed"] .crumb{color:#8f98a4!important}
+body[data-instrument="pf02"][data-world="seed"] .sceneChrome{border-color:#2b323a!important}
+body[data-instrument="pf02"][data-world="seed"] .sceneIdentity b{color:#edf1f4!important}
+body[data-instrument="pf02"][data-world="seed"] .signalStrip{
+  border-color:#2b323a!important;
+  background:#151a20!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .signalStrip>div{border-color:#292f37!important}
+body[data-instrument="pf02"][data-world="seed"] .signalStrip b{color:#edf1f4}
+body[data-instrument="pf02"][data-world="seed"] .signalStrip span,
+body[data-instrument="pf02"][data-world="seed"] .signalStrip small{color:#808b97}
+body[data-instrument="pf02"][data-world="seed"] .metricGrid{
+  display:grid!important;
+  grid-template-columns:repeat(3,1fr)!important;
+  gap:0!important;
+  border:1px solid #2b323a;
+  margin-top:14px!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .metricGrid .card{
+  border:0!important;
+  border-right:1px solid #2b323a!important;
+  border-radius:0!important;
+  background:#151a20!important;
+  color:#e9edf1!important;
+  box-shadow:none!important;
+  padding:15px 16px!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .metricGrid .card:last-child{border-right:0!important}
+body[data-instrument="pf02"][data-world="seed"] .metric b{font-size:31px!important;color:#f6f8fa!important}
+body[data-instrument="pf02"][data-world="seed"] .spark{
+  height:150px!important;
+  padding:22px 12px 0!important;
+  margin:0!important;
+  border:1px solid #2b323a!important;
+  border-top:0!important;
+  background:#12171d!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .spark i{
+  background:#303945!important;
+  border-radius:1px 1px 0 0!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .spark i:last-child{background:#ef6c4f!important}
+body[data-instrument="pf02"][data-world="seed"] .card,
+body[data-instrument="pf02"][data-world="seed"] .panel{
+  background:#151a20!important;
+  border-color:#2b323a!important;
+  color:#dfe5eb!important;
+  border-radius:6px!important;
+  box-shadow:none!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .table th,
+body[data-instrument="pf02"][data-world="seed"] .table td{border-color:#2b323a!important;color:#c9d0d8!important}
+body[data-instrument="pf02"][data-world="seed"] .link{color:#aeb8c4!important}
+body[data-instrument="pf02"][data-world="seed"] .log{
+  border-radius:5px!important;
+  background:#0d1014!important;
+  border:1px solid #2b323a!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .actions{border-color:#2b323a!important}
+body[data-instrument="pf02"][data-world="seed"] .actionHeader h3{color:#eef2f5!important}
+body[data-instrument="pf02"][data-world="seed"] .actionGrid,
+body[data-instrument="pf02"][data-world="seed"] .outcomePanel{
+  border-color:#2b323a!important;
+  background:#151a20!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .actionGrid .worldAction{
+  background:#151a20!important;
+  color:#e5eaf0!important;
+  border-color:#2b323a!important;
+}
+body[data-instrument="pf02"][data-world="seed"] .actionGrid .worldAction:hover{background:#1c222a!important}
+body[data-instrument="pf02"][data-world="seed"] .outcomePanel{color:#e6ebef!important}
+body[data-instrument="pf02"][data-world="seed"] .outcomeResult{border-color:#2b323a!important}
+body[data-instrument="pf02"][data-world="seed"] .postActionBar .btn{
+  background:#171c22!important;
+  border-color:#343c46!important;
+  color:#e8edf2!important;
+}
+
+/* World 02 — fulfillment network */
+body[data-instrument="pf02"][data-world="near"] .workspace{
+  grid-template-columns:196px minmax(0,1fr)!important;
+  background:#f7f8f6!important;
+}
+body[data-instrument="pf02"][data-world="near"] .nav{
+  background:#f0f2ef!important;
+  border-color:#d9ded9!important;
+}
+body[data-instrument="pf02"][data-world="near"] .nav .brand{color:#6d756f!important}
+body[data-instrument="pf02"][data-world="near"] .nav button{color:#6c746e!important}
+body[data-instrument="pf02"][data-world="near"] .nav button.active{
+  background:#e3e8e3!important;
+  color:#25342a!important;
+  box-shadow:inset 2px 0 0 #4a8b62!important;
+}
+body[data-instrument="pf02"][data-world="near"] .signalPulse{background:#d58a43;box-shadow:0 0 0 4px rgba(213,138,67,.1)}
+body[data-instrument="pf02"][data-world="near"] .metricGrid{
+  grid-template-columns:1.3fr .85fr .85fr!important;
+  gap:0!important;
+  border-top:1px solid #dce1dd;
+  border-bottom:1px solid #dce1dd;
+}
+body[data-instrument="pf02"][data-world="near"] .metricGrid .card{
+  border:0!important;
+  border-right:1px solid #dce1dd!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:16px 12px!important;
+}
+body[data-instrument="pf02"][data-world="near"] .metricGrid .card:last-child{border-right:0!important}
+body[data-instrument="pf02"][data-world="near"] .metric b{font-size:30px!important}
+body[data-instrument="pf02"][data-world="near"] .spark{
+  height:124px!important;
+  padding:16px 0 0!important;
+  border-bottom:1px solid #dce1dd;
+}
+body[data-instrument="pf02"][data-world="near"] .spark i{
+  background:#cad7cd!important;
+  border-radius:1px!important;
+}
+body[data-instrument="pf02"][data-world="near"] .spark i:last-child{background:#d58a43!important}
+body[data-instrument="pf02"][data-world="near"] .card,
+body[data-instrument="pf02"][data-world="near"] .panel{
+  border-radius:6px!important;
+  box-shadow:none!important;
+}
+body[data-instrument="pf02"][data-world="near"] .table tr:hover td{background:#f3f6f2}
+body[data-instrument="pf02"][data-world="near"] .actionGrid,
+body[data-instrument="pf02"][data-world="near"] .outcomePanel{border-color:#d7ddd8!important}
+
+/* World 03 — energy operations */
+body[data-instrument="pf02"][data-world="far"] .workspace{
+  grid-template-columns:164px minmax(0,1fr)!important;
+  background:#eef3ef!important;
+}
+body[data-instrument="pf02"][data-world="far"] .nav{
+  background:#e6ece7!important;
+  border-color:#d3ddd5!important;
+}
+body[data-instrument="pf02"][data-world="far"] .nav .brand{color:#66746a!important}
+body[data-instrument="pf02"][data-world="far"] .nav button{color:#67736a!important}
+body[data-instrument="pf02"][data-world="far"] .nav button.active{
+  background:#d8e4da!important;
+  color:#20402a!important;
+  box-shadow:inset 2px 0 0 #3f8b5e!important;
+}
+body[data-instrument="pf02"][data-world="far"] .signalStrip{
+  border-color:#d3ddd5!important;
+  background:#f8fbf8!important;
+}
+body[data-instrument="pf02"][data-world="far"] .signalPulse{background:#4b9969}
+body[data-instrument="pf02"][data-world="far"] .metricGrid{
+  display:flex!important;
+  gap:28px!important;
+  border-bottom:1px solid #d4ddd6;
+  padding:0 0 17px!important;
+}
+body[data-instrument="pf02"][data-world="far"] .metricGrid .card{
+  flex:1;
+  border:0!important;
+  border-radius:0!important;
+  padding:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body[data-instrument="pf02"][data-world="far"] .metric b{
+  margin-top:4px;
+  font-size:34px!important;
+  color:#315b3f!important;
+}
+body[data-instrument="pf02"][data-world="far"] .spark{
+  height:160px!important;
+  padding:22px 0 0!important;
+  border-bottom:1px solid #d4ddd6;
+}
+body[data-instrument="pf02"][data-world="far"] .spark i{
+  background:#bed0c2!important;
+  border-radius:1px!important;
+}
+body[data-instrument="pf02"][data-world="far"] .spark i:last-child{background:#4b9969!important}
+body[data-instrument="pf02"][data-world="far"] .card,
+body[data-instrument="pf02"][data-world="far"] .panel{
+  border-radius:6px!important;
+  box-shadow:none!important;
+  background:#f9fbf9!important;
+  border-color:#d4ddd6!important;
+}
+
+/* Journey transition: one sentence, strong rhythm */
+body[data-instrument="pf02"] #cue.screen{
+  min-height:calc(100vh - 72px)!important;
+}
+body[data-instrument="pf02"] #cue .moment{
+  width:min(760px,100%)!important;
+  padding:38px 40px!important;
+  border:1px solid #272c33!important;
+  border-radius:8px!important;
+  background:#171b20!important;
+  color:#f1f4f6!important;
+  box-shadow:0 24px 64px rgba(20,24,29,.13)!important;
+}
+body[data-instrument="pf02"] #cue .ey{color:#8d96a1!important}
+body[data-instrument="pf02"] #cue .signal{
+  margin:16px 0 28px!important;
+  font-family:Inter,"Noto Sans SC",system-ui,sans-serif!important;
+  font-size:clamp(25px,3.2vw,35px)!important;
+  line-height:1.28!important;
+  letter-spacing:-.035em!important;
+  color:#f5f7f9!important;
+}
+body[data-instrument="pf02"] #cue .primary{
+  background:#f4f6f7!important;
+  border-color:#f4f6f7!important;
+  color:#171b20!important;
+  -webkit-text-fill-color:#171b20!important;
+}
+body[data-instrument="pf02"] #cue .progress span{height:2px!important;border-radius:0!important}
+
+/* result screen */
+body[data-instrument="pf02"] #done.screen{
+  align-items:flex-start!important;
+  padding:54px 0 68px!important;
+}
+body[data-instrument="pf02"] #done>div{max-width:1040px;margin:auto!important}
+body[data-instrument="pf02"] #done h1{
+  font-size:clamp(42px,5.5vw,62px)!important;
+  letter-spacing:-.05em!important;
+}
+body[data-instrument="pf02"] #done .summary{
+  grid-template-columns:1.2fr .8fr!important;
+  margin-top:26px!important;
+}
+body[data-instrument="pf02"] #done .card{
+  border-radius:7px!important;
+  box-shadow:none!important;
+}
+body[data-instrument="pf02"] #done .row>.primary{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+}
+@media(max-width:880px){
+  body[data-instrument="pf02"] .signalStrip{grid-template-columns:1fr 1fr}
+  body[data-instrument="pf02"] .signalStrip>div{border-bottom:1px solid #e3e6e3}
+  body[data-instrument="pf02"] .actionGrid{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .actionGrid .worldAction{border-right:0!important;border-bottom:1px solid #e2e5e2!important}
+  body[data-instrument="pf02"] .actionGrid .worldAction:last-child{border-bottom:0!important}
+  body[data-instrument="pf02"] .outcomePanel{grid-template-columns:1fr}
+  body[data-instrument="pf02"] .outcomeArrow{display:none}
+  body[data-instrument="pf02"] .outcomeResult{padding-left:0;border-left:0;padding-top:10px;border-top:1px solid #e2e5e2}
+}
