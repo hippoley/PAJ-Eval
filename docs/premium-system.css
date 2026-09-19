@@ -528,3 +528,27 @@ body[data-instrument="pf07"] .scheduleRow.selected{background:#f5f1ea;padding-le
 body[data-instrument="pf07"] .planArtifact{transition:background .12s ease,padding-left .12s ease}
 body[data-instrument="pf07"] .artifactDetail{margin-top:14px}
 body[data-instrument="pf07"] .artifactDetail b{display:block;margin-top:4px;font-size:14px}
+
+/* --- Playable probe loop: J04–J08 --- */
+.probeDock{display:grid;grid-template-columns:auto 24px auto 24px auto;gap:8px;align-items:center;margin:4px 0 18px;padding:9px 0;border-top:1px solid #dfe2de;border-bottom:1px solid #dfe2de}
+.probeDock>div{min-width:110px}.probeDock span{display:block;font:9px ui-monospace,monospace;letter-spacing:.08em;color:#8a9199}.probeDock b{display:block;margin-top:2px;font-size:12px;font-weight:650;color:#343a41}.probeDock>i{height:1px;background:#dfe2de}.probeDock .live b{color:#2c7657}
+body[data-instrument="pf04"][data-world="seed"] .probeDock{border-color:#2c333c}.triageDock .live b{color:#d76b4d}
+body[data-instrument="pf04"][data-world="seed"] .probeDock span{color:#87919d}
+body[data-instrument="pf04"][data-world="seed"] .probeDock b{color:#e8edf2}
+body[data-instrument="pf04"][data-world="seed"] .probeDock>i{background:#2c333c}
+
+.experimentOutcome{margin:12px 0;padding:14px;border:1px solid #dfe2dd;background:#f8faf7}
+.shiftBars{display:grid;gap:8px;margin-top:10px}.shiftBars>div{display:grid;grid-template-columns:64px 1fr 28px;gap:8px;align-items:center}.shiftBars span,.shiftBars em{font:9px ui-monospace,monospace;color:#858c94;font-style:normal}.shiftBars i{height:5px;background:#e5e8e3;overflow:hidden}.shiftBars b{display:block;height:100%;background:#5b7e68;transition:width .3s ease}
+body[data-instrument="pf05"][data-world="near"] .experimentOutcome{background:#151a20;border-color:#2b323b}.shiftBars i{border-radius:1px}
+body[data-instrument="pf05"][data-world="near"] .shiftBars i{background:#29313a}.shiftBars b{border-radius:1px}
+
+.recoveryRail.urgent .recoveryNow b{color:#b46d3f}.recoveryRail.urgent .recoveryTrack i{background:#d78a55}.recoveryRail.critical .recoveryNow b{color:#a94437}.recoveryRail.critical .recoveryTrack i{background:#b94c3f}.recoveryRail.urgent{animation:windowPulse .5s ease}@keyframes windowPulse{from{background:#fff4e8}to{background:transparent}}
+
+.decisionDiff{display:grid;grid-template-columns:auto minmax(0,1fr) 24px auto minmax(0,1.25fr);gap:9px;align-items:center;margin:4px 0 12px;padding:13px;border:1px solid #dde0dc;background:#fafbf9}
+.decisionDiff span{font:9px ui-monospace,monospace;color:#858c94;letter-spacing:.08em}.decisionDiff b{font-size:12px;font-weight:620;line-height:1.45}.decisionDiff i{font-style:normal;color:#a0a6ad;text-align:center}
+body[data-instrument="pf07"][data-world="near"] .decisionDiff{background:#f4f7f9;border-color:#d8dee4}
+body[data-instrument="pf07"][data-world="far"] .decisionDiff{background:#f7f3ec;border-color:#ddd6ca}
+
+body[data-instrument="pf08"] .relationStrip{display:grid!important;grid-template-columns:210px minmax(0,1fr)!important;align-items:center;gap:12px!important}
+.relationGraph{display:grid;grid-template-columns:auto 10px 28px 10px 28px;align-items:center;gap:5px}.relationGraph b{font-size:9px;letter-spacing:.08em;color:#8a9199}.relationNode{width:9px;height:9px;border:1px solid #c8ceca;border-radius:50%;background:#fff}.relationNode.on{background:#3f8a67;border-color:#3f8a67;box-shadow:0 0 0 3px rgba(63,138,103,.08)}.relationGraph em{height:1px;background:#d7ddd9}.relationLinks{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:800px){.probeDock,.decisionDiff{grid-template-columns:1fr!important}.probeDock>i,.decisionDiff>i{display:none}body[data-instrument="pf08"] .relationStrip{grid-template-columns:1fr!important}}
