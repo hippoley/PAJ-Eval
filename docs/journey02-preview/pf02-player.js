@@ -63,6 +63,81 @@ function scheduleBoard(w){
 function randomIndex(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}
 function shuffled(items){const out=[...items];for(let i=out.length-1;i>0;i--){const j=randomIndex(i+1);[out[i],out[j]]=[out[j],out[i]]}return out}
 function actionKeys(world){return world==='seed'?['rollback','repin','hold']:world==='near'?['rollback','reroute','hold']:['revert','schedule','hold']}
+function actionMeaning(world,key){
+  const zh=locale.startsWith('zh');
+  const map={
+    seed:{
+      rollback:zh?['回退发布','把整个线上版本退回上一版','影响范围大，但动作直接','可能同时撤回无关改动']:['Rollback release','Return the whole production release to the previous version','Broad but direct','May revert unrelated changes too'],
+      repin:zh?['固定 serving','只把异常流量重新固定到稳定 pool','改动更局部','如果判断错因，症状可能继续']:['Repin serving','Move anomalous traffic back to the stable serving pool only','More targeted','If the diagnosis is wrong, degradation may remain'],
+      hold:zh?['继续观察','暂时不改系统，继续收集证据','不会引入新变化','现场压力会继续累积']:['Hold','Do not mutate the system yet; keep gathering evidence','Introduces no new change','Operational pressure continues to rise']
+    },
+    near:{
+      rollback:zh?['回退网络变更','撤销最近一次履约配置调整','可以快速恢复旧路径','可能重新引入旧瓶颈']:['Rollback network change','Undo the latest fulfillment configuration change','Quickly restores old paths','May reintroduce the previous bottleneck'],
+      reroute:zh?['局部改道','只把受影响区域切到替代节点','影响更聚焦','替代线路容量有限']:['Reroute','Move only affected regions onto alternate capacity','Localized intervention','Alternate capacity is limited'],
+      hold:zh?['保持现状','不立即改路径，继续观察积压','避免错误改道','晚到订单会继续累积']:['Hold','Keep routes unchanged while observing backlog','Avoids a premature reroute','Late orders keep accumulating']
+    },
+    far:{
+      revert:zh?['恢复默认控制','撤销最近的控制策略变化','快速回到已知基线','可能牺牲个性化控制']:['Revert control','Undo the most recent control-policy change','Returns to a known baseline','May sacrifice personalization'],
+      schedule:zh?['调整时段','只改高负荷房间的运行窗口','影响最局部','收益依赖异常是否与时段有关']:['Reschedule','Change only the operating window for the high-load room','Most localized change','Benefit depends on whether timing is causal'],
+      hold:zh?['继续观察','不改变设备状态','保留当前现场','异常能耗继续存在']:['Hold','Leave device state unchanged','Preserves the current scene','Elevated consumption continues']
+    }
+  };
+  return map[world][key];
+}
+function evidenceSummary(world){
+  const count=S.detail[world].length;
+  const last=S.detail[world][S.detail[world].length-1];
+  const zh=locale.startsWith('zh');
+  if(!count)return zh?'你还没有打开深入证据。这个动作主要基于当前概览。':'You have not opened deep evidence yet; this action is based mostly on the overview.';
+  return zh?`你已经深入查看 ${count} 个证据点，最近一个是 ${last}。`:`You opened ${count} deep evidence item(s); the latest was ${last}.`;
+}
+function decisionCard(world,key){
+  const w=P[world],m=actionMeaning(world,key),zh=locale.startsWith('zh');
+  return `<button class="decisionCard worldAction" data-a="${key}">
+    <div class="decisionCardTop"><span class="decisionKey">${key.toUpperCase()}</span><b>${w.actions[key]}</b></div>
+    <p class="decisionIntent">${m[1]}</p>
+    <div class="decisionMeta">
+      <div><span>${zh?'你在改变什么':'CHANGES'}</span><b>${m[0]}</b></div>
+      <div><span>${zh?'直接收益':'UPSIDE'}</span><b>${m[2]}</b></div>
+      <div><span>${zh?'主要风险':'RISK'}</span><b>${m[3]}</b></div>
+    </div>
+    <div class="decisionEvidence"><span>${zh?'基于当前证据':'EVIDENCE BASIS'}</span><small>${evidenceSummary(world)}</small></div>
+    <i>→</i>
+  </button>`;
+}
+function stateBefore(world){
+  if(world==='seed')return {primary:P.seed.metrics?.[0]?.[1]||'—',secondary:'B 18%',status:'MISMATCH'};
+  if(world==='near')return {primary:P.near.metrics?.[0]?.[1]||'—',secondary:'east route',status:'DEGRADED'};
+  return {primary:P.far.metrics?.[0]?.[1]||'—',secondary:'night baseline',status:'ELEVATED'};
+}
+function stateAfter(world,a){
+  if(world==='seed'){
+    if(a==='repin')return {primary:'−3.2%',secondary:'B 0%',status:'STABILIZING'};
+    if(a==='rollback')return {primary:'−5.4%',secondary:'release reverted',status:'PARTIAL'};
+    return {primary:'−7.1%',secondary:'B 18%',status:'UNCHANGED'};
+  }
+  if(world==='near'){
+    if(a==='reroute')return {primary:'+5.8%',secondary:'alt route active',status:'RECOVERING'};
+    if(a==='rollback')return {primary:'+6.7%',secondary:'old route restored',status:'PARTIAL'};
+    return {primary:'+10.1%',secondary:'backlog rising',status:'WORSENING'};
+  }
+  if(a==='revert')return {primary:'+11%',secondary:'baseline falling',status:'RECOVERING'};
+  if(a==='schedule')return {primary:'+14%',secondary:'peak shifted',status:'IMPROVING'};
+  return {primary:'+22%',secondary:'baseline unchanged',status:'UNCHANGED'};
+}
+function decisionDiff(world,a){
+  const before=stateBefore(world),after=stateAfter(world,a),zh=locale.startsWith('zh');
+  const m=actionMeaning(world,a);
+  return `<div class="decisionDiff">
+    <div class="diffHead"><span>${zh?'你刚刚改变了什么':'WHAT YOUR CHOICE CHANGED'}</span><b>${P[world].actions[a]}</b></div>
+    <div class="diffGrid">
+      <div class="diffSide before"><span>${zh?'选择前':'BEFORE'}</span><strong>${before.primary}</strong><small>${before.secondary}</small><em>${before.status}</em></div>
+      <div class="diffArrow">→</div>
+      <div class="diffSide after"><span>${zh?'选择后':'AFTER'}</span><strong>${after.primary}</strong><small>${after.secondary}</small><em>${after.status}</em></div>
+    </div>
+    <div class="diffWhy"><span>${zh?'为什么会这样':'WHY THIS MOVED'}</span><p>${m[1]}。 ${P[world].consequence[a]}</p></div>
+  </div>`;
+}
 function resetActionOrders(){for(const world of ['seed','near','far'])S.actionOrder[world]=shuffled(actionKeys(world))}
 function worldMode(world){return world==='seed'?'INCIDENT':world==='near'?'NETWORK':'ENERGY'}
 function uiCopy(){
@@ -254,7 +329,7 @@ function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(worl
 function renderSeed(i){const w=P.seed,c=$('seedContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('seed')}${metrics(w.metrics)}${spark()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${sliceBoard(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${generationSurface(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${corpusBoard(w)}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${releaseRail(w)}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${requestBoard(w)}`;document.querySelectorAll('.seedSlice').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','slice_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>SLICE ${String(j+1).padStart(2,'0')}</span><h4>${w.slices[j][0]}</h4><div><b>${w.slices[j][1]}</b><small>${w.sliceCols[1]}</small><b>${w.slices[j][2]}</b><small>${w.sliceCols[2]}</small></div></div>`});document.querySelectorAll('.seedReq').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','request_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>REQUEST SAMPLE</span><h4>${w.requests[j][0]}</h4><div><b>${w.requests[j][1]}</b><small>segment</small><b>${w.requests[j][2]}</b><small>serving</small></div></div>`});if($('compareGen'))$('compareGen').onclick=()=>{markDetail('seed','serving_generation_compare');$('genDetail').innerHTML=`<div class="notice"><b>${w.generation.traffic}</b><p>${w.generation.detail}</p></div>`}}
 function renderNear(i){const w=P.near,c=$('nearContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('near')}${metrics(w.metrics)}${spark([83,84,85,84,82,72,69])}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${fulfillmentSurface(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${carrierBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('ROUTE CONDITIONS',w.routes,'routeContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('WEATHER WINDOW',w.weather,'weatherContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${cityBoard(w)}`;document.querySelectorAll('.nearScan').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','scan_'+j);$('nearDetail').innerHTML=`<div class="notice">${w.nested.scan}: ${w.depots[j].join(' · ')}</div>`});document.querySelectorAll('.nearCity').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','city_'+j);$('nearDetail').innerHTML=`<div class="detailDrawer light"><span>REGION DETAIL</span><h4>${w.cities[j][0]}</h4><div><b>${w.cities[j][1]}</b><small>delay</small><b>${w.cities[j][2]}</b><small>depot</small></div></div>`})}
 function renderFar(i){const w=P.far,c=$('farContent');if(i===0)c.innerHTML=`<h2>${w.title}</h2><p class="lead">${w.status}</p>${signalStrip('far')}${metrics(w.metrics)}<div class="energyRoomTabs">${w.schedules.map((r,i)=>`<button class="energyRoom ${(S.selection.far||0)===i?'selected':''}" data-j="${i}"><b>${r[0]}</b><span>${r[1]}</span></button>`).join('')}</div>${energyTimeline()}<button id="interval" class="btn intervalBtn">${w.nested.interval}</button><div id="farDetail"></div>`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${contextPanel('OUTDOOR CONDITIONS',w.weather,'energyContext')}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${scheduleBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('THERMOSTAT FIRMWARE',w.firmware,'firmwareContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('OCCUPANCY',w.occupancy,'occupancyContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${contextPanel('TARIFF',w.tariff,'tariffContext')}`;if($('interval'))$('interval').onclick=()=>{markDetail('far','interval_15m');$('farDetail').innerHTML='<div class="intervalDetail"><span>00:00</span><b>1.0</b><span>00:15</span><b>1.1</b><span>00:30</span><b>1.2</b><span>00:45</span><b>1.2</b><span>01:00</span><b>1.3</b></div>'};document.querySelectorAll('.farRoom').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('far','room_'+j);$('farDetail').innerHTML=`<div class="detailDrawer light"><span>ROOM DETAIL</span><h4>${w.schedules[j][0]}</h4><p>${w.schedules[j][1]}</p></div>`})}
-function renderActions(world){const w=P[world],el=$(world+'Actions'),a=S.action[world];if(!a){const order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world);el.innerHTML=`<div class="actionHeader"><div><span class="meta">NEXT MOVE</span><h3>${w.actions.title}</h3></div><span class="actionHint">${S.detail[world].length} deep checks</span></div><div class="actionGrid">${order.map(key=>`<button class="btn worldAction" data-a="${key}"><span>${w.actions[key]}</span><i>→</i></button>`).join('')}</div>`;el.querySelectorAll('.worldAction').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));return}const post=w.post;el.innerHTML=`${outcomePanel(world,a)}<div class="postActionBar"><button class="btn inspectCurrent">${post.inspect}</button><button class="btn switchAction">${post.switch}</button><button class="primary commitWorld">${post.commit}</button></div>`;const ins=el.querySelector('.inspectCurrent'),sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');ins.onclick=()=>{log('post_consequence_action',{world,action:'inspect_more',after:a});const target=world==='seed'?2:world==='near'?5:0;renderWorld(world,target,true)};sw.onclick=()=>{log('post_consequence_action',{world,action:'switch_mitigation',from:a});S.action[world]=null;S.worldState[world]={};bumpPressure(world,4,'switch_mitigation');delete document.body.dataset.action;refreshSignal(world);refreshMissionHud(world);if(world==='seed'&&S.view.seed===2)renderSeed(2);if(world==='near'&&S.view.near===1)renderNear(1);if(world==='far'&&S.view.far===0)renderFar(0);renderActions(world);bindWorldMicroInteractions(world)};co.onclick=()=>commitWorld(world)}
+function renderActions(world){const w=P[world],el=$(world+'Actions'),a=S.action[world];if(!a){const order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world),zh=locale.startsWith('zh');el.innerHTML=`<div class="actionHeader"><div><span class="meta">${zh?'做一个现场决策':'MAKE A FIELD DECISION'}</span><h3>${w.actions.title}</h3><p class="actionExplain">${zh?'每个选项都在改变不同的对象。先看清它会改什么，再决定。':'Each option changes a different part of the system. Read what moves before choosing.'}</p></div><span class="actionHint">${S.detail[world].length} deep checks</span></div><div class="decisionGrid">${order.map(key=>decisionCard(world,key)).join('')}</div>`;el.querySelectorAll('.worldAction').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));return}const post=w.post;el.innerHTML=`${decisionDiff(world,a)}${outcomePanel(world,a)}<div class="postActionBar"><button class="btn inspectCurrent">${post.inspect}</button><button class="btn switchAction">${post.switch}</button><button class="primary commitWorld">${post.commit}</button></div>`;const ins=el.querySelector('.inspectCurrent'),sw=el.querySelector('.switchAction'),co=el.querySelector('.commitWorld');ins.onclick=()=>{log('post_consequence_action',{world,action:'inspect_more',after:a});const target=world==='seed'?2:world==='near'?5:0;renderWorld(world,target,true)};sw.onclick=()=>{log('post_consequence_action',{world,action:'switch_mitigation',from:a});S.action[world]=null;S.worldState[world]={};bumpPressure(world,4,'switch_mitigation');delete document.body.dataset.action;refreshSignal(world);refreshMissionHud(world);if(world==='seed'&&S.view.seed===2)renderSeed(2);if(world==='near'&&S.view.near===1)renderNear(1);if(world==='far'&&S.view.far===0)renderFar(0);renderActions(world);bindWorldMicroInteractions(world)};co.onclick=()=>commitWorld(world)}
 function takeAction(world,a){
   S.action[world]=a;document.body.dataset.action=a;
   const w=P[world],state=S.worldState[world]||{};
