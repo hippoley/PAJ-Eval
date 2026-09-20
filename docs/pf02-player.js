@@ -164,11 +164,40 @@ function bindHomeParallax(){
     world.style.setProperty('--my','0px');
   };
 }
+function explainHomeObject(key){
+  const zh=locale.startsWith('zh');
+  const map={
+    room_kitchen:zh
+      ? {title:'厨房为什么最重要',text:'你明确说了“留一点”，而且正在做饭。这里既有人的意图，也有现实通风需求，是当前最直接的冲突点。',tag:'DIRECT CONFLICT'}
+      : {title:'Why the kitchen matters',text:'You explicitly asked to leave it open, and cooking creates a real ventilation need. Human intent and physical need meet here.',tag:'DIRECT CONFLICT'},
+    room_living:zh
+      ? {title:'客厅为什么先不动',text:'客厅是共同空间，室友的“下雨就关”在这里仍然有效。现在动它会把一个局部冲突扩大成共同空间争议。',tag:'SHARED AUTHORITY'}
+      : {title:'Why not the living room',text:'The living room is shared space and your housemate’s rain rule still applies. Changing it would widen a localized conflict.',tag:'SHARED AUTHORITY'},
+    room_bedroom:zh
+      ? {title:'客房为什么不能替他决定',text:'留宿朋友没有授权 Agent 自动开窗。这里不是“偏好弱”，而是明确的权限边界。',tag:'NO AUTHORITY'}
+      : {title:'Why not the guest room',text:'The guest has not authorized automatic opening. This is an authority boundary, not a weak preference.',tag:'NO AUTHORITY'}
+  };
+  return map[key]||null;
+}
+function showHomeEvidence(key){
+  const info=explainHomeObject(key); if(!info)return;
+  document.querySelectorAll('.room3d').forEach(x=>x.classList.toggle('inspected',x.dataset.clue===key));
+  const rail=document.querySelector('.homeDecisionRail'); if(!rail)return;
+  let focus=rail.querySelector('.railFocus');
+  if(!focus){
+    focus=document.createElement('div');
+    focus.className='railFocus';
+    const evidence=rail.querySelector('.railEvidence');
+    rail.insertBefore(focus,evidence);
+  }
+  focus.innerHTML=`<span>${info.tag}</span><b>${info.title}</b><p>${info.text}</p>`;
+}
 function bindSceneInteractions(world){
   document.querySelectorAll('[data-clue],.sceneInspect').forEach(el=>el.onclick=()=>{
     const key=el.dataset.clue||el.dataset.key||'scene_object';
     markDetail(world,key);
     el.classList.add('inspected');
+    if(world==='seed')showHomeEvidence(key);
   });
 }
 function randomIndex(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}
