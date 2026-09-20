@@ -580,10 +580,31 @@ function homeLiveScene(){
         <small>${conflict} ${zh?'个冲突未解决':'unresolved conflicts'}</small>
       </header>
 
-      <div class="homeWorld" id="homeWorld">
-        <div class="homeWorldBackdrop"></div>
-        <div class="rainWindowGlow"></div>
-        <div class="floorGlow"></div>
+      <div class="realHomeViewer" aria-label="${zh?'真实 3D 公寓场景':'Real 3D apartment scene'}">
+        <iframe
+          class="realHomeFrame"
+          title="${zh?'Modern Apartment 3D 模型':'Modern Apartment 3D model'}"
+          src="https://sketchfab.com/models/1fbb649cd6624f2bb7b7d6e30c6533a5/embed?autostart=1&ui_infos=0&ui_help=0&ui_settings=0&ui_inspector=0&ui_vr=0&ui_fullscreen=1"
+          allow="autoplay; fullscreen; xr-spatial-tracking"
+          allowfullscreen
+          loading="eager"></iframe>
+        <div class="realHomeChrome">
+          <span>${zh?'真实 3D 公寓 · 可拖动探索':'REAL 3D APARTMENT · DRAG TO EXPLORE'}</span>
+          <small>${zh?'模型：':'Model: '}<a href="https://sketchfab.com/3d-models/modern-apartment-1fbb649cd6624f2bb7b7d6e30c6533a5" target="_blank" rel="noopener">Visthétique · CC BY</a></small>
+        </div>
+        <button class="viewerConflictCue" data-clue="room_kitchen">
+          <span class="hotspotPulse"></span>
+          <b>${resolved?(zh?'厨房状态已改变':'KITCHEN UPDATED'):(zh?'当前冲突在厨房':'CURRENT CONFLICT · KITCHEN')}</b>
+          <small>${resolved?(zh?'窗户 '+kitchen:'Window '+kitchen):(zh?'你的“留一点”没有生效':'Your request did not apply')}</small>
+        </button>
+      </div>
+
+      <details class="sceneFallback">
+        <summary>${zh?'打开结构视图':'Open structural view'}</summary>
+        <div class="homeWorld" id="homeWorld">
+          <div class="homeWorldBackdrop"></div>
+          <div class="rainWindowGlow"></div>
+          <div class="floorGlow"></div>
 
         <button class="room3d livingRoom" data-clue="room_living">
           <span>${zh?'客厅':'LIVING'}</span>
@@ -617,7 +638,8 @@ function homeLiveScene(){
           <b>${resolved?(zh?'刚刚改变了这里':'CHANGED HERE'):(zh?'先看这里':'LOOK HERE')}</b>
           <small>${resolved?(zh?'厨房窗 '+kitchen:'Kitchen '+kitchen):(zh?'你的“留一点”没有生效':'your “leave it open” did not apply')}</small>
         </button>
-      </div>
+        </div>
+      </details>
     </div>
 
     <aside class="homeDecisionRail">
