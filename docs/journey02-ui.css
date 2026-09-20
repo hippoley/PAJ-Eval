@@ -1026,3 +1026,35 @@ body[data-instrument="pf02"] .curtainShape{
     display:block;
   }
 }
+
+
+/* room exploration feedback */
+body[data-instrument="pf02"] .room3d.inspected{
+  border-color:#d7a17f;
+  box-shadow:0 0 0 1px rgba(215,161,127,.28),0 24px 48px rgba(25,19,14,.20);
+}
+body[data-instrument="pf02"] .railFocus{
+  margin-top:16px;
+  padding:12px 13px;
+  border:1px solid #d8cbbb;
+  border-radius:10px;
+  background:#fffaf3;
+}
+body[data-instrument="pf02"] .railFocus>span{
+  display:block;
+  color:#9a806f;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .railFocus>b{
+  display:block;
+  margin-top:5px;
+  color:#3c3732;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .railFocus>p{
+  margin:5px 0 0;
+  color:#696058;
+  font-size:10px;
+  line-height:1.5;
+}
