@@ -155,21 +155,21 @@ body[data-instrument="pf02"] .nightHeader small{
 
 /* Act 1 — shared home */
 body[data-instrument="pf02"][data-world="seed"]{
-  background:#0f1316!important;
+  background:#e8e1d6!important;
 }
 body[data-instrument="pf02"][data-world="seed"] .top select{
-  border-color:#2a3137!important;
-  background:#171c20!important;
-  color:#a0a9af!important;
+  border-color:#d4cbc0!important;
+  background:#f7f2ea!important;
+  color:#6f665f!important;
 }
 body[data-instrument="pf02"][data-world="seed"] .homeScene{
-  border-color:#30373d;
-  background:#13181c;
-  box-shadow:0 28px 70px rgba(0,0,0,.30);
+  border-color:#cfc4b8;
+  background:#2a2825;
+  box-shadow:0 28px 70px rgba(77,58,39,.16);
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline{
-  border-color:#2d343a;
-  background:#171c20;
+  border-color:#4a433d;
+  background:#332f2b;
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline>div{
   display:flex;
@@ -197,16 +197,16 @@ body[data-instrument="pf02"] .homeWorld{
   overflow:hidden;
   perspective:1100px;
   background:
-    linear-gradient(180deg,#182028 0%,#101519 62%,#0d1114 100%);
+    linear-gradient(180deg,#5b5d5d 0%,#403d39 24%,#2f2a25 68%,#29231f 100%);
 }
 body[data-instrument="pf02"] .homeWorldBackdrop{
   position:absolute;
   inset:28px 5% 40px;
-  border:1px solid #273038;
+  border:1px solid #5f554c;
   border-radius:24px;
   background:
-    linear-gradient(90deg,transparent 49.7%,rgba(255,255,255,.025) 50%,transparent 50.3%),
-    linear-gradient(180deg,rgba(255,255,255,.018),transparent 55%);
+    linear-gradient(90deg,transparent 49.7%,rgba(255,236,211,.06) 50%,transparent 50.3%),
+    linear-gradient(180deg,rgba(255,222,174,.07),transparent 55%);
   transform:rotateX(58deg) translateY(70px) scale(.96);
   transform-origin:center bottom;
   box-shadow:0 40px 90px rgba(0,0,0,.25) inset;
@@ -231,7 +231,7 @@ body[data-instrument="pf02"] .room3d{
   padding:17px;
   border:1px solid #313a42;
   border-radius:13px;
-  background:#1a2025;
+  background:#3a342f;
   color:#eef2f4;
   text-align:left;
   cursor:pointer;
@@ -255,8 +255,8 @@ body[data-instrument="pf02"] .kitchenRoom{
   bottom:9%;
   width:27%;
   min-height:255px;
-  border-color:#704a3f;
-  background:#221a17;
+  border-color:#9a6d53;
+  background:#4a352b;
 }
 body[data-instrument="pf02"] .guestRoom3d{
   right:7%;
@@ -266,7 +266,7 @@ body[data-instrument="pf02"] .guestRoom3d{
 }
 body[data-instrument="pf02"] .room3d>span{
   display:block;
-  color:#89949c;
+  color:#c7b8a9;
   font:9px ui-monospace,monospace;
   letter-spacing:.08em;
 }
@@ -282,7 +282,7 @@ body[data-instrument="pf02"] .room3d>small{
   display:block;
   max-width:180px;
   margin-top:8px;
-  color:#9aa5ad;
+  color:#d3c4b6;
   font-size:10px;
   line-height:1.5;
 }
@@ -297,7 +297,7 @@ body[data-instrument="pf02"] .bedShape{
   height:42px;
   border:1px solid #303941;
   border-radius:8px 8px 4px 4px;
-  background:#20272c;
+  background:#453e38;
 }
 body[data-instrument="pf02"] .sofaShape:before{
   content:"";
@@ -305,29 +305,29 @@ body[data-instrument="pf02"] .sofaShape:before{
   left:10px;right:10px;top:-17px;height:22px;
   border:1px solid #303941;
   border-radius:8px 8px 0 0;
-  background:#1d2429;
+  background:#403933;
 }
 body[data-instrument="pf02"] .counterShape{
   height:54px;
   border-color:#5f4037;
-  background:#2a201d;
+  background:#594137;
 }
 body[data-instrument="pf02"] .counterShape:before{
   content:"";
   position:absolute;
   left:12px;right:12px;top:-7px;height:7px;
-  background:#6f5147;
+  background:#a37960;
 }
 body[data-instrument="pf02"] .bedShape{
   height:46px;
-  background:#1d2529;
+  background:#463f39;
 }
 body[data-instrument="pf02"] .bedShape:before{
   content:"";
   position:absolute;
   left:9px;top:8px;width:42px;height:18px;
   border-radius:6px;
-  background:#293239;
+  background:#6d6258;
 }
 body[data-instrument="pf02"] .windowShape{
   position:absolute;
@@ -336,7 +336,7 @@ body[data-instrument="pf02"] .windowShape{
   width:44px;
   height:68px;
   border:1px solid #714b40;
-  background:#151a1d;
+  background:#28343b;
 }
 body[data-instrument="pf02"] .windowShape:after{
   content:"";
@@ -355,7 +355,7 @@ body[data-instrument="pf02"] .windowShape:before{
   bottom:4px;
   height:calc(var(--open,0%) * .45);
   max-height:26px;
-  background:#6ea0b8;
+  background:#8fc2d8;
   opacity:.75;
 }
 
@@ -1195,4 +1195,112 @@ body[data-instrument="pf02"] .scheduleBoard{
     align-items:stretch;
   }
   body[data-instrument="pf02"] .altChoices{grid-template-columns:1fr}
+}
+
+
+/* Warm residential atmosphere */
+body[data-instrument="pf02"] .homeWorld:after{
+  box-shadow:520px 70px 140px 55px rgba(242,184,112,.08);
+}
+body[data-instrument="pf02"] .kitchenRoom:after{
+  content:"";
+  position:absolute;
+  inset:8px;
+  pointer-events:none;
+  border-radius:9px;
+  box-shadow:inset 0 0 52px rgba(244,165,92,.08);
+}
+body[data-instrument="pf02"] .livingRoom:after{
+  content:"";
+  position:absolute;
+  right:20px;
+  top:18px;
+  width:12px;height:12px;
+  border-radius:50%;
+  background:#e9b979;
+  box-shadow:0 0 28px 12px rgba(233,185,121,.12);
+}
+body[data-instrument="pf02"] .guestRoom3d:after{
+  content:"";
+  position:absolute;
+  right:18px;
+  top:20px;
+  width:42px;height:54px;
+  border:1px solid #68727a;
+  background:#35434b;
+  box-shadow:inset 0 0 20px rgba(117,169,194,.12);
+}
+body[data-instrument="pf02"] .personChip{
+  border-color:#5c5149;
+  background:#3a332e;
+}
+body[data-instrument="pf02"] .personChip span{color:#e0d6cc}
+body[data-instrument="pf02"] .conflictHotspot{
+  border-color:#b26d55;
+  background:#553126;
+  color:#ffe3d7;
+}
+body[data-instrument="pf02"] .conflictHotspot:hover{
+  border-color:#d28465;
+  background:#60362a;
+}
+body[data-instrument="pf02"] .agentProposal{
+  border-top-color:#4c433c;
+  background:#302b27;
+}
+body[data-instrument="pf02"] .agentProposalText b{color:#f0e9e3}
+body[data-instrument="pf02"] .agentProposalText p{color:#b5a9a0}
+body[data-instrument="pf02"] .openAlternatives{
+  border-color:#5b5149;
+  background:#3a342f;
+  color:#d1c6bc;
+}
+
+/* Proposal is part of each scene, not a detached fourth card */
+body[data-instrument="pf02"] .deliveryProposal{
+  grid-column:1/-1;
+  border-top:1px solid #ddd5ca;
+  background:#f5f1e9;
+}
+body[data-instrument="pf02"] .deliveryProposal .agentProposalText b{color:#443d37}
+body[data-instrument="pf02"] .deliveryProposal .agentProposalText p{color:#7a7067}
+body[data-instrument="pf02"] .deliveryProposal .openAlternatives{
+  border-color:#d7cfc4;
+  background:#fffdf9;
+  color:#6f665f;
+}
+body[data-instrument="pf02"] .deliveryProposal .acceptProposal{
+  background:#2d3437;
+  color:#fff;
+}
+body[data-instrument="pf02"] .nightProposal{
+  border-top:1px solid #334139;
+  background:#182119;
+}
+body[data-instrument="pf02"] .nightProposal .agentProposalText b{color:#e3ece5}
+body[data-instrument="pf02"] .nightProposal .agentProposalText p{color:#93a398}
+body[data-instrument="pf02"] .nightProposal .openAlternatives{
+  border-color:#3c4a40;
+  background:#202b23;
+  color:#aab8ae;
+}
+body[data-instrument="pf02"] .nightProposal .acceptProposal{
+  background:#dfe9e2;
+  color:#1c2a20;
+}
+
+/* Alternative choices remain subordinate */
+body[data-instrument="pf02"] .seedAlternatives{
+  margin-top:8px;
+}
+body[data-instrument="pf02"][data-world="near"] .seedAlternatives,
+body[data-instrument="pf02"][data-world="far"] .seedAlternatives{
+  border-color:#d8d3cb;
+  background:#f8f6f1;
+}
+body[data-instrument="pf02"][data-world="near"] .seedAlternatives .instantChoice,
+body[data-instrument="pf02"][data-world="far"] .seedAlternatives .instantChoice{
+  border-color:#ddd7cf;
+  background:#fff;
+  color:#4b5154;
 }
