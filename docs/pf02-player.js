@@ -278,34 +278,23 @@ function playExecution(world,a){
 }
 function commandDeck(world){
   const w=P[world],order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world),zh=locale.startsWith('zh');
-  const q=world==='seed'
-    ? (zh?'厨房在做饭，雨感刚把全屋窗户关了。你现在怎么办？':'The kitchen is cooking and rain automation just closed every window. What do you do?')
-    : world==='near'
-      ? (zh?'朋友快到了，但冰块和火锅底料都要迟到。你怎么办？':'Guests are almost here, but the ice and hotpot base are late. What do you do?')
-      : (zh?'所有人都想睡了，但客房闷、室友又不想夜里开窗。你怎么办？':'Everyone wants to sleep, but the guest room is stuffy and your housemate does not want windows open. What do you do?');
+  if(world==='seed'){
+    return `<div class="seedAlternatives hidden">
+      <div class="altLabel">${zh?'换一种处理方式':'OTHER OPTIONS'}</div>
+      <div class="altChoices">
+        <button class="instantChoice" data-a="rollback"><b>${zh?'撤销刚才的全屋关窗':'Restore everything'}</b></button>
+        <button class="instantChoice" data-a="hold"><b>${zh?'先等等，看会不会有人继续说':'Wait and observe'}</b></button>
+      </div>
+    </div>`;
+  }
+  const q=world==='near'
+    ? (zh?'朋友快到了，但冰块和火锅底料都要迟到。你怎么办？':'Guests are almost here, but the ice and hotpot base are late. What do you do?')
+    : (zh?'所有人都想睡了，但客房闷、室友又不想夜里开窗。你怎么办？':'Everyone wants to sleep, but the guest room is stuffy and your housemate does not want windows open. What do you do?');
   const plain={
-    seed:{
-      repin:zh?'只开厨房一点':'Open kitchen a little',
-      rollback:zh?'全部恢复到刚才':'Restore everything',
-      hold:zh?'先等等':'Wait a bit'
-    },
-    near:{
-      reroute:zh?'把冰块改派':'Reroute the ice',
-      rollback:zh?'自己去取':'Pick it up myself',
-      hold:zh?'继续等':'Keep waiting'
-    },
-    far:{
-      schedule:zh?'只给客房设临时规则':'Guest-room rule only',
-      revert:zh?'恢复原来的夜间设置':'Restore old night settings',
-      hold:zh?'今晚先不改':'Leave it for tonight'
-    }
+    near:{reroute:zh?'把冰块改派':'Reroute the ice',rollback:zh?'自己去取':'Pick it up myself',hold:zh?'继续等':'Keep waiting'},
+    far:{schedule:zh?'只给客房设临时规则':'Guest-room rule only',revert:zh?'恢复原来的夜间设置':'Restore old night settings',hold:zh?'今晚先不改':'Leave it for tonight'}
   };
-  return `<div class="instantDecision">
-    <h3>${q}</h3>
-    <div class="instantChoices">
-      ${order.map(key=>`<button class="instantChoice" data-a="${key}"><b>${plain[world][key]}</b></button>`).join('')}
-    </div>
-  </div>`;
+  return `<div class="instantDecision"><h3>${q}</h3><div class="instantChoices">${order.map(key=>`<button class="instantChoice" data-a="${key}"><b>${plain[world][key]}</b></button>`).join('')}</div></div>`;
 }
 function previewAction(world,a){
   S.preview[world]=a;
@@ -524,48 +513,63 @@ function homeLiveScene(){
   const a=S.action.seed,zh=locale.startsWith('zh');
   const kitchen=a==='repin'?'20%':a==='rollback'?'45%':'0%';
   const conflict=a==='repin'?1:a==='rollback'?2:a==='hold'?4:3;
-  const agentText=a==='repin'
-    ? (zh?'厨房窗已按当前家庭规则调整到 20%':'Kitchen window adjusted to 20% under the current home rule')
+  const resolved=!!a;
+  const proposal=a==='repin'
+    ? (zh?'已执行：只把厨房窗调到 20%':'Executed: kitchen window only → 20%')
     : a==='rollback'
-      ? (zh?'已撤销刚才的全屋关窗':'The whole-home close was reverted')
+      ? (zh?'已执行：撤销刚才的全屋关窗':'Executed: reverted whole-home close')
       : a==='hold'
-        ? (zh?'状态未改变，等待新的人工动作':'No change; waiting for the next human action')
-        : (zh?'雨感触发后执行了全屋关窗':'Rain automation closed every window');
-  return `<section class="diegeticScene homeScene">
+        ? (zh?'你选择先不动，系统继续观察':'You chose to wait; the system is observing')
+        : (zh?'建议先处理厨房窗：只改这个房间，不碰其他人的空间。':'Handle the kitchen window first: change this room only.');
+  return `<section class="diegeticScene homeScene ${resolved?'resolved':''}">
     <header class="sceneTopline">
       <div><span>18:42</span><b>${zh?'雨正在下':'RAIN ACTIVE'}</b></div>
       <small>${conflict} ${zh?'个冲突未解决':'unresolved conflicts'}</small>
     </header>
 
-    <div class="homePeople">
-      <div class="personLine youLine"><span class="personAvatar">你</span><p>${zh?'“厨房那扇别全关，留一点。”':'“Leave the kitchen window a little open.”'}</p></div>
-      <div class="personLine mateLine"><span class="personAvatar">室</span><p>${zh?'“下雨就都关了吧。”':'“If it rains, close them all.”'}</p></div>
-      <div class="personLine guestLine"><span class="personAvatar">客</span><p>${zh?'没有授权 Agent 自动开窗。':'Has not authorized automatic window opening.'}</p></div>
-    </div>
+    <div class="homeWorld">
+      <div class="homeWorldBackdrop"></div>
 
-    <div class="homeRooms">
-      <button class="homeRoom living" data-clue="room_living">
-        <span class="roomName">${zh?'客厅':'LIVING'}</span>
-        <strong>0%</strong>
-        <small>${zh?'窗户关闭 · 无人':'window closed · empty'}</small>
+      <button class="room3d livingRoom" data-clue="room_living">
+        <span>${zh?'客厅':'LIVING'}</span>
+        <small>${zh?'无人 · 窗 0%':'empty · window 0%'}</small>
+        <i class="sofaShape"></i>
       </button>
-      <button class="homeRoom kitchen" data-clue="room_kitchen">
-        <span class="roomName">${zh?'厨房':'KITCHEN'}</span>
+
+      <button class="room3d kitchenRoom" data-clue="room_kitchen">
+        <span>${zh?'厨房':'KITCHEN'}</span>
         <strong>${kitchen}</strong>
-        <small>${zh?'正在做饭 · 油烟上升':'cooking · ventilation needed'}</small>
-        <span class="roomFlag">${zh?'你在这里':'YOU ARE HERE'}</span>
+        <small>${zh?'你在做饭 · 油烟正在上升':'you are cooking · ventilation rising'}</small>
+        <i class="counterShape"></i>
+        <i class="windowShape" style="--open:${kitchen}"></i>
       </button>
-      <button class="homeRoom guest" data-clue="room_bedroom">
-        <span class="roomName">${zh?'客房':'GUEST ROOM'}</span>
-        <strong>0%</strong>
-        <small>${zh?'未授权自动开窗':'automation not authorized'}</small>
+
+      <button class="room3d guestRoom3d" data-clue="room_bedroom">
+        <span>${zh?'客房':'GUEST ROOM'}</span>
+        <small>${zh?'留宿朋友未授权自动开窗':'guest did not authorize auto-open'}</small>
+        <i class="bedShape"></i>
+      </button>
+
+      <div class="personChip youChip"><b>你</b><span>${zh?'“厨房别全关。”':'“Don’t fully close the kitchen.”'}</span></div>
+      <div class="personChip mateChip"><b>${zh?'室友':'MATE'}</b><span>${zh?'“下雨就都关了。”':'“If it rains, close them all.”'}</span></div>
+      <div class="personChip guestChip"><b>${zh?'朋友':'GUEST'}</b><span>…</span></div>
+
+      <button class="conflictHotspot ${resolved?'resolved':''}" data-clue="room_kitchen">
+        <span class="hotspotPulse"></span>
+        <b>${resolved?(zh?'刚刚改变了这里':'CHANGED HERE'):(zh?'这里有冲突':'CONFLICT HERE')}</b>
+        <small>${resolved?(zh?'厨房窗 '+kitchen:'Kitchen '+kitchen):(zh?'你的指令没有生效':'your instruction did not apply')}</small>
       </button>
     </div>
 
-    <div class="agentBar">
-      <span class="agentAvatar">AI</span>
-      <div><small>HOME AGENT</small><b>${agentText}</b></div>
-      <i>${zh?'雨感 ACTIVE':'RAIN ACTIVE'}</i>
+    <div class="agentProposal ${resolved?'resolved':''}">
+      <div class="agentIdentity"><span>AI</span><small>HOME AGENT</small></div>
+      <div class="agentProposalText"><b>${proposal}</b><p>${resolved
+        ? sceneReaction('seed',a).replace(/<[^>]+>/g,' ')
+        : (zh?'原因：冲突集中在厨房；其他房间分别存在共同空间规则和未授权边界。':'Why: the conflict is localized to the kitchen; other rooms have shared-space rules or no authorization.')}</p></div>
+      ${!resolved?`<div class="agentProposalActions">
+        <button class="acceptProposal" data-a="repin">${zh?'照这个做':'DO THIS'}</button>
+        <button class="openAlternatives">${zh?'我想换一种':'OTHER OPTIONS'}</button>
+      </div>`:''}
     </div>
   </section><div id="seedDetail"></div>`;
 }
@@ -624,6 +628,13 @@ function renderActions(world){
   if(!a){
     el.innerHTML=commandDeck(world);
     el.querySelectorAll('.instantChoice').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));
+    if(world==='seed'){
+      const scene=$('seedContent');
+      const accept=scene?.querySelector('.acceptProposal');
+      const alt=scene?.querySelector('.openAlternatives');
+      if(accept)accept.onclick=()=>takeAction('seed',accept.dataset.a);
+      if(alt)alt.onclick=()=>{const box=el.querySelector('.seedAlternatives');box?.classList.remove('hidden');alt.classList.add('hidden')};
+    }
     return;
   }
   const nextLabel=world==='far'
