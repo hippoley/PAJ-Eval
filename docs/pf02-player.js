@@ -276,24 +276,25 @@ function playExecution(world,a){
   setTimeout(()=>overlay?.remove(),980);
 }
 function commandDeck(world){
-  const w=P[world],order=S.actionOrder[world].length?S.actionOrder[world]:actionKeys(world),zh=locale.startsWith('zh');
-  if(world==='seed'){
-    return `<div class="seedAlternatives hidden">
-      <div class="altLabel">${zh?'换一种处理方式':'OTHER OPTIONS'}</div>
-      <div class="altChoices">
-        <button class="instantChoice" data-a="rollback"><b>${zh?'撤销刚才的全屋关窗':'Restore everything'}</b></button>
-        <button class="instantChoice" data-a="hold"><b>${zh?'先等等，看会不会有人继续说':'Wait and observe'}</b></button>
-      </div>
-    </div>`;
-  }
-  const q=world==='near'
-    ? (zh?'朋友快到了，但冰块和火锅底料都要迟到。你怎么办？':'Guests are almost here, but the ice and hotpot base are late. What do you do?')
-    : (zh?'所有人都想睡了，但客房闷、室友又不想夜里开窗。你怎么办？':'Everyone wants to sleep, but the guest room is stuffy and your housemate does not want windows open. What do you do?');
-  const plain={
-    near:{reroute:zh?'把冰块改派':'Reroute the ice',rollback:zh?'自己去取':'Pick it up myself',hold:zh?'继续等':'Keep waiting'},
-    far:{schedule:zh?'只给客房设临时规则':'Guest-room rule only',revert:zh?'恢复原来的夜间设置':'Restore old night settings',hold:zh?'今晚先不改':'Leave it for tonight'}
+  const zh=locale.startsWith('zh');
+  const alternatives={
+    seed:[
+      ['rollback',zh?'撤销刚才的全屋关窗':'Restore everything'],
+      ['hold',zh?'先等等，看会不会有人继续说':'Wait and observe']
+    ],
+    near:[
+      ['rollback',zh?'我自己去附近拿':'Pick it up myself'],
+      ['hold',zh?'继续等原配送':'Keep waiting']
+    ],
+    far:[
+      ['revert',zh?'恢复原来的夜间规则':'Restore old night settings'],
+      ['hold',zh?'今晚先不改':'Leave it for tonight']
+    ]
   };
-  return `<div class="instantDecision"><h3>${q}</h3><div class="instantChoices">${order.map(key=>`<button class="instantChoice" data-a="${key}"><b>${plain[world][key]}</b></button>`).join('')}</div></div>`;
+  return `<div class="seedAlternatives hidden">
+    <div class="altLabel">${zh?'换一种处理方式':'OTHER OPTIONS'}</div>
+    <div class="altChoices">${alternatives[world].map(([key,label])=>`<button class="instantChoice" data-a="${key}"><b>${label}</b></button>`).join('')}</div>
+  </div>`;
 }
 function previewAction(world,a){
   S.preview[world]=a;
@@ -575,7 +576,15 @@ function homeLiveScene(){
 function deliveryLiveScene(){
   const a=S.action.near,zh=locale.startsWith('zh');
   const ice=a==='reroute'?'13 min':a==='rollback'?'12 min':a==='hold'?'+36 min':'+28 min';
-  return `<div class="diegeticScene deliveryScene">
+  const resolved=!!a;
+  const proposal=a==='reroute'
+    ? (zh?'已改派冰块和饮料，预计 13 分钟到':'Rerouted ice and drinks · ETA 13 min')
+    : a==='rollback'
+      ? (zh?'你决定自己去取，室友接手家里准备':'You chose self-pickup; your housemate takes over at home')
+      : a==='hold'
+        ? (zh?'继续等原配送，朋友可能先到':'Keeping original delivery; guests may arrive first')
+        : (zh?'建议：只改派冰块和饮料。它们最影响朋友到门口时的体验。':'Suggestion: reroute only ice and drinks—the most visible gap when guests arrive.');
+  return `<section class="diegeticScene deliveryScene ${resolved?'resolved':''}">
     <div class="phoneShell">
       <div class="phoneHead"><span>19:05</span><b>${zh?'朋友 25 分钟后到':'Guests in 25 min'}</b><i>●●●</i></div>
       <div class="orderHero"><span>${zh?'今晚还缺的东西':'STILL MISSING TONIGHT'}</span><strong>2</strong><small>${zh?'关键订单':'critical orders'}</small></div>
@@ -590,12 +599,28 @@ function deliveryLiveScene(){
       <div class="rainPatch"></div>
       <p>${P.near.routes}</p>
     </div>
-  </div><div id="nearDetail"></div>`;
+    <div class="agentProposal deliveryProposal ${resolved?'resolved':''}">
+      <div class="agentIdentity"><span>AI</span><small>HOME AGENT</small></div>
+      <div class="agentProposalText"><b>${proposal}</b><p>${resolved?'':(zh?'它只改变最紧急的一单，不动蛋糕和火锅底料。':'It changes only the most urgent order; cake and hotpot stay untouched.')}</p></div>
+      ${!resolved?`<div class="agentProposalActions">
+        <button class="acceptProposal" data-a="reroute">${zh?'照这个做':'DO THIS'}</button>
+        <button class="openAlternatives">${zh?'我想换一种':'OTHER OPTIONS'}</button>
+      </div>`:''}
+    </div>
+  </section><div id="nearDetail"></div>`;
 }
 function nightLiveScene(){
   const a=S.action.far,zh=locale.startsWith('zh');
   const guest=a==='schedule'?'25.5°C · temp rule':a==='revert'?'default rule':'24°C manual';
-  return `<div class="diegeticScene nightScene">
+  const resolved=!!a;
+  const proposal=a==='schedule'
+    ? (zh?'已建立只到明早 07:00 的客房临时规则':'Guest-room rule active until 07:00')
+    : a==='revert'
+      ? (zh?'已恢复聚会前的夜间规则':'Restored pre-party night rules')
+      : a==='hold'
+        ? (zh?'今晚保持现状，继续记录人工 override':'Holding current state and recording manual overrides')
+        : (zh?'建议：只给客房一条今晚有效的临时规则。':'Suggestion: create a guest-room rule that expires in the morning.');
+  return `<section class="diegeticScene nightScene ${resolved?'resolved':''}">
     <div class="nightHeader"><span>00:47</span><b>${zh?'所有人都想睡了':'Everyone wants to sleep'}</b><small>${zh?'雨已停 · 广州 27°C / 82%':'rain stopped · 27°C / 82%'}</small></div>
     <div class="nightRooms">
       <button class="nightRoom energyRoom" data-j="0"><span>${zh?'主卧':'YOUR ROOM'}</span><b>25°C</b><small>${zh?'你：优先安静':'You: quiet first'}</small><i>zzz</i></button>
@@ -607,7 +632,15 @@ function nightLiveScene(){
       <div><span>00:44</span><p>${zh?'客房：温度手动调低 1°C。':'Guest room: temperature manually lowered by 1°C.'}</p></div>
       <div><span>00:47</span><p>${zh?'Agent：检测到多人夜间规则冲突。':'Agent: multi-person night-rule conflict detected.'}</p></div>
     </div>
-  </div><div id="farDetail"></div>`;
+    <div class="agentProposal nightProposal ${resolved?'resolved':''}">
+      <div class="agentIdentity"><span>AI</span><small>HOME AGENT</small></div>
+      <div class="agentProposalText"><b>${proposal}</b><p>${resolved?'':(zh?'它只影响客房，而且明早自动失效，不会偷偷变成长期偏好。':'It affects only the guest room and expires in the morning instead of becoming a permanent preference.')}</p></div>
+      ${!resolved?`<div class="agentProposalActions">
+        <button class="acceptProposal" data-a="schedule">${zh?'照这个做':'DO THIS'}</button>
+        <button class="openAlternatives">${zh?'我想换一种':'OTHER OPTIONS'}</button>
+      </div>`:''}
+    </div>
+  </section><div id="farDetail"></div>`;
 }
 function renderSeed(i){const w=P.seed,c=$('seedContent');if(i===0)c.innerHTML=`${homeLiveScene()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${sliceBoard(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${generationSurface(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${corpusBoard(w)}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${releaseRail(w)}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${requestBoard(w)}`;document.querySelectorAll('.seedSlice').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','slice_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>SLICE ${String(j+1).padStart(2,'0')}</span><h4>${w.slices[j][0]}</h4><div><b>${w.slices[j][1]}</b><small>${w.sliceCols[1]}</small><b>${w.slices[j][2]}</b><small>${w.sliceCols[2]}</small></div></div>`});document.querySelectorAll('.seedReq').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('seed','request_'+j);$('seedDetail').innerHTML=`<div class="detailDrawer"><span>REQUEST SAMPLE</span><h4>${w.requests[j][0]}</h4><div><b>${w.requests[j][1]}</b><small>segment</small><b>${w.requests[j][2]}</b><small>serving</small></div></div>`});if($('compareGen'))$('compareGen').onclick=()=>{markDetail('seed','serving_generation_compare');$('genDetail').innerHTML=`<div class="notice"><b>${w.generation.traffic}</b><p>${w.generation.detail}</p></div>`}}
 function renderNear(i){const w=P.near,c=$('nearContent');if(i===0)c.innerHTML=`${deliveryLiveScene()}`;if(i===1)c.innerHTML=`<h2>${w.nav[1]}</h2>${fulfillmentSurface(w)}`;if(i===2)c.innerHTML=`<h2>${w.nav[2]}</h2>${carrierBoard(w)}`;if(i===3)c.innerHTML=`<h2>${w.nav[3]}</h2>${contextPanel('DELIVERY ROUTE',w.routes,'routeContext')}`;if(i===4)c.innerHTML=`<h2>${w.nav[4]}</h2>${contextPanel('RAIN WINDOW',w.weather,'weatherContext')}`;if(i===5)c.innerHTML=`<h2>${w.nav[5]}</h2>${cityBoard(w)}`;document.querySelectorAll('.nearScan').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','scan_'+j);$('nearDetail').innerHTML=`<div class="notice">${w.nested.scan}: ${w.depots[j].join(' · ')}</div>`});document.querySelectorAll('.nearCity').forEach(b=>b.onclick=()=>{const j=Number(b.dataset.j);markDetail('near','city_'+j);$('nearDetail').innerHTML=`<div class="detailDrawer light"><span>REGION DETAIL</span><h4>${w.cities[j][0]}</h4><div><b>${w.cities[j][1]}</b><small>delay</small><b>${w.cities[j][2]}</b><small>depot</small></div></div>`})}
@@ -627,13 +660,14 @@ function renderActions(world){
   if(!a){
     el.innerHTML=commandDeck(world);
     el.querySelectorAll('.instantChoice').forEach(b=>b.onclick=()=>takeAction(world,b.dataset.a));
-    if(world==='seed'){
-      const scene=$('seedContent');
+    {
+      const scene=$(world+'Content');
       const accept=scene?.querySelector('.acceptProposal');
       const alt=scene?.querySelector('.openAlternatives');
-      if(accept)accept.onclick=()=>{log('agent_proposal_response',{world:'seed',proposal:'repin',response:'accept'});takeAction('seed',accept.dataset.a)};
-      if(alt)alt.onclick=()=>{log('agent_proposal_response',{world:'seed',proposal:'repin',response:'override_intent'});const box=el.querySelector('.seedAlternatives');box?.classList.remove('hidden');alt.classList.add('hidden')};
-      el.querySelectorAll('.seedAlternatives .instantChoice').forEach(b=>b.onclick=()=>{log('agent_override',{world:'seed',proposal:'repin',chosen:b.dataset.a});takeAction('seed',b.dataset.a)});
+      const proposal=world==='seed'?'repin':world==='near'?'reroute':'schedule';
+      if(accept)accept.onclick=()=>{log('agent_proposal_response',{world,proposal,response:'accept'});takeAction(world,accept.dataset.a)};
+      if(alt)alt.onclick=()=>{log('agent_proposal_response',{world,proposal,response:'override_intent'});const box=el.querySelector('.seedAlternatives');box?.classList.remove('hidden');alt.classList.add('hidden')};
+      el.querySelectorAll('.seedAlternatives .instantChoice').forEach(b=>b.onclick=()=>{log('agent_override',{world,proposal,chosen:b.dataset.a});takeAction(world,b.dataset.a)});
     }
     return;
   }
