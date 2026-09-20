@@ -141,6 +141,29 @@ function diegeticScene(world){
     </div>
   </section>`;
 }
+function mountWorldActions(world){
+  const el=$(world+'Actions'); if(!el)return;
+  const content=$(world+'Content'); if(!content)return;
+  const mount=content.querySelector(world==='seed'?'.railActionMount':'.agentProposal');
+  if(mount && el.parentElement!==mount)mount.appendChild(el);
+}
+function bindHomeParallax(){
+  const world=document.getElementById('homeWorld'); if(!world)return;
+  world.onpointermove=e=>{
+    const r=world.getBoundingClientRect();
+    const x=((e.clientX-r.left)/r.width-.5), y=((e.clientY-r.top)/r.height-.5);
+    world.style.setProperty('--rx',(-y*2.4).toFixed(2)+'deg');
+    world.style.setProperty('--ry',(x*3.2).toFixed(2)+'deg');
+    world.style.setProperty('--mx',(x*10).toFixed(1)+'px');
+    world.style.setProperty('--my',(y*7).toFixed(1)+'px');
+  };
+  world.onpointerleave=()=>{
+    world.style.setProperty('--rx','0deg');
+    world.style.setProperty('--ry','0deg');
+    world.style.setProperty('--mx','0px');
+    world.style.setProperty('--my','0px');
+  };
+}
 function bindSceneInteractions(world){
   document.querySelectorAll('[data-clue],.sceneInspect').forEach(el=>el.onclick=()=>{
     const key=el.dataset.clue||el.dataset.key||'scene_object';
@@ -508,69 +531,93 @@ function decorateScene(world,i){
   if(!hud){hud=document.createElement('div');hud.innerHTML=missionHud(world);main.insertBefore(hud.firstElementChild,content)}
   else hud.outerHTML=missionHud(world);
 }
-function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);if(world==='seed')renderSeed(i);if(world==='near')renderNear(i);if(world==='far')renderFar(i);decorateScene(world,i);renderActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world)}
+function renderWorld(world,i,track=false){S.view[world]=i;if(track)markView(world,i);active($(world+'Nav'),i);if(world==='seed')renderSeed(i);if(world==='near')renderNear(i);if(world==='far')renderFar(i);decorateScene(world,i);renderActions(world);mountWorldActions(world);if(world==='seed')bindHomeParallax();bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world)}
 function homeLiveScene(){
   const a=S.action.seed,zh=locale.startsWith('zh');
   const kitchen=a==='repin'?'20%':a==='rollback'?'45%':'0%';
   const conflict=a==='repin'?1:a==='rollback'?2:a==='hold'?4:3;
   const resolved=!!a;
   const proposal=a==='repin'
-    ? (zh?'已执行：只把厨房窗调到 20%':'Executed: kitchen window only → 20%')
+    ? (zh?'厨房窗已经调到 20%，其他房间没有被碰。':'Kitchen window is now 20%; other rooms were untouched.')
     : a==='rollback'
-      ? (zh?'已执行：撤销刚才的全屋关窗':'Executed: reverted whole-home close')
+      ? (zh?'刚才的全屋关窗已经撤销。':'The whole-home close was reverted.')
       : a==='hold'
-        ? (zh?'你选择先不动，系统继续观察':'You chose to wait; the system is observing')
-        : (zh?'建议先处理厨房窗：只改这个房间，不碰其他人的空间。':'Handle the kitchen window first: change this room only.');
-  return `<section class="diegeticScene homeScene ${resolved?'resolved':''}">
-    <header class="sceneTopline">
-      <div><span>18:42</span><b>${zh?'雨正在下':'RAIN ACTIVE'}</b></div>
-      <small>${conflict} ${zh?'个冲突未解决':'unresolved conflicts'}</small>
-    </header>
+        ? (zh?'你选择先不动，Agent 继续观察人的下一步。':'You chose to wait; the agent is watching the next human move.')
+        : (zh?'只处理厨房窗。其他房间先保持现在的状态。':'Change only the kitchen window. Leave every other room as-is.');
+  return `<section class="homeExperience">
+    <div class="diegeticScene homeScene">
+      <header class="sceneTopline">
+        <div><span>18:42</span><b>${zh?'广州 · 雨正在下':'GUANGZHOU · RAIN ACTIVE'}</b></div>
+        <small>${conflict} ${zh?'个冲突未解决':'unresolved conflicts'}</small>
+      </header>
 
-    <div class="homeWorld">
-      <div class="homeWorldBackdrop"></div>
+      <div class="homeWorld" id="homeWorld">
+        <div class="homeWorldBackdrop"></div>
+        <div class="rainWindowGlow"></div>
+        <div class="floorGlow"></div>
 
-      <button class="room3d livingRoom" data-clue="room_living">
-        <span>${zh?'客厅':'LIVING'}</span>
-        <small>${zh?'无人 · 窗 0%':'empty · window 0%'}</small>
-        <i class="sofaShape"></i>
-      </button>
+        <button class="room3d livingRoom" data-clue="room_living">
+          <span>${zh?'客厅':'LIVING'}</span>
+          <small>${zh?'无人 · 窗 0%':'empty · window 0%'}</small>
+          <i class="sofaShape"></i>
+          <i class="lampShape"></i>
+        </button>
 
-      <button class="room3d kitchenRoom" data-clue="room_kitchen">
-        <span>${zh?'厨房':'KITCHEN'}</span>
-        <strong>${kitchen}</strong>
-        <small>${zh?'你在做饭 · 油烟正在上升':'you are cooking · ventilation rising'}</small>
-        <i class="counterShape"></i>
-        <i class="windowShape" style="--open:${kitchen}"></i>
-      </button>
+        <button class="room3d kitchenRoom" data-clue="room_kitchen">
+          <span>${zh?'厨房':'KITCHEN'}</span>
+          <strong>${kitchen}</strong>
+          <small>${zh?'你在做饭 · 油烟正在上升':'you are cooking · ventilation rising'}</small>
+          <i class="counterShape"></i>
+          <i class="windowShape" style="--open:${kitchen}"></i>
+          <i class="steamShape"></i>
+        </button>
 
-      <button class="room3d guestRoom3d" data-clue="room_bedroom">
-        <span>${zh?'客房':'GUEST ROOM'}</span>
-        <small>${zh?'留宿朋友未授权自动开窗':'guest did not authorize auto-open'}</small>
-        <i class="bedShape"></i>
-      </button>
+        <button class="room3d guestRoom3d" data-clue="room_bedroom">
+          <span>${zh?'客房':'GUEST ROOM'}</span>
+          <small>${zh?'留宿朋友未授权自动开窗':'guest did not authorize auto-open'}</small>
+          <i class="bedShape"></i>
+          <i class="curtainShape"></i>
+        </button>
 
-      <div class="personChip youChip"><b>你</b><span>${zh?'“厨房别全关。”':'“Don’t fully close the kitchen.”'}</span></div>
-      <div class="personChip mateChip"><b>${zh?'室友':'MATE'}</b><span>${zh?'“下雨就都关了。”':'“If it rains, close them all.”'}</span></div>
-      <div class="personChip guestChip"><b>${zh?'朋友':'GUEST'}</b><span>…</span></div>
+        <div class="personChip youChip"><b>你</b><span>${zh?'“厨房别全关。”':'“Don’t fully close the kitchen.”'}</span></div>
+        <div class="personChip mateChip"><b>${zh?'室友':'MATE'}</b><span>${zh?'“下雨就都关了。”':'“If it rains, close them all.”'}</span></div>
+        <div class="personChip guestChip"><b>${zh?'朋友':'GUEST'}</b><span>${zh?'未授权自动开窗':'no auto-open permission'}</span></div>
 
-      <button class="conflictHotspot ${resolved?'resolved':''}" data-clue="room_kitchen">
-        <span class="hotspotPulse"></span>
-        <b>${resolved?(zh?'刚刚改变了这里':'CHANGED HERE'):(zh?'这里有冲突':'CONFLICT HERE')}</b>
-        <small>${resolved?(zh?'厨房窗 '+kitchen:'Kitchen '+kitchen):(zh?'你的指令没有生效':'your instruction did not apply')}</small>
-      </button>
+        <button class="conflictHotspot ${resolved?'resolved':''}" data-clue="room_kitchen">
+          <span class="hotspotPulse"></span>
+          <b>${resolved?(zh?'刚刚改变了这里':'CHANGED HERE'):(zh?'先看这里':'LOOK HERE')}</b>
+          <small>${resolved?(zh?'厨房窗 '+kitchen:'Kitchen '+kitchen):(zh?'你的“留一点”没有生效':'your “leave it open” did not apply')}</small>
+        </button>
+      </div>
     </div>
 
-    <div class="agentProposal ${resolved?'resolved':''}">
-      <div class="agentIdentity"><span>AI</span><small>HOME AGENT</small></div>
-      <div class="agentProposalText"><b>${proposal}</b><p>${resolved
-        ? sceneReaction('seed',a).replace(/<[^>]+>/g,' ')
-        : (zh?'原因：冲突集中在厨房；其他房间分别存在共同空间规则和未授权边界。':'Why: the conflict is localized to the kitchen; other rooms have shared-space rules or no authorization.')}</p></div>
-      ${!resolved?`<div class="agentProposalActions">
-        <button class="acceptProposal" data-a="repin">${zh?'照这个做':'DO THIS'}</button>
-        <button class="openAlternatives">${zh?'我想换一种':'OTHER OPTIONS'}</button>
-      </div>`:''}
-    </div>
+    <aside class="homeDecisionRail">
+      <div class="railEyebrow">${zh?'当前最值得处理的一件事':'ONE THING TO HANDLE NOW'}</div>
+      <div class="railAgent">
+        <span>AI</span>
+        <div><b>HOME AGENT</b><small>${resolved?(zh?'世界已经改变':'WORLD UPDATED'):(zh?'可执行建议':'EXECUTABLE PROPOSAL')}</small></div>
+      </div>
+      <h2>${proposal}</h2>
+      <p class="railReason">${resolved
+        ? P.seed.consequence[a]
+        : (zh?'厨房正在做饭；客厅属于共同空间；客房又没有自动开窗授权。只改厨房是影响最小的动作。':'Cooking needs ventilation; the living room is shared; the guest room has no auto-open permission. Kitchen-only is the smallest intervention.')}</p>
+
+      ${!resolved?`<div class="railPrimaryActions">
+        <button class="acceptProposal" data-a="repin">${zh?'就这么做':'DO THIS'}</button>
+        <button class="openAlternatives">${zh?'换个做法':'OTHER OPTIONS'}</button>
+      </div>`:`<div class="railResolved">
+        <span>✓</span><b>${zh?'这个家已经被你改了一次':'You changed the home'}</b>
+      </div>`}
+
+      <div class="railEvidence">
+        <span>${zh?'为什么是这里':'WHY HERE'}</span>
+        <div><i></i><p>${zh?'你的指令没有生效':'Your instruction failed'}</p></div>
+        <div><i></i><p>${zh?'冲突只集中在厨房':'Conflict is localized to kitchen'}</p></div>
+        <div><i></i><p>${zh?'其他房间有更强权限边界':'Other rooms have stronger authority boundaries'}</p></div>
+      </div>
+
+      <div class="railActionMount"></div>
+    </aside>
   </section><div id="seedDetail"></div>`;
 }
 function deliveryLiveScene(){
@@ -707,7 +754,7 @@ function takeAction(world,a){
   if(world==='near'&&S.view.near===0)renderNear(0);
   else if(world==='near'&&S.view.near===1)renderNear(1);
   if(world==='far'&&S.view.far===0)renderFar(0);
-  renderActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);refreshFieldFeed(world);
+  renderActions(world);mountWorldActions(world);bindWorldMicroInteractions(world);bindSceneInteractions(world);if(world==='seed')bindHomeParallax();refreshFieldFeed(world);
 }
 function commitWorld(world){delete document.body.dataset.action;log('commit',{world,action:S.action[world],views:[...S.views[world]],details:[...S.detail[world]]});if(world==='seed'){
     const t=uiCopy(),a=S.action.seed;
