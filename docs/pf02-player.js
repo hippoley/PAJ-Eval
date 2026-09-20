@@ -590,7 +590,7 @@ function homeLiveScene(){
           loading="eager"></iframe>
         <div class="realHomeChrome">
           <span>${zh?'真实 3D 公寓 · 可拖动探索':'REAL 3D APARTMENT · DRAG TO EXPLORE'}</span>
-          <small>${zh?'模型：Visthétique · CC BY':'Model: Visthétique · CC BY'}</small>
+          <small>${zh?'模型：':'Model: '}<a href="https://sketchfab.com/3d-models/modern-apartment-1fbb649cd6624f2bb7b7d6e30c6533a5" target="_blank" rel="noopener">Visthétique · CC BY</a></small>
         </div>
         <button class="viewerConflictCue" data-clue="room_kitchen">
           <span class="hotspotPulse"></span>
