@@ -1058,3 +1058,116 @@ body[data-instrument="pf02"] .railFocus>p{
   font-size:10px;
   line-height:1.5;
 }
+
+
+/* Real 3D apartment viewer */
+body[data-instrument="pf02"] .realHomeViewer{
+  position:relative;
+  min-height:560px;
+  overflow:hidden;
+  border-radius:0 0 17px 17px;
+  background:#17191b;
+}
+body[data-instrument="pf02"] .realHomeFrame{
+  display:block;
+  width:100%;
+  height:560px;
+  border:0;
+  background:#17191b;
+}
+body[data-instrument="pf02"] .realHomeChrome{
+  position:absolute;
+  z-index:6;
+  left:14px;
+  bottom:14px;
+  max-width:280px;
+  padding:9px 11px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:10px;
+  background:rgba(25,23,21,.78);
+  pointer-events:none;
+}
+body[data-instrument="pf02"] .realHomeChrome span{
+  display:block;
+  color:#f3eee8;
+  font:8px ui-monospace,monospace;
+  letter-spacing:.08em;
+}
+body[data-instrument="pf02"] .realHomeChrome small{
+  display:block;
+  margin-top:3px;
+  color:#b9ada2;
+  font-size:8px;
+}
+body[data-instrument="pf02"] .viewerConflictCue{
+  position:absolute;
+  z-index:7;
+  right:16px;
+  top:16px;
+  width:210px;
+  padding:11px 12px;
+  border:1px solid #d48464;
+  border-radius:11px;
+  background:rgba(93,52,39,.92);
+  color:#ffe6dd;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 14px 32px rgba(0,0,0,.22);
+}
+body[data-instrument="pf02"] .viewerConflictCue:hover{
+  background:rgba(108,59,43,.96);
+}
+body[data-instrument="pf02"] .viewerConflictCue b{
+  display:block;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .viewerConflictCue small{
+  display:block;
+  margin-top:4px;
+  color:#e3c5bb;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .sceneFallback{
+  border-top:1px solid #4d453e;
+  background:#302a26;
+}
+body[data-instrument="pf02"] .sceneFallback>summary{
+  padding:10px 14px;
+  color:#b6aaa0;
+  cursor:pointer;
+  font-size:9px;
+  list-style:none;
+}
+body[data-instrument="pf02"] .sceneFallback>summary::-webkit-details-marker{display:none}
+body[data-instrument="pf02"] .sceneFallback>summary:after{
+  content:" +";
+  color:#8f8378;
+}
+body[data-instrument="pf02"] .sceneFallback[open]>summary:after{content:" −"}
+body[data-instrument="pf02"] .sceneFallback:not([open]) .homeWorld{
+  display:none;
+}
+body[data-instrument="pf02"] .sceneFallback .homeWorld{
+  min-height:420px;
+  border-top:1px solid #4d453e;
+}
+@media(max-width:980px){
+  body[data-instrument="pf02"] .realHomeViewer,
+  body[data-instrument="pf02"] .realHomeFrame{
+    min-height:480px;
+    height:480px;
+  }
+}
+@media(max-width:620px){
+  body[data-instrument="pf02"] .realHomeViewer,
+  body[data-instrument="pf02"] .realHomeFrame{
+    min-height:400px;
+    height:400px;
+  }
+  body[data-instrument="pf02"] .viewerConflictCue{
+    left:12px;
+    right:12px;
+    top:12px;
+    width:auto;
+  }
+}
