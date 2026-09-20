@@ -155,21 +155,21 @@ body[data-instrument="pf02"] .nightHeader small{
 
 /* Act 1 — shared home */
 body[data-instrument="pf02"][data-world="seed"]{
-  background:#111417!important;
+  background:#0f1316!important;
 }
 body[data-instrument="pf02"][data-world="seed"] .top select{
-  border-color:#2c3339!important;
-  background:#181d21!important;
-  color:#9da6ad!important;
+  border-color:#2a3137!important;
+  background:#171c20!important;
+  color:#a0a9af!important;
 }
-body[data-instrument="pf02"][data-world="seed"] .diegeticScene{
-  border-color:#30363c;
-  background:#15191d;
-  box-shadow:0 24px 60px rgba(0,0,0,.26);
+body[data-instrument="pf02"][data-world="seed"] .homeScene{
+  border-color:#30373d;
+  background:#13181c;
+  box-shadow:0 28px 70px rgba(0,0,0,.30);
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline{
-  border-color:#30363c;
-  background:#191e23;
+  border-color:#2d343a;
+  background:#171c20;
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline>div{
   display:flex;
@@ -177,7 +177,7 @@ body[data-instrument="pf02"][data-world="seed"] .sceneTopline>div{
   gap:12px;
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline span{
-  color:#87929a;
+  color:#89939a;
   font:10px ui-monospace,monospace;
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline b{
@@ -186,166 +186,380 @@ body[data-instrument="pf02"][data-world="seed"] .sceneTopline b{
 }
 body[data-instrument="pf02"][data-world="seed"] .sceneTopline small{
   margin-left:auto;
-  color:#9aa3aa;
+  color:#929ba1;
   font-size:10px;
 }
 
-body[data-instrument="pf02"] .homePeople{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:1px;
-  background:#2b3238;
-  border-bottom:1px solid #30363c;
-}
-body[data-instrument="pf02"] .personLine{
-  min-height:82px;
-  display:grid;
-  grid-template-columns:34px minmax(0,1fr);
-  gap:10px;
-  align-items:center;
-  padding:14px 16px;
-  background:#171c20;
-}
-body[data-instrument="pf02"] .personAvatar{
-  display:grid;
-  place-items:center;
-  width:30px;height:30px;
-  border:1px solid #38414a;
-  border-radius:50%;
-  color:#b8c2c9;
-  font-size:10px;
-}
-body[data-instrument="pf02"] .youLine .personAvatar{
-  background:#27315b;
-  border-color:#344276;
-  color:#c7ceff;
-}
-body[data-instrument="pf02"] .mateLine .personAvatar{
-  background:#452f29;
-  border-color:#624138;
-  color:#efb6a3;
-}
-body[data-instrument="pf02"] .guestLine .personAvatar{
-  background:#233a31;
-  border-color:#315244;
-  color:#acd3bc;
-}
-body[data-instrument="pf02"] .personLine p{
-  margin:0;
-  color:#c4ccd1;
-  font-size:11px;
-  line-height:1.5;
-}
-
-body[data-instrument="pf02"] .homeRooms{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-  padding:18px;
-  background:#11161a;
-}
-body[data-instrument="pf02"] .homeRoom{
+/* pseudo-3D home stage */
+body[data-instrument="pf02"] .homeWorld{
   position:relative;
+  min-height:500px;
+  overflow:hidden;
+  perspective:1100px;
+  background:
+    linear-gradient(180deg,#182028 0%,#101519 62%,#0d1114 100%);
+}
+body[data-instrument="pf02"] .homeWorldBackdrop{
+  position:absolute;
+  inset:28px 5% 40px;
+  border:1px solid #273038;
+  border-radius:24px;
+  background:
+    linear-gradient(90deg,transparent 49.7%,rgba(255,255,255,.025) 50%,transparent 50.3%),
+    linear-gradient(180deg,rgba(255,255,255,.018),transparent 55%);
+  transform:rotateX(58deg) translateY(70px) scale(.96);
+  transform-origin:center bottom;
+  box-shadow:0 40px 90px rgba(0,0,0,.25) inset;
+}
+body[data-instrument="pf02"] .homeWorld:before,
+body[data-instrument="pf02"] .homeWorld:after{
+  content:"";
+  position:absolute;
+  top:30px;
+  bottom:26%;
+  width:1px;
+  background:#222b32;
+  opacity:.8;
+}
+body[data-instrument="pf02"] .homeWorld:before{left:34%}
+body[data-instrument="pf02"] .homeWorld:after{right:34%}
+
+body[data-instrument="pf02"] .room3d{
+  position:absolute;
+  z-index:3;
   min-width:0;
-  min-height:220px;
-  padding:18px;
-  border:1px solid #303840;
-  border-radius:12px;
-  background:#191f24;
-  color:#e8edf0;
+  padding:17px;
+  border:1px solid #313a42;
+  border-radius:13px;
+  background:#1a2025;
+  color:#eef2f4;
   text-align:left;
   cursor:pointer;
-  transition:transform .16s ease,border-color .16s ease,background .16s ease;
+  transform:rotateX(3deg);
+  transform-origin:center bottom;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
 }
-body[data-instrument="pf02"] .homeRoom:hover{
-  transform:translateY(-2px);
-  border-color:#4a555f;
-  background:#1e252b;
+body[data-instrument="pf02"] .room3d:hover{
+  transform:translateY(-4px) rotateX(1deg);
+  border-color:#4a5660;
+  box-shadow:0 20px 40px rgba(0,0,0,.18);
 }
-body[data-instrument="pf02"] .homeRoom.kitchen{
-  border-color:#70483d;
-  background:#211916;
+body[data-instrument="pf02"] .livingRoom{
+  left:7%;
+  bottom:13%;
+  width:25%;
+  min-height:215px;
 }
-body[data-instrument="pf02"] .homeRoom.kitchen:hover{
-  border-color:#8a594b;
-  background:#261c18;
+body[data-instrument="pf02"] .kitchenRoom{
+  left:37%;
+  bottom:9%;
+  width:27%;
+  min-height:255px;
+  border-color:#704a3f;
+  background:#221a17;
 }
-body[data-instrument="pf02"] .roomName{
+body[data-instrument="pf02"] .guestRoom3d{
+  right:7%;
+  bottom:13%;
+  width:25%;
+  min-height:215px;
+}
+body[data-instrument="pf02"] .room3d>span{
   display:block;
-  color:#8d98a1;
+  color:#89949c;
   font:9px ui-monospace,monospace;
   letter-spacing:.08em;
 }
-body[data-instrument="pf02"] .homeRoom strong{
+body[data-instrument="pf02"] .room3d>strong{
   display:block;
-  margin-top:26px;
-  color:#f3f6f7;
-  font-size:42px;
+  margin-top:22px;
+  color:#f4f7f8;
+  font-size:40px;
   line-height:1;
   letter-spacing:-.05em;
 }
-body[data-instrument="pf02"] .homeRoom small{
+body[data-instrument="pf02"] .room3d>small{
   display:block;
-  margin-top:9px;
-  color:#99a4ac;
+  max-width:180px;
+  margin-top:8px;
+  color:#9aa5ad;
   font-size:10px;
   line-height:1.5;
 }
-body[data-instrument="pf02"] .roomFlag{
+
+body[data-instrument="pf02"] .sofaShape,
+body[data-instrument="pf02"] .counterShape,
+body[data-instrument="pf02"] .bedShape{
   position:absolute;
-  left:18px;
-  bottom:16px;
-  padding:5px 7px;
-  border:1px solid #70483d;
-  border-radius:999px;
-  background:#2c1d18;
-  color:#dfa38e;
-  font:8px ui-monospace,monospace;
-  letter-spacing:.06em;
+  left:17px;
+  right:17px;
+  bottom:18px;
+  height:42px;
+  border:1px solid #303941;
+  border-radius:8px 8px 4px 4px;
+  background:#20272c;
+}
+body[data-instrument="pf02"] .sofaShape:before{
+  content:"";
+  position:absolute;
+  left:10px;right:10px;top:-17px;height:22px;
+  border:1px solid #303941;
+  border-radius:8px 8px 0 0;
+  background:#1d2429;
+}
+body[data-instrument="pf02"] .counterShape{
+  height:54px;
+  border-color:#5f4037;
+  background:#2a201d;
+}
+body[data-instrument="pf02"] .counterShape:before{
+  content:"";
+  position:absolute;
+  left:12px;right:12px;top:-7px;height:7px;
+  background:#6f5147;
+}
+body[data-instrument="pf02"] .bedShape{
+  height:46px;
+  background:#1d2529;
+}
+body[data-instrument="pf02"] .bedShape:before{
+  content:"";
+  position:absolute;
+  left:9px;top:8px;width:42px;height:18px;
+  border-radius:6px;
+  background:#293239;
+}
+body[data-instrument="pf02"] .windowShape{
+  position:absolute;
+  right:18px;
+  top:18px;
+  width:44px;
+  height:68px;
+  border:1px solid #714b40;
+  background:#151a1d;
+}
+body[data-instrument="pf02"] .windowShape:after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  width:1px;
+  background:#714b40;
+}
+body[data-instrument="pf02"] .windowShape:before{
+  content:"";
+  position:absolute;
+  left:4px;
+  right:4px;
+  bottom:4px;
+  height:calc(var(--open,0%) * .45);
+  max-height:26px;
+  background:#6ea0b8;
+  opacity:.75;
 }
 
-body[data-instrument="pf02"] .agentBar{
-  min-height:64px;
-  display:grid;
-  grid-template-columns:36px minmax(0,1fr) auto;
-  gap:11px;
+/* people are in the room, not in a separate information list */
+body[data-instrument="pf02"] .personChip{
+  position:absolute;
+  z-index:5;
+  display:flex;
+  gap:7px;
   align-items:center;
-  padding:11px 16px;
-  border-top:1px solid #30363c;
-  background:#171d21;
+  max-width:220px;
+  padding:8px 10px;
+  border:1px solid #333b42;
+  border-radius:999px;
+  background:#1b2126;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
 }
-body[data-instrument="pf02"] .agentAvatar{
+body[data-instrument="pf02"] .personChip b{
+  flex:0 0 auto;
   display:grid;
   place-items:center;
-  width:32px;height:32px;
+  min-width:26px;
+  height:26px;
+  padding:0 5px;
   border-radius:50%;
   background:#27315b;
-  color:#c8d0ff;
+  color:#d0d6ff;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .personChip span{
+  overflow:hidden;
+  color:#c8d0d5;
+  font-size:9px;
+  line-height:1.35;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+body[data-instrument="pf02"] .youChip{left:36%;top:15%}
+body[data-instrument="pf02"] .mateChip{left:7%;top:22%}
+body[data-instrument="pf02"] .mateChip b{
+  background:#4a332d;
+  color:#efbca9;
+}
+body[data-instrument="pf02"] .guestChip{right:8%;top:23%;opacity:.72}
+body[data-instrument="pf02"] .guestChip b{
+  background:#244137;
+  color:#b4dbc3;
+}
+
+/* one obvious thing to touch */
+body[data-instrument="pf02"] .conflictHotspot{
+  position:absolute;
+  z-index:8;
+  left:50%;
+  top:48%;
+  transform:translate(-50%,-50%);
+  width:190px;
+  padding:12px 13px;
+  border:1px solid #855346;
+  border-radius:12px;
+  background:#261b18;
+  color:#f1d4ca;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:0 16px 46px rgba(0,0,0,.28);
+}
+body[data-instrument="pf02"] .conflictHotspot:hover{
+  border-color:#b36b57;
+  background:#2d1f1b;
+}
+body[data-instrument="pf02"] .conflictHotspot.resolved{
+  border-color:#3b6549;
+  background:#18261d;
+  color:#c7e0ce;
+}
+body[data-instrument="pf02"] .hotspotPulse{
+  display:block;
+  width:8px;height:8px;
+  margin-bottom:8px;
+  border-radius:50%;
+  background:#e5775d;
+  box-shadow:0 0 0 0 rgba(229,119,93,.28);
+  animation:pf02-home-pulse 1.6s infinite;
+}
+body[data-instrument="pf02"] .conflictHotspot.resolved .hotspotPulse{
+  background:#65a979;
+  animation:none;
+}
+@keyframes pf02-home-pulse{
+  0%{box-shadow:0 0 0 0 rgba(229,119,93,.28)}
+  70%{box-shadow:0 0 0 12px rgba(229,119,93,0)}
+  100%{box-shadow:0 0 0 0 rgba(229,119,93,0)}
+}
+body[data-instrument="pf02"] .conflictHotspot b{
+  display:block;
+  font-size:11px;
+}
+body[data-instrument="pf02"] .conflictHotspot small{
+  display:block;
+  margin-top:4px;
+  color:#bca39b;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .conflictHotspot.resolved small{color:#8faf98}
+
+/* agent is a proposal, not another dashboard */
+body[data-instrument="pf02"] .agentProposal{
+  display:grid;
+  grid-template-columns:56px minmax(0,1fr) auto;
+  gap:14px;
+  align-items:center;
+  padding:15px 17px;
+  border-top:1px solid #30373d;
+  background:#171c20;
+}
+body[data-instrument="pf02"] .agentIdentity{
+  text-align:center;
+}
+body[data-instrument="pf02"] .agentIdentity>span{
+  display:grid;
+  place-items:center;
+  width:34px;height:34px;
+  margin:auto;
+  border-radius:50%;
+  background:#27315b;
+  color:#ced5ff;
   font:9px ui-monospace,monospace;
 }
-body[data-instrument="pf02"] .agentBar small{
+body[data-instrument="pf02"] .agentIdentity small{
   display:block;
-  color:#79848d;
+  margin-top:5px;
+  color:#6f7981;
+  font:7px ui-monospace,monospace;
+}
+body[data-instrument="pf02"] .agentProposalText b{
+  display:block;
+  color:#e5eaed;
+  font-size:11px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .agentProposalText p{
+  margin:4px 0 0;
+  color:#8d979e;
+  font-size:9px;
+  line-height:1.45;
+}
+body[data-instrument="pf02"] .agentProposalActions{
+  display:flex;
+  gap:7px;
+  align-items:center;
+}
+body[data-instrument="pf02"] .acceptProposal{
+  min-height:36px;
+  padding:0 12px;
+  border:0;
+  border-radius:8px;
+  background:#eef2f4;
+  color:#15191c;
+  cursor:pointer;
+  font-weight:700;
+  font-size:10px;
+}
+body[data-instrument="pf02"] .openAlternatives{
+  min-height:36px;
+  padding:0 10px;
+  border:1px solid #333b42;
+  border-radius:8px;
+  background:#1c2227;
+  color:#aeb7bd;
+  cursor:pointer;
+  font-size:9px;
+}
+body[data-instrument="pf02"] .seedAlternatives{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid #30373d;
+  border-radius:10px;
+  background:#171c20;
+}
+body[data-instrument="pf02"] .seedAlternatives.hidden{display:none!important}
+body[data-instrument="pf02"] .altLabel{
+  margin-bottom:8px;
+  color:#747e85;
   font:8px ui-monospace,monospace;
   letter-spacing:.08em;
 }
-body[data-instrument="pf02"] .agentBar b{
-  display:block;
-  margin-top:3px;
-  color:#d4dce1;
-  font-size:10px;
-  line-height:1.4;
+body[data-instrument="pf02"] .altChoices{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
 }
-body[data-instrument="pf02"] .agentBar i{
-  padding:5px 7px;
-  border:1px solid #35546a;
-  border-radius:999px;
-  color:#8fb9d2;
-  font:8px ui-monospace,monospace;
-  font-style:normal;
-  letter-spacing:.06em;
+body[data-instrument="pf02"] .seedAlternatives .instantChoice{
+  border-color:#30373d;
+  background:#1b2126;
+  color:#dce2e6;
 }
 
+/* after choice: result sits below the home instead of competing with it */
+body[data-instrument="pf02"][data-world="seed"] .instantResult{
+  margin-top:10px;
+  border-color:#36523f;
+  background:#17231b;
+}
+body[data-instrument="pf02"][data-world="seed"] .instantResult p{color:#cdd9d1}
 /* Act 2 — delivery phone + map */
 body[data-instrument="pf02"][data-world="near"] .diegeticScene{
   display:grid;
@@ -947,18 +1161,38 @@ body[data-instrument="pf02"] .scheduleBoard{
   }
 
 @media(max-width:760px){
-  body[data-instrument="pf02"] .homePeople,
-  body[data-instrument="pf02"] .homeRooms{
-    grid-template-columns:1fr;
   }
-  body[data-instrument="pf02"] .personLine{min-height:68px}
-  body[data-instrument="pf02"] .homeRoom{min-height:150px}
-  body[data-instrument="pf02"] .homeRoom strong{margin-top:16px;font-size:34px}
-  body[data-instrument="pf02"] .agentBar{
-    grid-template-columns:34px minmax(0,1fr);
+
+@media(max-width:820px){
+  body[data-instrument="pf02"] .homeWorld{min-height:620px}
+  body[data-instrument="pf02"] .livingRoom{
+    left:5%;bottom:8%;width:43%;min-height:180px;
   }
-  body[data-instrument="pf02"] .agentBar i{
+  body[data-instrument="pf02"] .guestRoom3d{
+    right:5%;bottom:8%;width:43%;min-height:180px;
+  }
+  body[data-instrument="pf02"] .kitchenRoom{
+    left:18%;bottom:34%;width:64%;min-height:205px;
+  }
+  body[data-instrument="pf02"] .youChip{left:10%;top:11%}
+  body[data-instrument="pf02"] .mateChip{left:auto;right:7%;top:18%}
+  body[data-instrument="pf02"] .guestChip{right:8%;top:auto;bottom:2%}
+  body[data-instrument="pf02"] .conflictHotspot{top:51%}
+  body[data-instrument="pf02"] .agentProposal{
+    grid-template-columns:48px minmax(0,1fr);
+  }
+  body[data-instrument="pf02"] .agentProposalActions{
     grid-column:1/-1;
-    justify-self:start;
+    padding-left:62px;
   }
+}
+@media(max-width:560px){
+  body[data-instrument="pf02"] .homeWorld{min-height:690px}
+  body[data-instrument="pf02"] .personChip{max-width:170px}
+  body[data-instrument="pf02"] .agentProposalActions{
+    padding-left:0;
+    flex-direction:column;
+    align-items:stretch;
+  }
+  body[data-instrument="pf02"] .altChoices{grid-template-columns:1fr}
 }
