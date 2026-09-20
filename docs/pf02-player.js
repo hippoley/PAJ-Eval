@@ -142,11 +142,10 @@ function diegeticScene(world){
   </section>`;
 }
 function bindSceneInteractions(world){
-  document.querySelectorAll('.sceneInspect').forEach(el=>el.onclick=()=>{
-    const key=el.dataset.key||'scene_object';
+  document.querySelectorAll('[data-clue],.sceneInspect').forEach(el=>el.onclick=()=>{
+    const key=el.dataset.clue||el.dataset.key||'scene_object';
     markDetail(world,key);
     el.classList.add('inspected');
-    refreshFieldFeed(world);
   });
 }
 function randomIndex(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}
@@ -632,8 +631,9 @@ function renderActions(world){
       const scene=$('seedContent');
       const accept=scene?.querySelector('.acceptProposal');
       const alt=scene?.querySelector('.openAlternatives');
-      if(accept)accept.onclick=()=>takeAction('seed',accept.dataset.a);
-      if(alt)alt.onclick=()=>{const box=el.querySelector('.seedAlternatives');box?.classList.remove('hidden');alt.classList.add('hidden')};
+      if(accept)accept.onclick=()=>{log('agent_proposal_response',{world:'seed',proposal:'repin',response:'accept'});takeAction('seed',accept.dataset.a)};
+      if(alt)alt.onclick=()=>{log('agent_proposal_response',{world:'seed',proposal:'repin',response:'override_intent'});const box=el.querySelector('.seedAlternatives');box?.classList.remove('hidden');alt.classList.add('hidden')};
+      el.querySelectorAll('.seedAlternatives .instantChoice').forEach(b=>b.onclick=()=>{log('agent_override',{world:'seed',proposal:'repin',chosen:b.dataset.a});takeAction('seed',b.dataset.a)});
     }
     return;
   }
@@ -694,7 +694,7 @@ function commitWorld(world){delete document.body.dataset.action;log('commit',{wo
   finish()}
 function artifactSpec(){
   const zh=locale.startsWith('zh'),seed=S.action.seed||'hold',near=S.action.near||'hold',far=S.action.far||'hold';
-  const evidence=[...S.detail.seed,...S.detail.near,...S.detail.far];
+  const evidence=[...S.detail.seed,...S.detail.near,...S.detail.far,...S.events.filter(e=>e.type==='agent_override').map(e=>'agent_override:'+e.chosen)];
   const invariant=seed==='repin'
     ? (zh?'當多人意圖衝突但問題集中在單一空間時，優先局部重算該空間，而不是把整個家庭狀態一起回退。':'When multi-person intent conflicts are localized to one space, recompute that space before reverting the whole household state.')
     : seed==='rollback'
