@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ContextMesh — API</title><link rel="stylesheet" href="./style.css"></head><body><div class="apiwrap"><div style="display:flex;justify-content:space-between;align-items:center;gap:20px"><a class="brand" href="./"><span class="mark">CM</span><span><strong>ContextMesh</strong><small>deployment contract</small></span></a><nav class="nav" style="display:flex;margin:0"><a href="./">Workspace</a><a href="./admin.html">Admin</a><a class="active" href="./api.html">API</a></nav></div><section class="apihero" style="margin-top:45px"><p class="ey">One external submit</p><h1>Full-corpus execution inside.</h1><p class="sub">This public deployment is the interactive product surface. Point it at a real ContextMesh FastAPI backend to activate resumable ingest, SSE, provider routing, full-coverage evaluation and LMCache telemetry.</p></section><section class="apigrid"><div class="card"><h2>Evaluation API</h2><pre class="code">POST /api/evaluation-jobs
+
+{
+  "corpus_id": "corp_xxx",
+  "question": "...",
+  "answer": "...",
+  "route_id": "local-qwen"
+}</pre><p class="sub">All required ContextBlocks are processed. The final score stays locked until coverage gates pass.</p></div><div class="card"><h2>Provider adapters</h2><pre class="code">OpenAI
+Anthropic
+Gemini
+Qwen / DashScope
+vLLM
+SGLang
+Generic OpenAI-compatible</pre><p class="sub">Provider adapters own modality payloads, context budgets and caching behavior.</p></div><div class="card"><h2>Large-file path</h2><pre class="code">Browser
+ → resumable multipart
+ → S3 / MinIO
+ → durable ingest worker
+ → ContextBlock catalog
+ → full-coverage reader</pre><p class="sub">Vector search may schedule reading order; it never filters eligibility.</p></div><div class="card"><h2>Run the backend</h2><pre class="code">python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+contextmesh serve --host 0.0.0.0 --port 8765</pre><p class="sub">Workspace / · Admin /admin · OpenAPI /docs</p></div></section></div></body></html>
