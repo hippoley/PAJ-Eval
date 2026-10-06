@@ -38,6 +38,7 @@ from audit_witness import (
     load_witness_provider,
     load_witness_receipt_journal,
 )
+from audit_witness_quorum import WitnessQuorum, load_witness_quorum
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
@@ -96,6 +97,7 @@ def make_handler(
     audit_checkpoint_signer: AuditCheckpointSigner | None = None,
     audit_witness_provider: CheckpointWitnessProvider | None = None,
     audit_witness_receipts: WitnessReceiptJournal | None = None,
+    audit_witness_quorum: WitnessQuorum | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
@@ -300,10 +302,49 @@ def make_handler(
                             provider=audit_witness_provider,
                         ),
                     }
+                if audit_witness_quorum is None:
+                    quorum_status = {
+                        "ok": True,
+                        "configured": False,
+                        "satisfied": False,
+                    }
+                else:
+                    latest_checkpoint = (
+                        audit_checkpoint_signer.latest()
+                        if audit_checkpoint_signer is not None
+                        else None
+                    )
+                    if latest_checkpoint is None:
+                        quorum_status = {
+                            "ok": True,
+                            "configured": True,
+                            "satisfied": False,
+                            "checkpoint_sequence": None,
+                        }
+                    elif audit_witness_receipts is None:
+                        quorum_status = {
+                            "ok": False,
+                            "configured": True,
+                            "satisfied": False,
+                            "reason": "witness_receipt_journal_not_configured",
+                            "checkpoint_sequence": latest_checkpoint.sequence,
+                        }
+                    else:
+                        result = audit_witness_quorum.evaluate(
+                            latest_checkpoint,
+                            audit_witness_receipts.receipts(),
+                        )
+                        quorum_status = {
+                            "ok": result.satisfied,
+                            "configured": True,
+                            **result.to_dict(),
+                        }
+
                 healthy = bool(
                     audit_status.get("ok")
                     and checkpoint_status.get("ok")
                     and witness_status.get("ok")
+                    and quorum_status.get("ok")
                 )
                 self._json(
                     HTTPStatus.OK if healthy else HTTPStatus.SERVICE_UNAVAILABLE,
@@ -313,6 +354,7 @@ def make_handler(
                         "audit_chain": audit_status,
                         "audit_checkpoint": checkpoint_status,
                         "audit_witness": witness_status,
+                        "audit_witness_quorum": quorum_status,
                     },
                 )
                 return
@@ -475,6 +517,76 @@ def make_handler(
                 body = self._read_json()
             except ValueError as exc:
                 self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                return
+
+            if path == "/api/audit/checkpoint/witness-quorum":
+                if audit_checkpoint_signer is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_checkpoint_not_configured"},
+                    )
+                    return
+                if audit_witness_quorum is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_witness_quorum_not_configured"},
+                    )
+                    return
+                if audit_witness_receipts is None:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "audit_witness_receipt_journal_not_configured"},
+                    )
+                    return
+
+                principal = self._resolve_human_principal(
+                    body,
+                    default="witness-quorum-operator",
+                )
+                if principal is None:
+                    return
+
+                checkpoint = audit_checkpoint_signer.latest()
+                if checkpoint is None:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "audit_checkpoint_missing"},
+                    )
+                    return
+
+                result = audit_witness_quorum.publish(checkpoint)
+                try:
+                    for receipt in result.receipts:
+                        audit_witness_receipts.append(
+                            receipt,
+                            provider=audit_witness_quorum.provider_for(
+                                receipt.witness
+                            ),
+                            already_verified=True,
+                        )
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        {
+                            "error": "audit_witness_receipt_persist_failed",
+                            "detail": str(exc),
+                            "checkpoint_sequence": checkpoint.sequence,
+                            "quorum": result.to_dict(),
+                        },
+                    )
+                    return
+
+                payload = {
+                    "checkpoint": asdict(checkpoint),
+                    "quorum": result.to_dict(),
+                    "principal": self._principal_audit(principal),
+                }
+                self._json(
+                    HTTPStatus.CREATED
+                    if result.satisfied
+                    else HTTPStatus.BAD_GATEWAY,
+                    payload,
+                )
                 return
 
             if path == "/api/audit/checkpoint/witness":
@@ -1035,6 +1147,7 @@ def make_server(
     audit_checkpoint_signer: AuditCheckpointSigner | None = None,
     audit_witness_provider: CheckpointWitnessProvider | None = None,
     audit_witness_receipts: WitnessReceiptJournal | None = None,
+    audit_witness_quorum: WitnessQuorum | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
@@ -1050,6 +1163,7 @@ def make_server(
             audit_checkpoint_signer,
             audit_witness_provider,
             audit_witness_receipts,
+            audit_witness_quorum,
         ),
     )
 
@@ -1067,10 +1181,24 @@ def main() -> None:
     audit_checkpoint_signer = AuditCheckpointSigner.from_env(queue)
     audit_witness_provider = load_witness_provider()
     audit_witness_receipts = load_witness_receipt_journal()
-    if audit_witness_receipts is not None and audit_witness_provider is None:
+    audit_witness_quorum = load_witness_quorum()
+    if (
+        audit_witness_receipts is not None
+        and audit_witness_provider is None
+        and audit_witness_quorum is None
+    ):
         raise ValueError(
-            "witness receipt journal requires an audit witness provider"
+            "witness receipt journal requires an audit witness provider or quorum"
         )
+    if audit_witness_quorum is not None:
+        if audit_checkpoint_signer is None:
+            raise ValueError(
+                "witness quorum requires audit checkpoint signing"
+            )
+        if audit_witness_receipts is None:
+            raise ValueError(
+                "witness quorum requires a witness receipt journal"
+            )
     server = make_server(
         queue,
         host=host,
@@ -1082,6 +1210,7 @@ def main() -> None:
         audit_checkpoint_signer=audit_checkpoint_signer,
         audit_witness_provider=audit_witness_provider,
         audit_witness_receipts=audit_witness_receipts,
+        audit_witness_quorum=audit_witness_quorum,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
