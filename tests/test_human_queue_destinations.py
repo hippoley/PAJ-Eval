@@ -200,3 +200,81 @@ def test_named_binding_snapshot_contains_destination_revision(tmp_path):
 
     assert snapshot["destination"] == "github-release"
     assert snapshot["destination_revision"] == 1
+
+
+def test_destination_history_records_actor_and_reason(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+
+    first = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/v1",
+        actor="alice",
+        reason="initial production rollout",
+        now=100,
+    )
+    second = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/v2",
+        actor="bob",
+        reason="migrate resume endpoint",
+        now=200,
+    )
+
+    assert first.changed_by == "alice"
+    assert first.change_reason == "initial production rollout"
+    assert second.revision == 2
+    assert second.changed_by == "bob"
+    assert second.change_reason == "migrate resume endpoint"
+
+    history = registry.history("prod-deploy")
+    assert [(h.revision, h.changed_by, h.change_reason) for h in history] == [
+        (1, "alice", "initial production rollout"),
+        (2, "bob", "migrate resume endpoint"),
+    ]
+
+
+def test_identical_destination_write_preserves_original_provenance(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    first = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="alice",
+        reason="approved setup",
+        now=100,
+    )
+    replay = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="mallory",
+        reason="should not rewrite provenance",
+        now=200,
+    )
+
+    assert replay.revision == first.revision == 1
+    assert replay.updated_at == first.updated_at == 100
+    assert replay.changed_by == "alice"
+    assert replay.change_reason == "approved setup"
+    assert len(registry.history("prod-deploy")) == 1
+
+
+def test_destination_snapshot_carries_change_provenance(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="release-admin",
+        reason="CAB-42",
+    )
+
+    snapshot = resolve_resume_binding(
+        {"destination": "prod-deploy"},
+        registry,
+    )
+    assert snapshot["destination_revision"] == 1
+    assert snapshot["destination_changed_by"] == "release-admin"
+    assert snapshot["destination_change_reason"] == "CAB-42"
