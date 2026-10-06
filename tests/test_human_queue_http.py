@@ -62,6 +62,12 @@ def test_http_wait_decision_resume_contract(tmp_path):
             "configured": False,
             "anchored": False,
         }
+        assert health["audit_witness"] == {
+            "ok": True,
+            "configured": False,
+            "journal_configured": False,
+            "witnessed": False,
+        }
 
         status, created = request_json(
             base,
