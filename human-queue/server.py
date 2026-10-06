@@ -220,7 +220,7 @@ def make_handler(
                 "provider": principal.provider,
             }
             attributes = getattr(principal, "attributes", None) or {}
-            for key in ("issuer", "audience", "kid"):
+            for key in ("issuer", "audience", "kid", "token_id_hash"):
                 value = attributes.get(key)
                 if value is not None:
                     data[key] = value
