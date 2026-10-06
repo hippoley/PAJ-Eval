@@ -222,13 +222,14 @@ class WitnessQuorum:
 
         for receipt in receipts:
             witness = receipt.witness
-            if witness in seen:
-                failures.setdefault(
-                    witness,
-                    "duplicate_witness_receipt",
-                )
+
+            # Historical receipts remain useful evidence but must not consume a
+            # witness slot for the current checkpoint.
+            if receipt.checkpoint_sequence < checkpoint.sequence:
                 continue
-            seen.add(witness)
+            if receipt.checkpoint_sequence > checkpoint.sequence:
+                failures[witness] = "future_checkpoint_receipt"
+                continue
 
             provider = self.providers.get(witness)
             if provider is None:
@@ -241,6 +242,15 @@ class WitnessQuorum:
             if binding_error:
                 failures[witness] = binding_error
                 continue
+
+            if witness in seen:
+                failures.setdefault(
+                    witness,
+                    "duplicate_witness_receipt",
+                )
+                continue
+            seen.add(witness)
+
             try:
                 valid = provider.verify(receipt)
             except Exception as exc:
