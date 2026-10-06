@@ -283,6 +283,18 @@ class HumanQueue:
             ).fetchall()
         return [self._row_to_wait(row) for row in rows]
 
+    def resume_requested(self) -> list[Wait]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM waits
+                 WHERE execution_state = 'resume_requested'
+                   AND resume_binding_json IS NOT NULL
+                 ORDER BY resume_requested_at, created_at
+                """
+            ).fetchall()
+        return [self._row_to_wait(row) for row in rows]
+
     def claim(
         self,
         wait_id: str,
