@@ -435,3 +435,54 @@ registry and continue to live only in the worker environment.
 
 Raw `adapter + target` resume bindings remain supported for backward
 compatibility, but named destinations are the preferred control-plane path.
+
+
+## Destination revisions and configuration provenance
+
+Named destinations are now versioned. Each material change to adapter, target,
+retry policy, or enabled state creates a monotonically increasing revision:
+
+```text
+prod-deploy rev 1
+  target = /v1
+
+prod-deploy rev 2
+  target = /v2
+
+prod-deploy rev 3
+  enabled = false
+```
+
+Writing an identical configuration again does not create a synthetic revision.
+
+Inspect history:
+
+```http
+GET /api/destinations/{name}/history
+```
+
+When a named destination is resolved for an approved wait, HumanQueue snapshots:
+
+```text
+destination
+destination_revision
+adapter
+target
+retry policy
+```
+
+into the durable delivery row. The same destination revision is also recorded
+in the `RESUME_DELIVERY_QUEUED` audit event.
+
+This makes the provenance chain explicit:
+
+```text
+human decision
+→ prod-deploy revision 7
+→ immutable delivery snapshot
+→ delivery attempts
+→ machine acknowledgement
+```
+
+Later edits to `prod-deploy` create a new revision and do not rewrite already
+approved deliveries or their audit history.
