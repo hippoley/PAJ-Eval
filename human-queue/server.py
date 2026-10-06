@@ -18,7 +18,12 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from adapters import RetryPolicy
-from auth import ActorAuthenticator, ActorMismatchError, AuthenticationError
+from auth import (
+    ActorAuthenticator,
+    ActorMismatchError,
+    AuthenticationError,
+    ensure_disjoint_authenticators,
+)
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
@@ -70,6 +75,7 @@ def make_handler(
     deliveries: DurableDeliveryQueue | None = None,
     destinations: DestinationRegistry | None = None,
     authenticator: ActorAuthenticator | None = None,
+    machine_authenticator: ActorAuthenticator | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
@@ -88,6 +94,33 @@ def make_handler(
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
+
+        def _resolve_machine_actor(
+            self,
+            body: dict,
+            *,
+            default: str,
+        ) -> str | None:
+            claimed = str(body.get("actor") or "").strip()
+            if machine_authenticator is None:
+                return claimed or default
+            try:
+                return machine_authenticator.authenticate(
+                    self.headers.get("Authorization"),
+                    claimed_actor=claimed or None,
+                )
+            except ActorMismatchError as exc:
+                self._json(
+                    HTTPStatus.FORBIDDEN,
+                    {"error": "machine_actor_mismatch", "detail": str(exc)},
+                )
+                return None
+            except AuthenticationError as exc:
+                self._json(
+                    HTTPStatus.UNAUTHORIZED,
+                    {"error": "machine_authentication_required", "detail": str(exc)},
+                )
+                return None
 
         def _resolve_human_actor(
             self,
@@ -423,7 +456,9 @@ def make_handler(
             resumed_suffix = "/resumed"
             if path.startswith("/api/waits/") and path.endswith(resumed_suffix):
                 wait_id = path[len("/api/waits/") : -len(resumed_suffix)]
-                actor = str(body.get("actor") or "machine")
+                actor = self._resolve_machine_actor(body, default="machine")
+                if actor is None:
+                    return
                 try:
                     item = queue.mark_resumed(wait_id, actor=actor)
                 except KeyError:
@@ -441,7 +476,9 @@ def make_handler(
             complete_suffix = "/complete"
             if path.startswith("/api/waits/") and path.endswith(complete_suffix):
                 wait_id = path[len("/api/waits/") : -len(complete_suffix)]
-                actor = str(body.get("actor") or "machine")
+                actor = self._resolve_machine_actor(body, default="machine")
+                if actor is None:
+                    return
                 success = bool(body.get("success", True))
                 try:
                     item = queue.mark_completed(
@@ -651,6 +688,7 @@ def make_server(
     deliveries: DurableDeliveryQueue | None = None,
     destinations: DestinationRegistry | None = None,
     authenticator: ActorAuthenticator | None = None,
+    machine_authenticator: ActorAuthenticator | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
@@ -660,6 +698,7 @@ def make_server(
             deliveries,
             destinations,
             authenticator,
+            machine_authenticator,
         ),
     )
 
@@ -672,6 +711,10 @@ def main() -> None:
     deliveries = DurableDeliveryQueue(db)
     destinations = DestinationRegistry(db)
     authenticator = ActorAuthenticator.from_env()
+    machine_authenticator = ActorAuthenticator.from_env(
+        "HUMANQUEUE_MACHINE_TOKENS"
+    )
+    ensure_disjoint_authenticators(authenticator, machine_authenticator)
     server = make_server(
         queue,
         host=host,
@@ -679,6 +722,7 @@ def main() -> None:
         deliveries=deliveries,
         destinations=destinations,
         authenticator=authenticator,
+        machine_authenticator=machine_authenticator,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
