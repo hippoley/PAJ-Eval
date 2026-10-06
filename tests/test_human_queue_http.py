@@ -1520,3 +1520,135 @@ def test_auth_provider_principal_kind_is_enforced(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_audit_records_human_auth_provider_without_sensitive_context(tmp_path):
+    class HeaderProvider:
+        def authenticate(self, context, *, claimed_actor=None):
+            actor = context.headers.get("X-Verified-Actor")
+            if not actor:
+                raise server_module.AuthenticationError("missing trusted actor")
+            return type(
+                "Principal",
+                (),
+                {
+                    "actor": actor,
+                    "kind": "human",
+                    "provider": "trusted-proxy",
+                },
+            )()
+
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        human_auth_provider=HeaderProvider(),
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        item = queue.ask(
+            uri="human://approve",
+            title="Principal provenance",
+            source="agent",
+        )
+        status, _ = request_json(
+            base,
+            f"/api/waits/{item.id}/decision",
+            method="POST",
+            body={"action": "approve"},
+            headers={
+                "X-Verified-Actor": "alice",
+                "X-Should-Not-Be-Audited": "secret-header",
+            },
+        )
+        assert status == 200
+
+        status, events = request_json(base, f"/api/waits/{item.id}/events")
+        assert status == 200
+        decision = next(
+            event
+            for event in events["events"]
+            if event["event_type"] == "DECISION_COMMITTED"
+        )
+        assert decision["actor"] == "alice"
+        assert decision["data"]["principal"] == {
+            "kind": "human",
+            "provider": "trusted-proxy",
+        }
+        serialized = json.dumps(events)
+        assert "secret-header" not in serialized
+        assert "X-Should-Not-Be-Audited" not in serialized
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_audit_records_machine_auth_provider_on_execution_events(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    machine_provider = server_module.BearerTokenAuthProvider(
+        server_module.ActorAuthenticator({"worker-a": "machine-secret"}),
+        principal_kind="machine",
+        provider_name="local-machine-token",
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        machine_auth_provider=machine_provider,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        item = queue.ask(
+            uri="human://approve",
+            title="Machine provenance",
+            source="agent",
+        )
+        queue.decide(item.id, action="approve", actor="alice")
+
+        status, _ = request_json(
+            base,
+            f"/api/waits/{item.id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer machine-secret"},
+        )
+        assert status == 200
+        status, _ = request_json(
+            base,
+            f"/api/waits/{item.id}/complete",
+            method="POST",
+            body={"success": True},
+            headers={"Authorization": "Bearer machine-secret"},
+        )
+        assert status == 200
+
+        _, events = request_json(base, f"/api/waits/{item.id}/events")
+        resumed = next(
+            event
+            for event in events["events"]
+            if event["event_type"] == "PROCESS_RESUMED"
+        )
+        completed = next(
+            event
+            for event in events["events"]
+            if event["event_type"] == "PROCESS_COMPLETED"
+        )
+        expected = {
+            "kind": "machine",
+            "provider": "local-machine-token",
+        }
+        assert resumed["data"]["principal"] == expected
+        assert completed["data"]["principal"] == expected
+        assert "machine-secret" not in json.dumps(events)
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
