@@ -442,6 +442,55 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
+    def mark_resume_dispatched(
+        self,
+        wait_id: str,
+        *,
+        actor: str = "adapter",
+        adapter: str,
+        target: str,
+    ) -> Wait:
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            if item.execution_state not in {
+                "resume_requested",
+                "resumed",
+                "completed",
+                "failed",
+            }:
+                raise RuntimeError(f"{wait_id} has no resume request")
+
+            existing = conn.execute(
+                """
+                SELECT 1 FROM audit_events
+                 WHERE wait_id = ? AND event_type = 'RESUME_DISPATCHED'
+                   AND data_json = ?
+                 LIMIT 1
+                """,
+                (
+                    wait_id,
+                    json.dumps(
+                        {"adapter": adapter, "target": target},
+                        sort_keys=True,
+                    ),
+                ),
+            ).fetchone()
+            if existing is None:
+                self._append_event(
+                    conn,
+                    wait_id,
+                    "RESUME_DISPATCHED",
+                    actor=actor,
+                    data={"adapter": adapter, "target": target},
+                )
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            assert row is not None
+            return self._row_to_wait(row)
+
     def recent_audit_events(self, limit: int = 100) -> list[AuditEvent]:
         if limit <= 0:
             return []
