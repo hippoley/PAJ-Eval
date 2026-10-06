@@ -183,6 +183,48 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
                 self._json(HTTPStatus.CREATED, {"wait": wait_json(item)})
                 return
 
+            resumed_suffix = "/resumed"
+            if path.startswith("/api/waits/") and path.endswith(resumed_suffix):
+                wait_id = path[len("/api/waits/") : -len(resumed_suffix)]
+                actor = str(body.get("actor") or "machine")
+                try:
+                    item = queue.mark_resumed(wait_id, actor=actor)
+                except KeyError:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                    return
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "resume_conflict", "detail": str(exc)},
+                    )
+                    return
+                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
+                return
+
+            complete_suffix = "/complete"
+            if path.startswith("/api/waits/") and path.endswith(complete_suffix):
+                wait_id = path[len("/api/waits/") : -len(complete_suffix)]
+                actor = str(body.get("actor") or "machine")
+                success = bool(body.get("success", True))
+                try:
+                    item = queue.mark_completed(
+                        wait_id,
+                        actor=actor,
+                        success=success,
+                        detail=body.get("detail"),
+                    )
+                except KeyError:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                    return
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "completion_conflict", "detail": str(exc)},
+                    )
+                    return
+                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
+                return
+
             claim_suffix = "/claim"
             if path.startswith("/api/waits/") and path.endswith(claim_suffix):
                 wait_id = path[len("/api/waits/") : -len(claim_suffix)]
