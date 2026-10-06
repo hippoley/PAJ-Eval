@@ -28,6 +28,7 @@ class WitnessReceipt:
     checkpoint_head_hash: str | None
     key_id: str
     signature: str
+    checkpoint_fingerprint: str | None = None
 
 
 class WitnessReceiptVerifier(Protocol):
@@ -78,6 +79,7 @@ class HmacWitnessReceiptVerifier:
                 "checkpoint_signature": receipt.checkpoint_signature,
                 "checkpoint_head_hash": receipt.checkpoint_head_hash,
                 "key_id": receipt.key_id,
+                "checkpoint_fingerprint": receipt.checkpoint_fingerprint,
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -237,6 +239,9 @@ class HttpCheckpointWitnessProvider:
             raise RuntimeError("witness receipt checkpoint signature mismatch")
         if receipt.checkpoint_head_hash != checkpoint.head_hash:
             raise RuntimeError("witness receipt checkpoint head mismatch")
+        expected_fingerprint = checkpoint_fingerprint(checkpoint)
+        if receipt.checkpoint_fingerprint != expected_fingerprint:
+            raise RuntimeError("witness receipt checkpoint fingerprint mismatch")
         if not self.verify(receipt):
             raise RuntimeError("witness receipt signature is invalid")
         return receipt
@@ -276,6 +281,7 @@ class InMemoryWitnessProvider:
             checkpoint_head_hash=checkpoint.head_hash,
             key_id=self.key_id,
             signature="",
+            checkpoint_fingerprint=checkpoint_fingerprint(checkpoint),
         )
         payload = HmacWitnessReceiptVerifier.payload(unsigned)
         signature = hmac.new(
@@ -550,6 +556,8 @@ class WitnessReceiptJournal:
             if receipt.checkpoint_sequence == checkpoint.sequence
             and receipt.checkpoint_signature == checkpoint.signature
             and receipt.checkpoint_head_hash == checkpoint.head_hash
+            and receipt.checkpoint_fingerprint
+            == checkpoint_fingerprint(checkpoint)
         ]
         latest = matching[-1] if matching else None
         return {
