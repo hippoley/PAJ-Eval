@@ -2,11 +2,13 @@ import hashlib
 import hmac
 import importlib.util
 import json
+import os
 import sys
 import threading
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -684,3 +686,97 @@ def test_online_witness_rejects_when_remote_verification_is_unavailable(tmp_path
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_multiple_receipt_journals_serialize_concurrent_writes(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt_a = witness.publish(checkpoint)
+    receipt_b = witness.publish(checkpoint)
+
+    path = tmp_path / "witness-receipts.jsonl"
+    journal_a = WitnessReceiptJournal(path)
+    journal_b = WitnessReceiptJournal(path)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(
+            pool.map(
+                lambda pair: pair[0].append(
+                    pair[1],
+                    provider=witness,
+                ),
+                [
+                    (journal_a, receipt_a),
+                    (journal_b, receipt_b),
+                ],
+            )
+        )
+
+    assert {item.receipt_id for item in results} == {
+        receipt_a.receipt_id,
+        receipt_b.receipt_id,
+    }
+    persisted = journal_a.receipts()
+    assert len(persisted) == 2
+    assert {item.receipt_id for item in persisted} == {
+        receipt_a.receipt_id,
+        receipt_b.receipt_id,
+    }
+
+
+def test_stale_witness_receipt_journal_lock_is_recovered(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl",
+        lock_timeout_seconds=0.5,
+        stale_lock_seconds=0.05,
+    )
+
+    journal.lock_path.write_text('{"pid":999999}')
+    old = time.time() - 10
+    os.utime(journal.lock_path, (old, old))
+
+    journal.append(receipt, provider=witness)
+    assert journal.lock_path.exists() is False
+    assert journal.receipts() == [receipt]
+
+
+def test_active_witness_receipt_journal_lock_times_out(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl",
+        lock_timeout_seconds=0.1,
+        stale_lock_seconds=60,
+    )
+
+    journal.lock_path.write_text('{"pid":123}')
+    try:
+        journal.append(receipt, provider=witness)
+    except RuntimeError as exc:
+        assert "journal lock" in str(exc)
+    else:
+        raise AssertionError("active witness journal lock unexpectedly ignored")
+
+    assert journal.path.exists() is False
