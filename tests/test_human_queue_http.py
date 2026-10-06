@@ -1815,3 +1815,33 @@ def test_signed_jwt_principals_drive_human_and_machine_policy_end_to_end(tmp_pat
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_http_exposes_audit_chain_verification(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="Verify audit chain",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, payload = request_json(base, "/api/audit/verify")
+        assert status == 200
+        assert payload["ok"] is True
+        assert payload["checked"] >= 2
+        assert payload["head_hash"]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
