@@ -25,13 +25,13 @@ server_module = load("human_queue_server", ROOT / "server.py")
 HumanQueue = runtime.HumanQueue
 
 
-def request_json(base, path, *, method="GET", body=None):
+def request_json(base, path, *, method="GET", body=None, headers=None):
     data = None if body is None else json.dumps(body).encode()
     request = Request(
         base + path,
         data=data,
         method=method,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **(headers or {})},
     )
     try:
         with urlopen(request, timeout=2) as response:
@@ -983,6 +983,105 @@ def test_destination_actor_policy_still_allows_reject_as_safe_exit(tmp_path):
         assert status == 200
         assert rejected["wait"]["state"] == "rejected"
         assert "delivery" not in rejected
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_authenticated_actor_binding_prevents_body_spoofing(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    authenticator = server_module.ActorAuthenticator(
+        {"alice": "token-alice", "bob": "token-bob"}
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        authenticator=authenticator,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, missing = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "actor": "alice",
+            },
+        )
+        assert status == 401
+        assert missing["error"] == "authentication_required"
+
+        status, created_destination = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "actor": "alice",
+                "allowed_decision_actors": ["alice"],
+            },
+            headers={"Authorization": "Bearer token-alice"},
+        )
+        assert status == 201
+        assert created_destination["destination"]["changed_by"] == "alice"
+
+        status, mismatch = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "other",
+                "adapter": "webhook",
+                "target": "https://worker.example/other",
+                "actor": "alice",
+            },
+            headers={"Authorization": "Bearer token-bob"},
+        )
+        assert status == 403
+        assert mismatch["error"] == "actor_mismatch"
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Authenticated deploy",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, spoofed = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+            headers={"Authorization": "Bearer token-bob"},
+        )
+        assert status == 403
+        assert spoofed["error"] == "actor_mismatch"
+
+        status, approved = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve"},
+            headers={"Authorization": "Bearer token-alice"},
+        )
+        assert status == 200
+        assert approved["wait"]["decision"]["actor"] == "alice"
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
