@@ -788,3 +788,76 @@ def test_destination_history_api_and_delivery_revision_snapshot(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_destination_actor_reason_flow_into_delivery_and_audit(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, destination = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "actor": "release-admin",
+                "reason": "CAB-42",
+            },
+        )
+        assert status == 201
+        assert destination["destination"]["changed_by"] == "release-admin"
+        assert destination["destination"]["change_reason"] == "CAB-42"
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Deploy governed release?",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        job = decided["delivery"]
+        assert job["destination"] == "prod-deploy"
+        assert job["destination_revision"] == 1
+        assert job["destination_changed_by"] == "release-admin"
+        assert job["destination_change_reason"] == "CAB-42"
+
+        status, events = request_json(base, f"/api/waits/{wait_id}/events")
+        assert status == 200
+        queued = next(
+            event
+            for event in events["events"]
+            if event["event_type"] == "RESUME_DELIVERY_QUEUED"
+        )
+        assert queued["data"]["destination_changed_by"] == "release-admin"
+        assert queued["data"]["destination_change_reason"] == "CAB-42"
+
+        status, history = request_json(
+            base,
+            "/api/destinations/prod-deploy/history",
+        )
+        assert status == 200
+        assert history["history"][0]["changed_by"] == "release-admin"
+        assert history["history"][0]["change_reason"] == "CAB-42"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
