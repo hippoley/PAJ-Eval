@@ -2,10 +2,13 @@ import hashlib
 import hmac
 import importlib.util
 import json
+import os
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 
@@ -304,3 +307,130 @@ def test_witness_publish_endpoint_can_require_bearer_auth(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_multiple_witness_store_instances_are_idempotent_for_same_checkpoint(tmp_path):
+    checkpoint = make_checkpoint(tmp_path)
+    path = tmp_path / "witness.jsonl"
+    store_a = WitnessStore(
+        path,
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+    )
+    store_b = WitnessStore(
+        path,
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        receipts = list(
+            pool.map(
+                lambda store: store.issue(checkpoint),
+                [store_a, store_b],
+            )
+        )
+
+    assert receipts[0] == receipts[1]
+    assert store_a.count() == 1
+    assert store_b.count() == 1
+    assert len(path.read_text().splitlines()) == 1
+
+
+def test_multiple_witness_store_instances_serialize_distinct_checkpoints(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    first = queue.ask(
+        uri="human://approve",
+        title="First witness write",
+        source="agent",
+    )
+    queue.decide(first.id, action="approve", actor="alice")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint_one = signer.create(now=100)
+
+    second = queue.ask(
+        uri="human://approve",
+        title="Second witness write",
+        source="agent",
+    )
+    queue.decide(second.id, action="approve", actor="alice")
+    checkpoint_two = signer.create(now=200)
+
+    path = tmp_path / "witness.jsonl"
+    store_a = WitnessStore(
+        path,
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+    )
+    store_b = WitnessStore(
+        path,
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        receipts = list(
+            pool.map(
+                lambda pair: pair[0].issue(pair[1]),
+                [
+                    (store_a, checkpoint_one),
+                    (store_b, checkpoint_two),
+                ],
+            )
+        )
+
+    assert len({receipt.receipt_id for receipt in receipts}) == 2
+    assert store_a.count() == 2
+    assert len(path.read_text().splitlines()) == 2
+    assert all(store_a.verify(receipt) for receipt in receipts)
+
+
+def test_witness_store_recovers_stale_lock(tmp_path):
+    checkpoint = make_checkpoint(tmp_path)
+    store = WitnessStore(
+        tmp_path / "witness.jsonl",
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+        lock_timeout_seconds=0.5,
+        stale_lock_seconds=0.05,
+    )
+    store.lock_path.write_text('{"pid":999999}')
+    old = time.time() - 10
+    os.utime(store.lock_path, (old, old))
+
+    receipt = store.issue(checkpoint)
+
+    assert receipt.checkpoint_sequence == checkpoint.sequence
+    assert store.lock_path.exists() is False
+    assert store.count() == 1
+
+
+def test_witness_store_active_lock_times_out_without_append(tmp_path):
+    checkpoint = make_checkpoint(tmp_path)
+    store = WitnessStore(
+        tmp_path / "witness.jsonl",
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+        lock_timeout_seconds=0.1,
+        stale_lock_seconds=60,
+    )
+    store.lock_path.write_text('{"pid":123}')
+
+    try:
+        store.issue(checkpoint)
+    except RuntimeError as exc:
+        assert "writer lock" in str(exc)
+    else:
+        raise AssertionError("active witness store lock unexpectedly ignored")
+
+    assert store.path.exists() is False
