@@ -23,6 +23,7 @@ from pathlib import Path
 
 from adapters import GenericWebhookAdapter, GitHubRepositoryDispatchAdapter
 from delivery import DurableDeliveryQueue, reconcile_bound_deliveries, run_delivery_once
+from destinations import DestinationRegistry
 from runtime import HumanQueue
 
 
@@ -66,7 +67,8 @@ def run_worker_once(
 ):
     queue = HumanQueue(db)
     deliveries = DurableDeliveryQueue(db)
-    reconcile_bound_deliveries(queue, deliveries)
+    destinations = DestinationRegistry(db)
+    reconcile_bound_deliveries(queue, deliveries, destinations)
     return run_delivery_once(
         queue,
         deliveries,
