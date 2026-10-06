@@ -275,3 +275,112 @@ def test_http_checkpoint_create_and_verify(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_checkpoint_key_rotation_keeps_old_and_new_checkpoints_verifiable(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+
+    v1 = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        keys={"v1": "secret-v1", "v2": "secret-v2"},
+        signing_key_id="v1",
+    )
+    first = v1.create(now=100)
+    assert first.key_id == "v1"
+
+    item = queue.ask(
+        uri="human://approve",
+        title="Rotate checkpoint key",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+
+    v2 = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        keys={"v1": "secret-v1", "v2": "secret-v2"},
+        signing_key_id="v2",
+    )
+    second = v2.create(now=200)
+    assert second.key_id == "v2"
+    assert second.previous_signature == first.signature
+
+    verified = v2.verify()
+    assert verified["ok"] is True
+    assert verified["checkpoint_count"] == 2
+    assert verified["latest"]["key_id"] == "v2"
+
+
+def test_checkpoint_verification_fails_if_historical_key_is_removed(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        keys={"v1": "secret-v1", "v2": "secret-v2"},
+        signing_key_id="v1",
+    )
+    signer.create(now=100)
+
+    without_old_key = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        keys={"v2": "secret-v2"},
+        signing_key_id="v2",
+    )
+    result = without_old_key.verify()
+    assert result["ok"] is False
+    assert result["reason"] == "unknown_checkpoint_key_id"
+    assert result["key_id"] == "v1"
+
+
+def test_checkpoint_env_keyring_selects_active_signing_key(tmp_path, monkeypatch):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_FILE",
+        str(checkpoint_path),
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS",
+        '{"v1":"secret-v1","v2":"secret-v2"}',
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID",
+        "v2",
+    )
+
+    signer = AuditCheckpointSigner.from_env(queue)
+    assert signer is not None
+    checkpoint = signer.create(now=100)
+    assert checkpoint.key_id == "v2"
+
+
+def test_checkpoint_env_keyring_requires_active_key_id(tmp_path, monkeypatch):
+    queue, _ = make_queue(tmp_path / "queue.db")
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_FILE",
+        str(tmp_path / "audit-checkpoints.jsonl"),
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS",
+        '{"v1":"secret-v1"}',
+    )
+    monkeypatch.delenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID",
+        raising=False,
+    )
+
+    try:
+        AuditCheckpointSigner.from_env(queue)
+    except ValueError as exc:
+        assert "SIGNING_KEY_ID" in str(exc)
+    else:
+        raise AssertionError("checkpoint keyring accepted without signing key id")
