@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
 import os
 import secrets
+import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -277,6 +281,29 @@ def load_auth_provider(
             )
         return provider
 
+    if mode in {"jwt", "jwt-hs256"}:
+        raw_keys = os.environ.get(f"{prefix}_JWT_KEYS", "")
+        if not raw_keys:
+            raise ValueError(f"{prefix}_JWT_KEYS is required for jwt-hs256 auth")
+        try:
+            keys = json.loads(raw_keys)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{prefix}_JWT_KEYS must contain a JSON object") from exc
+        if not isinstance(keys, dict):
+            raise ValueError(f"{prefix}_JWT_KEYS must contain a JSON object")
+        issuer = os.environ.get(f"{prefix}_JWT_ISSUER", "")
+        audience = os.environ.get(f"{prefix}_JWT_AUDIENCE", "")
+        actor_claim = os.environ.get(f"{prefix}_JWT_ACTOR_CLAIM", "sub")
+        leeway = float(os.environ.get(f"{prefix}_JWT_LEEWAY_SECONDS", "30"))
+        return Hs256JwtAuthProvider(
+            principal_kind=principal_kind,
+            keys={str(k): str(v) for k, v in keys.items()},
+            issuer=issuer,
+            audience=audience,
+            actor_claim=actor_claim,
+            leeway_seconds=leeway,
+        )
+
     if mode == "trusted-header":
         proof_secret = os.environ.get(f"{prefix}_PROXY_SECRET", "")
         actor_header = os.environ.get(
@@ -306,4 +333,147 @@ def _local_provider_secrets(provider: AuthProvider | None) -> set[str]:
         return set(provider.authenticator.actor_tokens.values())
     if isinstance(provider, TrustedHeaderAuthProvider):
         return {provider.proof_secret}
+    if isinstance(provider, Hs256JwtAuthProvider):
+        return set(provider.keys.values())
     return set()
+
+
+def _b64url_decode(segment: str) -> bytes:
+    padding = "=" * (-len(segment) % 4)
+    try:
+        return base64.urlsafe_b64decode(segment + padding)
+    except Exception as exc:
+        raise AuthenticationError("invalid JWT encoding") from exc
+
+
+@dataclass(frozen=True)
+class Hs256JwtAuthProvider:
+    """Validate compact HS256 JWTs using stdlib-only cryptography.
+
+    This is signed JWT support, not full OIDC/JWKS support.
+    """
+
+    principal_kind: str
+    keys: dict[str, str]
+    issuer: str
+    audience: str
+    actor_claim: str = "sub"
+    leeway_seconds: float = 30.0
+    provider_name: str = "jwt-hs256"
+
+    def __post_init__(self) -> None:
+        cleaned = {
+            str(kid).strip(): str(secret).strip()
+            for kid, secret in self.keys.items()
+            if str(kid).strip() and str(secret).strip()
+        }
+        if not cleaned:
+            raise ValueError("JWT keys are required")
+        if not self.issuer.strip():
+            raise ValueError("JWT issuer is required")
+        if not self.audience.strip():
+            raise ValueError("JWT audience is required")
+        if not self.actor_claim.strip():
+            raise ValueError("JWT actor_claim is required")
+        if self.leeway_seconds < 0:
+            raise ValueError("JWT leeway_seconds must be >= 0")
+        object.__setattr__(self, "keys", cleaned)
+
+    def authenticate(
+        self,
+        context: AuthContext,
+        *,
+        claimed_actor: str | None = None,
+    ) -> Principal:
+        authorization = context.authorization or ""
+        if not authorization.startswith("Bearer "):
+            raise AuthenticationError("JWT bearer token required")
+        token = authorization[len("Bearer ") :].strip()
+        parts = token.split(".")
+        if len(parts) != 3:
+            raise AuthenticationError("invalid JWT format")
+
+        header_segment, payload_segment, signature_segment = parts
+        try:
+            header = json.loads(_b64url_decode(header_segment))
+            claims = json.loads(_b64url_decode(payload_segment))
+        except json.JSONDecodeError as exc:
+            raise AuthenticationError("invalid JWT JSON") from exc
+        if not isinstance(header, dict) or not isinstance(claims, dict):
+            raise AuthenticationError("invalid JWT structure")
+        if header.get("alg") != "HS256":
+            raise AuthenticationError("JWT alg must be HS256")
+
+        kid = str(header.get("kid") or "").strip()
+        if not kid:
+            if len(self.keys) != 1:
+                raise AuthenticationError("JWT kid is required")
+            kid = next(iter(self.keys))
+        secret = self.keys.get(kid)
+        if secret is None:
+            raise AuthenticationError("unknown JWT kid")
+
+        signed = f"{header_segment}.{payload_segment}".encode()
+        expected = hmac.new(
+            secret.encode(),
+            signed,
+            hashlib.sha256,
+        ).digest()
+        actual = _b64url_decode(signature_segment)
+        if not hmac.compare_digest(expected, actual):
+            raise AuthenticationError("invalid JWT signature")
+
+        if claims.get("iss") != self.issuer:
+            raise AuthenticationError("invalid JWT issuer")
+        audience = claims.get("aud")
+        if isinstance(audience, str):
+            audiences = {audience}
+        elif isinstance(audience, list):
+            audiences = {str(value) for value in audience}
+        else:
+            audiences = set()
+        if self.audience not in audiences:
+            raise AuthenticationError("invalid JWT audience")
+
+        now = time.time()
+        leeway = float(self.leeway_seconds)
+        exp = claims.get("exp")
+        if exp is None:
+            raise AuthenticationError("JWT exp is required")
+        try:
+            exp_value = float(exp)
+        except (TypeError, ValueError) as exc:
+            raise AuthenticationError("invalid JWT exp") from exc
+        if now > exp_value + leeway:
+            raise AuthenticationError("JWT expired")
+
+        nbf = claims.get("nbf")
+        if nbf is not None:
+            try:
+                nbf_value = float(nbf)
+            except (TypeError, ValueError) as exc:
+                raise AuthenticationError("invalid JWT nbf") from exc
+            if now + leeway < nbf_value:
+                raise AuthenticationError("JWT not yet valid")
+
+        actor = str(claims.get(self.actor_claim) or "").strip()
+        if not actor:
+            raise AuthenticationError(
+                f"JWT actor claim {self.actor_claim!r} is required"
+            )
+        claimed = (claimed_actor or "").strip()
+        if claimed and claimed != actor:
+            raise ActorMismatchError(
+                f"claimed actor {claimed!r} does not match authenticated actor"
+            )
+
+        return Principal(
+            actor=actor,
+            kind=self.principal_kind,
+            provider=self.provider_name,
+            attributes={
+                "issuer": self.issuer,
+                "audience": self.audience,
+                "kid": kid,
+            },
+        )
