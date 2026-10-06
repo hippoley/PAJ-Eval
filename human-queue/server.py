@@ -154,42 +154,6 @@ def make_handler(
                 except (BrokenPipeError, ConnectionResetError):
                     return
 
-            if path == "/api/destinations":
-                name = str(body.get("name") or "").strip()
-                adapter_name = str(body.get("adapter") or "").strip()
-                target = str(body.get("target") or "").strip()
-                if not name or not adapter_name or not target:
-                    self._json(
-                        HTTPStatus.BAD_REQUEST,
-                        {"error": "name_adapter_and_target_required"},
-                    )
-                    return
-                try:
-                    policy = RetryPolicy(
-                        max_attempts=int(body.get("max_attempts") or 3),
-                        base_delay=float(body.get("base_delay") or 0.25),
-                        multiplier=float(body.get("multiplier") or 2.0),
-                        max_delay=float(body.get("max_delay") or 5.0),
-                    )
-                    item = destinations.put(
-                        name,
-                        adapter=adapter_name,
-                        target=target,
-                        policy=policy,
-                        enabled=bool(body.get("enabled", True)),
-                    )
-                except (TypeError, ValueError) as exc:
-                    self._json(
-                        HTTPStatus.BAD_REQUEST,
-                        {"error": "invalid_destination", "detail": str(exc)},
-                    )
-                    return
-                self._json(
-                    HTTPStatus.CREATED,
-                    {"destination": destination_json(item)},
-                )
-                return
-
             if path == "/api/waits":
                 self._json(
                     HTTPStatus.OK,
@@ -270,6 +234,42 @@ def make_handler(
                 body = self._read_json()
             except ValueError as exc:
                 self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                return
+
+            if path == "/api/destinations":
+                name = str(body.get("name") or "").strip()
+                adapter_name = str(body.get("adapter") or "").strip()
+                target = str(body.get("target") or "").strip()
+                if not name or not adapter_name or not target:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "name_adapter_and_target_required"},
+                    )
+                    return
+                try:
+                    policy = RetryPolicy(
+                        max_attempts=int(body.get("max_attempts") or 3),
+                        base_delay=float(body.get("base_delay") or 0.25),
+                        multiplier=float(body.get("multiplier") or 2.0),
+                        max_delay=float(body.get("max_delay") or 5.0),
+                    )
+                    item = destinations.put(
+                        name,
+                        adapter=adapter_name,
+                        target=target,
+                        policy=policy,
+                        enabled=bool(body.get("enabled", True)),
+                    )
+                except (TypeError, ValueError) as exc:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "invalid_destination", "detail": str(exc)},
+                    )
+                    return
+                self._json(
+                    HTTPStatus.CREATED,
+                    {"destination": destination_json(item)},
+                )
                 return
 
             if path == "/api/waits":
