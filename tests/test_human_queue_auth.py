@@ -425,3 +425,139 @@ def test_auth_provider_factory_loads_hs256_jwt(monkeypatch):
     provider = load_auth_provider("human")
     assert isinstance(provider, Hs256JwtAuthProvider)
     assert set(provider.keys) == {"current", "previous"}
+
+
+def test_hs256_jwt_provider_enforces_max_token_age_and_iat():
+    now = time.time()
+    provider = Hs256JwtAuthProvider(
+        principal_kind="human",
+        keys={"k1": "secret-one"},
+        issuer="issuer",
+        audience="aud",
+        leeway_seconds=0,
+        max_token_age_seconds=30,
+    )
+
+    missing_iat = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "exp": now + 60,
+        },
+    )
+    with pytest.raises(AuthenticationError, match="iat is required"):
+        provider.authenticate(AuthContext(f"Bearer {missing_iat}"))
+
+    stale = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "iat": now - 31,
+            "exp": now + 60,
+        },
+    )
+    with pytest.raises(AuthenticationError, match="maximum token age"):
+        provider.authenticate(AuthContext(f"Bearer {stale}"))
+
+    future = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "iat": now + 10,
+            "exp": now + 60,
+        },
+    )
+    with pytest.raises(AuthenticationError, match="issued in the future"):
+        provider.authenticate(AuthContext(f"Bearer {future}"))
+
+
+def test_hs256_jwt_provider_requires_and_revokes_jti():
+    now = time.time()
+    provider = Hs256JwtAuthProvider(
+        principal_kind="human",
+        keys={"k1": "secret-one"},
+        issuer="issuer",
+        audience="aud",
+        require_jti=True,
+        revoked_jtis=frozenset({"revoked-123"}),
+    )
+
+    missing = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "exp": now + 60,
+        },
+    )
+    with pytest.raises(AuthenticationError, match="jti is required"):
+        provider.authenticate(AuthContext(f"Bearer {missing}"))
+
+    revoked = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "exp": now + 60,
+            "jti": "revoked-123",
+        },
+    )
+    with pytest.raises(AuthenticationError, match="revoked"):
+        provider.authenticate(AuthContext(f"Bearer {revoked}"))
+
+    valid = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "exp": now + 60,
+            "jti": "active-456",
+        },
+    )
+    principal = provider.authenticate(AuthContext(f"Bearer {valid}"))
+    assert principal.attributes["token_id_hash"] == hashlib.sha256(
+        b"active-456"
+    ).hexdigest()[:16]
+    assert "active-456" not in principal.attributes.values()
+
+
+def test_auth_provider_factory_loads_jwt_age_and_revocation_controls(monkeypatch):
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_AUTH_PROVIDER", "jwt-hs256")
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_KEYS", '{"k1":"secret-one"}')
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_ISSUER", "issuer")
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_AUDIENCE", "aud")
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_MAX_TOKEN_AGE_SECONDS", "45")
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_REQUIRE_JTI", "true")
+    monkeypatch.setenv(
+        "HUMANQUEUE_HUMAN_JWT_REVOKED_JTIS",
+        '["revoked-a","revoked-b"]',
+    )
+
+    provider = load_auth_provider("human")
+    assert isinstance(provider, Hs256JwtAuthProvider)
+    assert provider.max_token_age_seconds == 45
+    assert provider.require_jti is True
+    assert provider.revoked_jtis == frozenset({"revoked-a", "revoked-b"})
+
+
+def test_auth_provider_factory_rejects_invalid_revocation_shape(monkeypatch):
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_AUTH_PROVIDER", "jwt-hs256")
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_KEYS", '{"k1":"secret-one"}')
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_ISSUER", "issuer")
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_JWT_AUDIENCE", "aud")
+    monkeypatch.setenv(
+        "HUMANQUEUE_HUMAN_JWT_REVOKED_JTIS",
+        '{"not":"a-list"}',
+    )
+
+    with pytest.raises(ValueError, match="JSON array"):
+        load_auth_provider("human")
