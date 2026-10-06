@@ -196,42 +196,7 @@ def make_handler(
                 except KeyError:
                     self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
                     return
-                response = {"wait": wait_json(item)}
-                binding = item.resume_binding
-                if item.execution_state == "resume_requested" and binding:
-                    adapter_name = str(binding.get("adapter") or "").strip()
-                    target = str(binding.get("target") or "").strip()
-                    if not adapter_name or not target:
-                        self._json(
-                            HTTPStatus.CONFLICT,
-                            {
-                                "error": "invalid_resume_binding",
-                                "detail": "resume_binding requires adapter and target",
-                            },
-                        )
-                        return
-                    try:
-                        job = deliveries.enqueue(
-                            item.id,
-                            adapter=adapter_name,
-                            target=target,
-                            policy=_binding_policy(binding),
-                        )
-                    except (TypeError, ValueError) as exc:
-                        self._json(
-                            HTTPStatus.CONFLICT,
-                            {"error": "invalid_resume_binding", "detail": str(exc)},
-                        )
-                        return
-                    queue.mark_resume_delivery_queued(
-                        item.id,
-                        actor="runtime",
-                        adapter=adapter_name,
-                        target=target,
-                        delivery_id=job.id,
-                    )
-                    response["delivery"] = delivery_json(job)
-                self._json(HTTPStatus.OK, response)
+                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
                 return
 
             self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
@@ -253,6 +218,34 @@ def make_handler(
                         {"error": "missing_fields", "fields": missing},
                     )
                     return
+                binding = body.get("resume_binding")
+                if binding is not None:
+                    if not isinstance(binding, dict):
+                        self._json(
+                            HTTPStatus.BAD_REQUEST,
+                            {"error": "invalid_resume_binding", "detail": "resume_binding must be an object"},
+                        )
+                        return
+                    adapter_name = str(binding.get("adapter") or "").strip()
+                    target = str(binding.get("target") or "").strip()
+                    if not adapter_name or not target:
+                        self._json(
+                            HTTPStatus.BAD_REQUEST,
+                            {
+                                "error": "invalid_resume_binding",
+                                "detail": "resume_binding requires adapter and target",
+                            },
+                        )
+                        return
+                    try:
+                        _binding_policy(binding)
+                    except (TypeError, ValueError) as exc:
+                        self._json(
+                            HTTPStatus.BAD_REQUEST,
+                            {"error": "invalid_resume_binding", "detail": str(exc)},
+                        )
+                        return
+
                 item = queue.ask(
                     uri=str(body["uri"]),
                     title=str(body["title"]),
@@ -260,7 +253,7 @@ def make_handler(
                     payload=body.get("payload") or {},
                     idempotency_key=body.get("idempotency_key"),
                     resume_token=body.get("resume_token"),
-                    resume_binding=body.get("resume_binding"),
+                    resume_binding=binding,
                 )
                 self._json(HTTPStatus.CREATED, {"wait": wait_json(item)})
                 return
@@ -437,7 +430,33 @@ def make_handler(
                         {"error": "decision_conflict", "detail": str(exc)},
                     )
                     return
-                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
+                response = {"wait": wait_json(item)}
+                binding = item.resume_binding
+                if item.execution_state == "resume_requested" and binding:
+                    adapter_name = str(binding["adapter"]).strip()
+                    target = str(binding["target"]).strip()
+                    try:
+                        job = deliveries.enqueue(
+                            item.id,
+                            adapter=adapter_name,
+                            target=target,
+                            policy=_binding_policy(binding),
+                        )
+                    except (TypeError, ValueError) as exc:
+                        self._json(
+                            HTTPStatus.CONFLICT,
+                            {"error": "invalid_resume_binding", "detail": str(exc)},
+                        )
+                        return
+                    queue.mark_resume_delivery_queued(
+                        item.id,
+                        actor="runtime",
+                        adapter=adapter_name,
+                        target=target,
+                        delivery_id=job.id,
+                    )
+                    response["delivery"] = delivery_json(job)
+                self._json(HTTPStatus.OK, response)
                 return
 
             self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
