@@ -1086,3 +1086,123 @@ def test_authenticated_actor_binding_prevents_body_spoofing(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_machine_callbacks_require_authenticated_machine_identity(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    machine_authenticator = server_module.ActorAuthenticator(
+        {"worker-a": "machine-token-a", "worker-b": "machine-token-b"}
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        machine_authenticator=machine_authenticator,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        item = queue.ask(
+            uri="human://approve",
+            title="Machine callback auth",
+            source="agent",
+            resume_token="step-machine",
+        )
+        queue.decide(item.id, action="approve", actor="alice")
+
+        status, missing = request_json(
+            base,
+            f"/api/waits/{item.id}/resumed",
+            method="POST",
+            body={},
+        )
+        assert status == 401
+        assert missing["error"] == "machine_authentication_required"
+
+        status, spoofed = request_json(
+            base,
+            f"/api/waits/{item.id}/resumed",
+            method="POST",
+            body={"actor": "worker-a"},
+            headers={"Authorization": "Bearer machine-token-b"},
+        )
+        assert status == 403
+        assert spoofed["error"] == "machine_actor_mismatch"
+
+        status, resumed = request_json(
+            base,
+            f"/api/waits/{item.id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer machine-token-a"},
+        )
+        assert status == 200
+        assert resumed["wait"]["execution_state"] == "resumed"
+
+        status, completed = request_json(
+            base,
+            f"/api/waits/{item.id}/complete",
+            method="POST",
+            body={"success": True, "detail": "done"},
+            headers={"Authorization": "Bearer machine-token-a"},
+        )
+        assert status == 200
+        assert completed["wait"]["execution_state"] == "completed"
+
+        status, events = request_json(base, f"/api/waits/{item.id}/events")
+        process_events = [
+            event for event in events["events"]
+            if event["event_type"] in {"PROCESS_RESUMED", "PROCESS_COMPLETED"}
+        ]
+        assert [event["actor"] for event in process_events] == [
+            "worker-a",
+            "worker-a",
+        ]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_human_token_cannot_authenticate_machine_callback(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    human_authenticator = server_module.ActorAuthenticator(
+        {"alice": "human-token"}
+    )
+    machine_authenticator = server_module.ActorAuthenticator(
+        {"worker-a": "machine-token"}
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        authenticator=human_authenticator,
+        machine_authenticator=machine_authenticator,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        item = queue.ask(
+            uri="human://approve",
+            title="Domain separation",
+            source="agent",
+        )
+        queue.decide(item.id, action="approve", actor="alice")
+
+        status, denied = request_json(
+            base,
+            f"/api/waits/{item.id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer human-token"},
+        )
+        assert status == 401
+        assert denied["error"] == "machine_authentication_required"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
