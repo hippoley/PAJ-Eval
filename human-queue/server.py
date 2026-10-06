@@ -31,6 +31,7 @@ from auth import (
     ensure_disjoint_providers,
     load_auth_provider,
 )
+from audit_checkpoint import AuditCheckpointSigner
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
@@ -86,6 +87,7 @@ def make_handler(
     machine_authenticator: ActorAuthenticator | None = None,
     human_auth_provider: AuthProvider | None = None,
     machine_auth_provider: AuthProvider | None = None,
+    audit_checkpoint_signer: AuditCheckpointSigner | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
@@ -304,6 +306,39 @@ def make_handler(
                 )
                 return
 
+            if path == "/api/audit/checkpoint":
+                if audit_checkpoint_signer is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_checkpoint_not_configured"},
+                    )
+                    return
+                principal = self._resolve_human_principal(
+                    body,
+                    default="checkpoint-operator",
+                )
+                if principal is None:
+                    return
+                try:
+                    checkpoint = audit_checkpoint_signer.create()
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {
+                            "error": "audit_checkpoint_failed",
+                            "detail": str(exc),
+                        },
+                    )
+                    return
+                self._json(
+                    HTTPStatus.CREATED,
+                    {
+                        "checkpoint": asdict(checkpoint),
+                        "principal": self._principal_audit(principal),
+                    },
+                )
+                return
+
             if path == "/api/destinations":
                 self._json(
                     HTTPStatus.OK,
@@ -341,6 +376,19 @@ def make_handler(
                             for item in deliveries.list(limit=100)
                         ]
                     },
+                )
+                return
+
+            if path == "/api/audit/checkpoint/verify":
+                if audit_checkpoint_signer is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_checkpoint_not_configured"},
+                    )
+                    return
+                self._json(
+                    HTTPStatus.OK,
+                    audit_checkpoint_signer.verify(),
                 )
                 return
 
@@ -857,6 +905,7 @@ def make_server(
     machine_authenticator: ActorAuthenticator | None = None,
     human_auth_provider: AuthProvider | None = None,
     machine_auth_provider: AuthProvider | None = None,
+    audit_checkpoint_signer: AuditCheckpointSigner | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
@@ -869,6 +918,7 @@ def make_server(
             machine_authenticator,
             human_auth_provider,
             machine_auth_provider,
+            audit_checkpoint_signer,
         ),
     )
 
@@ -883,6 +933,7 @@ def main() -> None:
     human_auth_provider = load_auth_provider("human")
     machine_auth_provider = load_auth_provider("machine")
     ensure_disjoint_providers(human_auth_provider, machine_auth_provider)
+    audit_checkpoint_signer = AuditCheckpointSigner.from_env(queue)
     server = make_server(
         queue,
         host=host,
@@ -891,6 +942,7 @@ def main() -> None:
         destinations=destinations,
         human_auth_provider=human_auth_provider,
         machine_auth_provider=machine_auth_provider,
+        audit_checkpoint_signer=audit_checkpoint_signer,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
