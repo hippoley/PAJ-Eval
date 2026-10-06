@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import asdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -75,6 +76,34 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
             if path == "/api/health":
                 self._json(HTTPStatus.OK, {"ok": True, "mode": "durable"})
                 return
+
+            if path == "/api/events":
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-transform")
+                self.send_header("Connection", "keep-alive")
+                self.end_headers()
+                last_signature = None
+                heartbeat_at = 0.0
+                try:
+                    while True:
+                        waits = [wait_json(item) for item in queue.pending()]
+                        signature = json.dumps(waits, sort_keys=True, separators=(",", ":"))
+                        now = time.monotonic()
+                        if signature != last_signature:
+                            payload = json.dumps({"waits": waits}, separators=(",", ":"))
+                            frame = f"event: queue\ndata: {payload}\n\n".encode()
+                            self.wfile.write(frame)
+                            self.wfile.flush()
+                            last_signature = signature
+                            heartbeat_at = now
+                        elif now - heartbeat_at >= 10:
+                            self.wfile.write(b": heartbeat\n\n")
+                            self.wfile.flush()
+                            heartbeat_at = now
+                        time.sleep(0.15)
+                except (BrokenPipeError, ConnectionResetError):
+                    return
 
             if path == "/api/waits":
                 self._json(
