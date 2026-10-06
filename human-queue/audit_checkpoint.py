@@ -320,6 +320,10 @@ class AuditCheckpointSigner:
     def checkpoints(self) -> list[AuditCheckpoint]:
         return [AuditCheckpoint(**row) for row in self._read_raw()]
 
+    def latest(self) -> AuditCheckpoint | None:
+        checkpoints = self.checkpoints()
+        return checkpoints[-1] if checkpoints else None
+
     @property
     def lock_path(self) -> Path:
         return Path(str(self.checkpoint_path) + ".lock")
