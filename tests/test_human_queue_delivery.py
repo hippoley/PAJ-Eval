@@ -24,6 +24,7 @@ RetryPolicy = adapters.RetryPolicy
 DurableDeliveryQueue = delivery.DurableDeliveryQueue
 run_delivery_once = delivery.run_delivery_once
 reconcile_bound_deliveries = delivery.reconcile_bound_deliveries
+DestinationRegistry = delivery.DestinationRegistry
 
 
 class RecordingAdapter:
@@ -307,3 +308,33 @@ def test_reconciler_ignores_rejected_bound_wait(tmp_path):
     deliveries = DurableDeliveryQueue(db)
     assert reconcile_bound_deliveries(q, deliveries) == []
     assert deliveries.list() == []
+
+
+def test_reconciler_resolves_named_destination_after_restart(tmp_path):
+    db = tmp_path / "queue.db"
+    q = HumanQueue(db)
+    destinations = DestinationRegistry(db)
+    destinations.put(
+        "prod-deploy",
+        adapter="recording",
+        target="recording://prod",
+        policy=RetryPolicy(max_attempts=5, base_delay=3, multiplier=2, max_delay=12),
+    )
+    item = q.ask(
+        uri="human://approve",
+        title="Named destination?",
+        source="agent",
+        resume_token="named-step",
+        resume_binding={"destination": "prod-deploy"},
+    )
+    q.decide(item.id, action="approve", actor="alice")
+
+    deliveries = DurableDeliveryQueue(db)
+    created = reconcile_bound_deliveries(q, deliveries, destinations)
+
+    assert len(created) == 1
+    job = created[0]
+    assert job.adapter == "recording"
+    assert job.target == "recording://prod"
+    assert job.max_attempts == 5
+    assert job.base_delay == 3
