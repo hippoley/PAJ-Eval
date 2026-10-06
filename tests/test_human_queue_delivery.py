@@ -23,6 +23,7 @@ HumanQueue = runtime.HumanQueue
 RetryPolicy = adapters.RetryPolicy
 DurableDeliveryQueue = delivery.DurableDeliveryQueue
 run_delivery_once = delivery.run_delivery_once
+reconcile_bound_deliveries = delivery.reconcile_bound_deliveries
 
 
 class RecordingAdapter:
@@ -246,3 +247,63 @@ def test_missing_adapter_is_retryable_and_then_dead_lettered(tmp_path):
     )
     assert second.status == "dead_letter"
     assert "adapter not registered" in second.last_error
+
+
+def test_reconciler_materializes_delivery_after_crash_window(tmp_path):
+    db = tmp_path / "queue.db"
+    q = HumanQueue(db)
+    item = q.ask(
+        uri="human://approve",
+        title="Recover binding?",
+        source="agent",
+        resume_token="step-reconcile",
+        resume_binding={
+            "adapter": "recording",
+            "target": "recording://target",
+            "max_attempts": 4,
+            "base_delay": 2,
+            "multiplier": 2,
+            "max_delay": 10,
+        },
+    )
+    q.decide(item.id, action="approve", actor="alice")
+
+    deliveries = DurableDeliveryQueue(db)
+    assert deliveries.list() == []
+
+    created = reconcile_bound_deliveries(q, deliveries)
+    assert len(created) == 1
+    job = created[0]
+    assert job.wait_id == item.id
+    assert job.status == "pending"
+    assert job.max_attempts == 4
+    assert job.base_delay == 2
+
+    again = reconcile_bound_deliveries(q, DurableDeliveryQueue(db))
+    assert len(again) == 1
+    assert again[0].id == job.id
+    assert len(DurableDeliveryQueue(db).list()) == 1
+
+    events = q.audit_events(item.id)
+    queued = [e for e in events if e.event_type == "RESUME_DELIVERY_QUEUED"]
+    assert len(queued) == 1
+    assert queued[0].data["delivery_id"] == job.id
+
+
+def test_reconciler_ignores_rejected_bound_wait(tmp_path):
+    db = tmp_path / "queue.db"
+    q = HumanQueue(db)
+    item = q.ask(
+        uri="human://approve",
+        title="Do not materialize",
+        source="agent",
+        resume_binding={
+            "adapter": "recording",
+            "target": "recording://target",
+        },
+    )
+    q.decide(item.id, action="reject", actor="alice")
+
+    deliveries = DurableDeliveryQueue(db)
+    assert reconcile_bound_deliveries(q, deliveries) == []
+    assert deliveries.list() == []
