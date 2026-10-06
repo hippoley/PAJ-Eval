@@ -150,3 +150,41 @@ idempotent, while contradictory terminal outcomes fail loudly.
 SSE queue frames now include recent audit events as well as pending waits, so
 machine-side `PROCESS_RESUMED`, `PROCESS_COMPLETED`, and `PROCESS_FAILED`
 events appear in the browser without polling.
+
+
+## Resume adapters
+
+The first cross-system adapter is now available in `human-queue/adapters.py`:
+
+```python
+from adapters import GenericWebhookAdapter
+
+adapter = GenericWebhookAdapter(
+    "https://worker.example/resume",
+    bearer_token="...",
+)
+
+adapter.dispatch(queue, decided_wait)
+```
+
+A successful webhook response records `RESUME_DISPATCHED`, but intentionally
+does **not** mark the machine as resumed. The target system must still
+acknowledge execution through:
+
+```text
+POST /api/waits/{wait_id}/resumed
+POST /api/waits/{wait_id}/complete
+```
+
+This preserves a strict distinction between:
+
+```text
+message delivered
+!=
+machine resumed
+!=
+machine completed
+```
+
+Webhook audit provenance strips URL credentials, query strings, fragments, and
+bearer tokens so secrets are not written into the durable event log.
