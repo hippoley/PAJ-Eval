@@ -1091,3 +1091,215 @@ asymmetric signing service.
 HumanQueue deliberately does not implement home-grown Ed25519/RSA primitives in
 the stdlib core. Asymmetric/public verification should be supplied through this
 provider boundary using a mature cryptographic or managed-key implementation.
+
+
+## Independent audit witness
+
+HumanQueue can now publish a signed checkpoint to a separate witness service and
+receive a witness-signed receipt.
+
+The trust sequence is:
+
+```text
+HumanQueue audit chain
+  -> signed checkpoint
+  -> external witness /witness
+  -> witness stores exact checkpoint fingerprint
+  -> witness signs receipt
+  -> HumanQueue /verify checks receipt against witness state
+```
+
+The receipt binds:
+
+```text
+witness
+receipt_id
+received_at
+checkpoint_sequence
+checkpoint_signature
+checkpoint_head_hash
+checkpoint_fingerprint
+witness key_id
+witness signature
+```
+
+The full checkpoint fingerprint prevents a receipt from being reused for a
+different checkpoint object that merely shares one visible field.
+
+### Run the reference witness service
+
+Start a separate process with a separate signing secret:
+
+```bash
+export HUMANQUEUE_WITNESS_KEY='replace-with-witness-secret'
+export HUMANQUEUE_WITNESS_KEY_ID='w1'
+export HUMANQUEUE_WITNESS_NAME='control-plane-witness'
+export HUMANQUEUE_WITNESS_LOG=/var/lib/humanqueue-witness/witness.jsonl
+
+python human-queue/witness_server.py
+```
+
+By default it listens on `127.0.0.1:8876`.
+
+It exposes:
+
+```http
+POST /witness
+POST /verify
+GET  /health
+```
+
+The reference witness stores the exact signed checkpoint it observed. Its
+`/verify` endpoint validates both the witness receipt signature and the fact
+that the exact receipt exists in the witness's own durable log.
+
+Replaying the same checkpoint is idempotent and returns the original receipt.
+
+### Protect witness publication
+
+The witness can require a separate publish token:
+
+```bash
+export HUMANQUEUE_WITNESS_PUBLISH_TOKEN='publish-only-token'
+```
+
+HumanQueue can send that token with:
+
+```bash
+export HUMANQUEUE_AUDIT_WITNESS_PUBLISH_TOKEN='publish-only-token'
+```
+
+The publish token authorizes submission only. It is not the witness signing key
+and does not let HumanQueue forge witness receipts.
+
+The `/verify` endpoint remains independently usable without the publish token.
+
+### Prefer online verification for an independent trust domain
+
+Configure HumanQueue with separate publish and verify endpoints:
+
+```bash
+export HUMANQUEUE_AUDIT_WITNESS_URL='https://witness.example/witness'
+export HUMANQUEUE_AUDIT_WITNESS_VERIFY_URL='https://witness.example/verify'
+```
+
+In this mode HumanQueue does **not** possess the witness signing secret.
+Verification is delegated back to the independent witness.
+
+A shared-key verifier is still supported for development or closed deployments:
+
+```bash
+export HUMANQUEUE_AUDIT_WITNESS_KEYS='{"w1":"shared-secret"}'
+```
+
+but shared HMAC verification is not a truly independent trust domain because a
+verifier that holds the HMAC key can also mint signatures.
+
+For real trust separation, prefer online verification or a future asymmetric
+witness verifier whose public key can be distributed without signing authority.
+
+### Persist witness receipts
+
+HumanQueue can persist verified receipts separately:
+
+```bash
+export HUMANQUEUE_AUDIT_WITNESS_RECEIPTS_FILE=/var/lib/humanqueue/witness-receipts.jsonl
+```
+
+Receipt journal writes use an inter-process lockfile and recover stale locks.
+Health checks re-verify persisted receipts rather than treating file presence as
+proof.
+
+The health state distinguishes:
+
+```text
+checkpoint signed
+witness configured
+receipt journal configured
+latest checkpoint witnessed
+witness verification unavailable
+invalid witness receipt
+```
+
+A witness verification outage is reported separately from cryptographic receipt
+failure.
+
+## Multi-witness quorum
+
+A deployment can require multiple independent witnesses rather than relying on
+one witness as a single trust point.
+
+Example:
+
+```bash
+export HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON='{
+  "threshold": 2,
+  "required_witnesses": ["security-witness"],
+  "witnesses": {
+    "security-witness": {
+      "url": "https://security.example/witness",
+      "verify_url": "https://security.example/verify",
+      "publish_token": "..."
+    },
+    "operations-witness": {
+      "url": "https://ops.example/witness",
+      "verify_url": "https://ops.example/verify"
+    },
+    "external-witness": {
+      "url": "https://external.example/witness",
+      "verify_url": "https://external.example/verify"
+    }
+  }
+}'
+```
+
+This example requires:
+
+```text
+at least 2 distinct witnesses
+AND security-witness must be one of them
+```
+
+Publish the latest signed checkpoint to the configured quorum:
+
+```http
+POST /api/audit/checkpoint/witness-quorum
+```
+
+The response reports:
+
+```text
+satisfied
+threshold
+confirmed_witnesses
+required_witnesses
+missing_required_witnesses
+receipts
+per-witness failures
+```
+
+Duplicate receipts from one witness never count twice. A receipt whose
+self-declared witness identity does not match the configured target is rejected.
+
+When quorum is explicitly configured, HumanQueue requires both checkpoint
+signing and a durable witness receipt journal. Once a signed checkpoint exists,
+`/api/health` returns HTTP 503 until the configured quorum is satisfied.
+
+Before the first checkpoint exists, quorum is visible as configured but
+unsatisfied without marking an otherwise empty runtime unhealthy.
+
+### Trust progression
+
+The evidence model is now intentionally layered:
+
+```text
+local audit hash chain
+  -> locally signed checkpoint
+  -> independently witnessed checkpoint
+  -> durable signed receipt
+  -> N-of-M witness quorum
+```
+
+Each layer answers a different question. HumanQueue should not describe a local
+HMAC checkpoint as externally witnessed, nor a single witness receipt as a
+quorum.
