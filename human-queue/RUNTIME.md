@@ -540,3 +540,57 @@ allowlist because it does not cause machine execution.
 Important: actor strings are logical identities in this local MVP. They are not
 cryptographically authenticated principals yet. Production authorization still
 requires an authentication layer that binds requests to trustworthy identities.
+
+
+## Optional authenticated actor binding
+
+HumanQueue can now bind bearer tokens to logical human actors without storing
+those credentials in SQLite.
+
+Configure the runtime:
+
+```bash
+export HUMANQUEUE_ACTOR_TOKENS='{
+  "alice": "replace-with-secret-token-a",
+  "bob": "replace-with-secret-token-b"
+}'
+python human-queue/server.py
+```
+
+Then human control-plane mutations use:
+
+```http
+Authorization: Bearer replace-with-secret-token-a
+```
+
+When authentication is enabled, the runtime derives the actor from the bearer
+token for:
+
+```text
+destination create/update
+wait claim
+wait release
+human decision
+```
+
+A missing or invalid token returns HTTP 401. If the request body claims a
+different actor than the authenticated token, the request returns HTTP 403
+`actor_mismatch`; the body cannot impersonate another logical actor.
+
+This composes with destination decision policy:
+
+```text
+Bearer token
+  -> authenticated actor = alice
+  -> prod-deploy rev 7 allowed_decision_actors
+  -> decision allowed / denied
+  -> auditable actor on DECISION_COMMITTED or DECISION_DENIED
+```
+
+The token map is process configuration only and is never persisted to the
+HumanQueue database or audit log.
+
+This is intentionally a lightweight local authentication layer, not a full IAM
+system. Production deployments should replace or front it with an identity
+provider / gateway that supplies trustworthy principals, rotation, revocation,
+and stronger credential lifecycle management.
