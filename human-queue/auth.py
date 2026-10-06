@@ -78,3 +78,17 @@ class ActorAuthenticator:
                 f"claimed actor {claimed!r} does not match authenticated actor"
             )
         return resolved
+
+
+def ensure_disjoint_authenticators(
+    human: ActorAuthenticator | None,
+    machine: ActorAuthenticator | None,
+) -> None:
+    """Reject credentials shared across human and machine trust domains."""
+    if human is None or machine is None:
+        return
+    overlap = set(human.actor_tokens.values()) & set(machine.actor_tokens.values())
+    if overlap:
+        raise ValueError(
+            "human and machine token domains must not share credentials"
+        )
