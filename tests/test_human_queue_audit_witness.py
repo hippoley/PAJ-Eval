@@ -817,3 +817,78 @@ def test_receipt_journal_distinguishes_verifier_outage_from_invalid_receipt(
     assert status["reason"] == "witness_verification_unavailable"
     assert status["receipt_id"] == receipt.receipt_id
     assert "independent witness unavailable" in status["detail"]
+
+
+def test_receipt_ids_are_scoped_by_witness_identity(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+
+    witness_a = InMemoryWitnessProvider(
+        witness="witness-a",
+        key="secret-a",
+    )
+    witness_b = InMemoryWitnessProvider(
+        witness="witness-b",
+        key="secret-b",
+    )
+    receipt_a = witness_a.publish(checkpoint)
+    receipt_b = witness_b.publish(checkpoint)
+    assert receipt_a.receipt_id == receipt_b.receipt_id
+
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl"
+    )
+    journal.append(receipt_a, provider=witness_a)
+    journal.append(receipt_b, provider=witness_b)
+
+    persisted = journal.receipts()
+    assert len(persisted) == 2
+    assert {
+        (item.witness, item.receipt_id)
+        for item in persisted
+    } == {
+        ("witness-a", receipt_a.receipt_id),
+        ("witness-b", receipt_b.receipt_id),
+    }
+
+
+def test_same_witness_receipt_identity_conflict_still_fails(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(
+        witness="witness-a",
+        key="secret-a",
+    )
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl"
+    )
+    journal.append(receipt, provider=witness)
+
+    conflicting = witness_module.WitnessReceipt(
+        **{
+            **asdict(receipt),
+            "received_at": receipt.received_at + 1,
+        }
+    )
+
+    try:
+        journal.append(
+            conflicting,
+            provider=witness,
+            already_verified=True,
+        )
+    except RuntimeError as exc:
+        assert "identity conflicts" in str(exc)
+    else:
+        raise AssertionError("same witness receipt-id conflict accepted")
