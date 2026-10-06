@@ -1394,3 +1394,129 @@ def test_machine_policy_snapshot_does_not_drift_after_destination_change(tmp_pat
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_custom_header_auth_provider_drives_human_policy_without_bearer_tokens(tmp_path):
+    class HeaderProvider:
+        def authenticate(self, context, *, claimed_actor=None):
+            actor = context.headers.get("X-Verified-Actor")
+            if not actor:
+                raise server_module.AuthenticationError("verified actor header required")
+            if claimed_actor and claimed_actor != actor:
+                raise server_module.ActorMismatchError("claimed actor mismatch")
+            return type(
+                "Principal",
+                (),
+                {
+                    "actor": actor,
+                    "kind": "human",
+                    "provider": "trusted-proxy",
+                },
+            )()
+
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        human_auth_provider=HeaderProvider(),
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, destination = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "proxy-governed",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "allowed_decision_actors": ["alice"],
+            },
+            headers={"X-Verified-Actor": "alice"},
+        )
+        assert status == 201
+        assert destination["destination"]["changed_by"] == "alice"
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Proxy-authenticated approval",
+                "source": "agent",
+                "resume_binding": {"destination": "proxy-governed"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, denied = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve"},
+            headers={"X-Verified-Actor": "mallory"},
+        )
+        assert status == 403
+        assert denied["error"] == "actor_not_authorized_for_destination"
+
+        status, approved = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve"},
+            headers={"X-Verified-Actor": "alice"},
+        )
+        assert status == 200
+        assert approved["wait"]["decision"]["actor"] == "alice"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_auth_provider_principal_kind_is_enforced(tmp_path):
+    class WrongKindProvider:
+        def authenticate(self, context, *, claimed_actor=None):
+            return type(
+                "Principal",
+                (),
+                {
+                    "actor": "worker-a",
+                    "kind": "machine",
+                    "provider": "wrong-domain",
+                },
+            )()
+
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        human_auth_provider=WrongKindProvider(),
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, payload = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "wrong-kind",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+            },
+        )
+        assert status == 401
+        assert payload["error"] == "authentication_required"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
