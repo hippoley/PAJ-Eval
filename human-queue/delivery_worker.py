@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 from adapters import GenericWebhookAdapter, GitHubRepositoryDispatchAdapter
-from delivery import DurableDeliveryQueue, run_delivery_once
+from delivery import DurableDeliveryQueue, reconcile_bound_deliveries, run_delivery_once
 from runtime import HumanQueue
 
 
@@ -66,6 +66,7 @@ def run_worker_once(
 ):
     queue = HumanQueue(db)
     deliveries = DurableDeliveryQueue(db)
+    reconcile_bound_deliveries(queue, deliveries)
     return run_delivery_once(
         queue,
         deliveries,
