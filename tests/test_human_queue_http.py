@@ -8,6 +8,7 @@ from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).parents[1] / "human-queue"
+sys.path.insert(0, str(ROOT))
 
 
 def load(name, path):
@@ -258,6 +259,91 @@ def test_http_machine_acknowledgement_protocol(tmp_path):
             "PROCESS_RESUMED",
             "PROCESS_COMPLETED",
         ]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_http_enqueues_and_lists_durable_delivery(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="Resume through worker?",
+        source="agent",
+        resume_token="worker-step",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, created = request_json(
+            base,
+            f"/api/waits/{item.id}/delivery",
+            method="POST",
+            body={
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "max_attempts": 4,
+                "base_delay": 1,
+                "multiplier": 2,
+                "max_delay": 8,
+            },
+        )
+        assert status == 201
+        job = created["delivery"]
+        assert job["wait_id"] == item.id
+        assert job["status"] == "pending"
+        assert job["attempt"] == 0
+        assert job["max_attempts"] == 4
+
+        status, listing = request_json(base, "/api/deliveries")
+        assert status == 200
+        assert len(listing["deliveries"]) == 1
+        assert listing["deliveries"][0]["id"] == job["id"]
+
+        status, duplicate = request_json(
+            base,
+            f"/api/waits/{item.id}/delivery",
+            method="POST",
+            body={
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+            },
+        )
+        assert status == 201
+        assert duplicate["delivery"]["id"] == job["id"]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_http_refuses_delivery_before_human_decision(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="Not yet",
+        source="agent",
+    )
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, payload = request_json(
+            base,
+            f"/api/waits/{item.id}/delivery",
+            method="POST",
+            body={"adapter": "webhook", "target": "https://worker.example/resume"},
+        )
+        assert status == 409
+        assert payload["error"] == "wait_has_no_resume_request"
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
