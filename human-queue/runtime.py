@@ -19,6 +19,16 @@ TERMINAL_STATES = {"approved", "rejected", "edited", "resolved"}
 
 
 @dataclass(frozen=True)
+class AuditEvent:
+    id: int
+    wait_id: str
+    event_type: str
+    actor: str | None
+    created_at: float
+    data: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class Wait:
     id: str
     uri: str
@@ -75,6 +85,23 @@ class HumanQueue:
                 conn.execute("ALTER TABLE waits ADD COLUMN claimed_by TEXT")
             if "claim_expires_at" not in columns:
                 conn.execute("ALTER TABLE waits ADD COLUMN claim_expires_at REAL")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audit_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    wait_id TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    actor TEXT,
+                    created_at REAL NOT NULL,
+                    data_json TEXT NOT NULL,
+                    FOREIGN KEY(wait_id) REFERENCES waits(id)
+                )
+                """
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_audit_wait_id "
+                "ON audit_events(wait_id, id)"
+            )
 
     def ask(
         self,
@@ -133,6 +160,18 @@ class HumanQueue:
                     raise
                 return self._row_to_wait(row)
 
+            self._append_event(
+                conn,
+                wait_id,
+                "WAIT_CREATED",
+                actor=source,
+                data={
+                    "uri": uri,
+                    "title": title,
+                    "resume_token": resume_token,
+                    "payload": payload,
+                },
+            )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
             return self._row_to_wait(row)
@@ -172,10 +211,18 @@ class HumanQueue:
             conn.execute(
                 """
                 UPDATE waits
-                   SET state = ?, decided_at = ?, decision_json = ?
+                   SET state = ?, decided_at = ?, decision_json = ?,
+                       claimed_by = NULL, claim_expires_at = NULL
                  WHERE id = ? AND state = 'waiting'
                 """,
                 (state, now, json.dumps(decision, sort_keys=True), wait_id),
+            )
+            self._append_event(
+                conn,
+                wait_id,
+                "DECISION_COMMITTED",
+                actor=actor,
+                data={"action": action, "value": value, "state": state},
             )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
@@ -229,6 +276,8 @@ class HumanQueue:
                     f"{wait_id} is claimed by {item.claimed_by} "
                     f"until {item.claim_expires_at}"
                 )
+            previous_actor = item.claimed_by
+            previous_expiry = item.claim_expires_at
             conn.execute(
                 """
                 UPDATE waits
@@ -236,6 +285,24 @@ class HumanQueue:
                  WHERE id = ? AND state = 'waiting'
                 """,
                 (actor, expires, wait_id),
+            )
+            event_type = (
+                "CLAIM_RENEWED"
+                if previous_actor == actor
+                and previous_expiry is not None
+                and previous_expiry > now
+                else "CLAIMED"
+            )
+            self._append_event(
+                conn,
+                wait_id,
+                event_type,
+                actor=actor,
+                data={
+                    "lease_seconds": lease_seconds,
+                    "claim_expires_at": expires,
+                    "previous_actor": previous_actor,
+                },
             )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
@@ -254,9 +321,51 @@ class HumanQueue:
                 "UPDATE waits SET claimed_by = NULL, claim_expires_at = NULL WHERE id = ?",
                 (wait_id,),
             )
+            self._append_event(
+                conn,
+                wait_id,
+                "CLAIM_RELEASED",
+                actor=actor,
+                data={},
+            )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
             return self._row_to_wait(row)
+
+    def audit_events(self, wait_id: str) -> list[AuditEvent]:
+        with self._connect() as conn:
+            exists = conn.execute("SELECT 1 FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if exists is None:
+                raise KeyError(wait_id)
+            rows = conn.execute(
+                "SELECT * FROM audit_events WHERE wait_id = ? ORDER BY id",
+                (wait_id,),
+            ).fetchall()
+        return [self._row_to_event(row) for row in rows]
+
+    @staticmethod
+    def _append_event(
+        conn: sqlite3.Connection,
+        wait_id: str,
+        event_type: str,
+        *,
+        actor: str | None,
+        data: dict[str, Any],
+    ) -> None:
+        conn.execute(
+            """
+            INSERT INTO audit_events (
+                wait_id, event_type, actor, created_at, data_json
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                wait_id,
+                event_type,
+                actor,
+                time.time(),
+                json.dumps(data, sort_keys=True),
+            ),
+        )
 
     def wait_for_decision(
         self,
@@ -274,6 +383,17 @@ class HumanQueue:
             if timeout is not None and time.monotonic() - started >= timeout:
                 raise TimeoutError(wait_id)
             time.sleep(poll_interval)
+
+    @staticmethod
+    def _row_to_event(row: sqlite3.Row) -> AuditEvent:
+        return AuditEvent(
+            id=row["id"],
+            wait_id=row["wait_id"],
+            event_type=row["event_type"],
+            actor=row["actor"],
+            created_at=row["created_at"],
+            data=json.loads(row["data_json"]),
+        )
 
     @staticmethod
     def _row_to_wait(row: sqlite3.Row) -> Wait:
