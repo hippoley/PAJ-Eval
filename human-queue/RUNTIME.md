@@ -330,3 +330,56 @@ Network delivery is deliberately at-least-once. Webhook requests include a
 stable `Idempotency-Key`, and GitHub repository-dispatch payloads include a
 stable `delivery_key`, allowing receivers to deduplicate the crash window
 between successful remote delivery and local `dispatched` persistence.
+
+
+## Resume bindings and automatic delivery materialization
+
+A wait can now declare where its committed decision should be delivered:
+
+```json
+{
+  "uri": "human://approve",
+  "title": "Deploy release?",
+  "source": "ci",
+  "resume_token": "deploy-step",
+  "resume_binding": {
+    "adapter": "github_repository_dispatch",
+    "target": "github://owner/repo/humanqueue-resume",
+    "max_attempts": 4,
+    "base_delay": 1,
+    "multiplier": 2,
+    "max_delay": 8
+  }
+}
+```
+
+For non-reject decisions, HumanQueue automatically materializes one durable
+delivery job and records `RESUME_DELIVERY_QUEUED`. Decision replay is safe:
+the delivery queue is unique by `(wait_id, adapter, target)`, and the queued
+audit event is idempotent.
+
+Rejected decisions never materialize a delivery.
+
+Resume bindings are validated before wait creation through the HTTP API, so an
+invalid target cannot be discovered only after a human has already approved.
+
+### Crash-window reconciliation
+
+Decision persistence and delivery enqueue are separate durable operations, so a
+process could theoretically crash after `RESUME_REQUESTED` but before the
+delivery row is written.
+
+The delivery worker closes that window by reconciling every persisted
+`resume_requested` wait with a `resume_binding` before it claims due jobs.
+Missing jobs are recreated idempotently. This means a restart can recover:
+
+```text
+DECISION_COMMITTED
+RESUME_REQUESTED
+<process crash>
+restart
+reconciler
+RESUME_DELIVERY_QUEUED
+worker claim
+...
+```
