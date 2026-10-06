@@ -384,3 +384,66 @@ def test_checkpoint_env_keyring_requires_active_key_id(tmp_path, monkeypatch):
         assert "SIGNING_KEY_ID" in str(exc)
     else:
         raise AssertionError("checkpoint keyring accepted without signing key id")
+
+
+def test_checkpoint_sequence_floor_detects_tail_rollback(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        keys={"v1": "secret-v1"},
+        signing_key_id="v1",
+    )
+    signer.create(now=100)
+
+    item = queue.ask(
+        uri="human://approve",
+        title="Second anchored checkpoint",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+    signer.create(now=200)
+
+    lines = checkpoint_path.read_text().splitlines()
+    assert len(lines) == 2
+    checkpoint_path.write_text(lines[0] + "\n")
+
+    verifier = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        keys={"v1": "secret-v1"},
+        signing_key_id="v1",
+        minimum_sequence=2,
+    )
+    result = verifier.verify()
+    assert result["ok"] is False
+    assert result["reason"] == "checkpoint_rollback_detected"
+    assert result["checkpoint_count"] == 1
+    assert result["minimum_sequence"] == 2
+
+
+def test_checkpoint_env_loads_sequence_floor(tmp_path, monkeypatch):
+    queue, _ = make_queue(tmp_path / "queue.db")
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_FILE",
+        str(tmp_path / "audit-checkpoints.jsonl"),
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS",
+        '{"v1":"secret-v1"}',
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID",
+        "v1",
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_MIN_SEQUENCE",
+        "7",
+    )
+
+    signer = AuditCheckpointSigner.from_env(queue)
+    assert signer is not None
+    assert signer.minimum_sequence == 7
