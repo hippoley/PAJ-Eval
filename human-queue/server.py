@@ -28,6 +28,7 @@ from auth import (
     BearerTokenAuthProvider,
     adapt_authenticator,
     ensure_disjoint_providers,
+    load_auth_provider,
 )
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
@@ -865,14 +866,8 @@ def main() -> None:
     queue = HumanQueue(db)
     deliveries = DurableDeliveryQueue(db)
     destinations = DestinationRegistry(db)
-    human_auth_provider = BearerTokenAuthProvider.from_env(
-        "HUMANQUEUE_ACTOR_TOKENS",
-        principal_kind="human",
-    )
-    machine_auth_provider = BearerTokenAuthProvider.from_env(
-        "HUMANQUEUE_MACHINE_TOKENS",
-        principal_kind="machine",
-    )
+    human_auth_provider = load_auth_provider("human")
+    machine_auth_provider = load_auth_provider("machine")
     ensure_disjoint_providers(human_auth_provider, machine_auth_provider)
     server = make_server(
         queue,
