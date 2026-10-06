@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 import threading
 import time
 from pathlib import Path
@@ -10,6 +11,7 @@ RUNTIME = Path(__file__).parents[1] / "human-queue" / "runtime.py"
 spec = importlib.util.spec_from_file_location("human_queue_runtime", RUNTIME)
 runtime = importlib.util.module_from_spec(spec)
 assert spec and spec.loader
+sys.modules[spec.name] = runtime
 spec.loader.exec_module(runtime)
 HumanQueue = runtime.HumanQueue
 
