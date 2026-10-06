@@ -1058,3 +1058,36 @@ database, checkpoint file, and signing secret can forge new history. Stronger
 deployments should move checkpoint publication to an external append-only
 witness or use an asymmetric signing provider whose verification key can be
 distributed independently.
+
+
+### Pluggable checkpoint signature providers
+
+Checkpoint signing is now abstracted behind:
+
+```python
+class CheckpointSignatureProvider(Protocol):
+    @property
+    def signing_key_id(self) -> str: ...
+
+    def sign(self, payload: str) -> str: ...
+
+    def verify(
+        self,
+        payload: str,
+        *,
+        key_id: str,
+        signature: str,
+    ) -> bool: ...
+```
+
+The built-in implementation remains HMAC-SHA256 and preserves all existing
+single-key and keyring environment configuration.
+
+Custom deployments can provide another signer/verifier without changing the
+checkpoint chain, audit verification, health checks, or HTTP APIs. This is the
+intended boundary for KMS/HSM-backed signatures or a carefully implemented
+asymmetric signing service.
+
+HumanQueue deliberately does not implement home-grown Ed25519/RSA primitives in
+the stdlib core. Asymmetric/public verification should be supplied through this
+provider boundary using a mature cryptographic or managed-key implementation.
