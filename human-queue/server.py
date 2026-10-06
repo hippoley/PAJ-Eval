@@ -215,10 +215,15 @@ def make_handler(
 
         @staticmethod
         def _principal_audit(principal: Principal) -> dict:
-            return {
+            data = {
                 "kind": principal.kind,
                 "provider": principal.provider,
             }
+            for key in ("issuer", "audience", "kid"):
+                value = principal.attributes.get(key)
+                if value is not None:
+                    data[key] = value
+            return data
 
         def _read_json(self) -> dict:
             length = int(self.headers.get("Content-Length", "0"))
