@@ -109,6 +109,22 @@ class DestinationRegistry:
                 )
                 """
             )
+            revision_columns = {
+                row["name"]
+                for row in conn.execute(
+                    "PRAGMA table_info(resume_destination_revisions)"
+                ).fetchall()
+            }
+            if "changed_by" not in revision_columns:
+                conn.execute(
+                    "ALTER TABLE resume_destination_revisions "
+                    "ADD COLUMN changed_by TEXT"
+                )
+            if "change_reason" not in revision_columns:
+                conn.execute(
+                    "ALTER TABLE resume_destination_revisions "
+                    "ADD COLUMN change_reason TEXT"
+                )
 
     def put(
         self,
