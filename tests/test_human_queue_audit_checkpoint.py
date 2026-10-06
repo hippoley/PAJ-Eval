@@ -517,3 +517,77 @@ def test_health_fails_when_local_audit_chain_is_tampered(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_checkpoint_file_cannot_be_same_path_as_database(tmp_path):
+    db = tmp_path / "queue.db"
+    queue, _ = make_queue(db)
+
+    try:
+        AuditCheckpointSigner(
+            queue,
+            db,
+            key="checkpoint-secret",
+        )
+    except ValueError as exc:
+        assert "separate from the SQLite database" in str(exc)
+    else:
+        raise AssertionError("checkpoint signer accepted database as checkpoint file")
+
+
+def test_checkpoint_keyring_rejects_duplicate_secrets(tmp_path):
+    queue, _ = make_queue(tmp_path / "queue.db")
+    try:
+        AuditCheckpointSigner(
+            queue,
+            tmp_path / "audit-checkpoints.jsonl",
+            keys={"v1": "same-secret", "v2": "same-secret"},
+            signing_key_id="v2",
+        )
+    except ValueError as exc:
+        assert "must be unique" in str(exc)
+    else:
+        raise AssertionError("duplicate checkpoint signing secrets accepted")
+
+
+def test_checkpoint_cli_create_and_verify_without_http_server(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    make_queue(db)
+
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_FILE",
+        str(checkpoint_path),
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEY",
+        "checkpoint-secret",
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID",
+        "cli-key",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["audit_checkpoint.py", "--db", str(db), "create"],
+    )
+    checkpoint_module.main()
+    created = json.loads(capsys.readouterr().out)
+    assert created["sequence"] == 1
+    assert created["key_id"] == "cli-key"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["audit_checkpoint.py", "--db", str(db), "verify"],
+    )
+    checkpoint_module.main()
+    verified = json.loads(capsys.readouterr().out)
+    assert verified["ok"] is True
+    assert verified["anchored"] is True
