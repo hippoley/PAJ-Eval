@@ -77,3 +77,61 @@ def test_blocked_process_really_resumes_after_decision(tmp_path):
     assert not thread.is_alive()
     assert outcome["result"].state == "approved"
     assert outcome["result"].resume_token == "step-3"
+
+
+def test_concurrent_idempotent_ask_converges_to_one_wait(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    ids = []
+    errors = []
+    barrier = threading.Barrier(8)
+
+    def producer():
+        try:
+            barrier.wait()
+            item = q.ask(
+                uri="human://approve",
+                title="Deploy once?",
+                source="ci",
+                idempotency_key="deploy-race",
+            )
+            ids.append(item.id)
+        except Exception as exc:  # pragma: no cover - diagnostic path
+            errors.append(exc)
+
+    threads = [threading.Thread(target=producer) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=2)
+
+    assert errors == []
+    assert len(ids) == 8
+    assert len(set(ids)) == 1
+    assert len(q.pending()) == 1
+
+
+def test_conflicting_concurrent_decisions_have_one_winner(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://approve", title="One winner?", source="agent")
+    outcomes = []
+    barrier = threading.Barrier(2)
+
+    def decide(action):
+        barrier.wait()
+        try:
+            result = q.decide(item.id, action=action, actor=action)
+            outcomes.append(("ok", result.state))
+        except RuntimeError:
+            outcomes.append(("conflict", action))
+
+    threads = [
+        threading.Thread(target=decide, args=("approve",)),
+        threading.Thread(target=decide, args=("reject",)),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=2)
+
+    assert sorted(kind for kind, _ in outcomes) == ["conflict", "ok"]
+    assert q.get(item.id).state in {"approved", "rejected"}
