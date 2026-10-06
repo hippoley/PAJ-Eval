@@ -17,6 +17,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from adapters import RetryPolicy
+from delivery import DurableDeliveryQueue, Delivery
 from runtime import HumanQueue, Wait
 
 
@@ -31,7 +33,16 @@ def wait_json(item: Wait) -> dict:
     return data
 
 
-def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
+def delivery_json(item: Delivery) -> dict:
+    return asdict(item)
+
+
+def make_handler(
+    queue: HumanQueue,
+    index_path: Path = DEFAULT_INDEX,
+    deliveries: DurableDeliveryQueue | None = None,
+):
+    deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     class Handler(BaseHTTPRequestHandler):
         server_version = "HumanQueue/0.1"
 
@@ -126,6 +137,18 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
                 )
                 return
 
+            if path == "/api/deliveries":
+                self._json(
+                    HTTPStatus.OK,
+                    {
+                        "deliveries": [
+                            delivery_json(item)
+                            for item in deliveries.list(limit=100)
+                        ]
+                    },
+                )
+                return
+
             if path == "/api/audit":
                 self._json(
                     HTTPStatus.OK,
@@ -195,6 +218,58 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
                     resume_token=body.get("resume_token"),
                 )
                 self._json(HTTPStatus.CREATED, {"wait": wait_json(item)})
+                return
+
+            delivery_suffix = "/delivery"
+            if path.startswith("/api/waits/") and path.endswith(delivery_suffix):
+                wait_id = path[len("/api/waits/") : -len(delivery_suffix)]
+                adapter_name = str(body.get("adapter") or "").strip()
+                target = str(body.get("target") or "").strip()
+                if not wait_id or not adapter_name or not target:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "wait_id_adapter_and_target_required"},
+                    )
+                    return
+                try:
+                    item = queue.get(wait_id)
+                except KeyError:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                    return
+                if item.execution_state not in {
+                    "resume_requested",
+                    "resumed",
+                    "completed",
+                    "failed",
+                }:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "wait_has_no_resume_request"},
+                    )
+                    return
+                try:
+                    policy = RetryPolicy(
+                        max_attempts=int(body.get("max_attempts") or 3),
+                        base_delay=float(body.get("base_delay") or 0.25),
+                        multiplier=float(body.get("multiplier") or 2.0),
+                        max_delay=float(body.get("max_delay") or 5.0),
+                    )
+                    job = deliveries.enqueue(
+                        wait_id,
+                        adapter=adapter_name,
+                        target=target,
+                        policy=policy,
+                    )
+                except (TypeError, ValueError) as exc:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "invalid_delivery_policy", "detail": str(exc)},
+                    )
+                    return
+                self._json(
+                    HTTPStatus.CREATED,
+                    {"delivery": delivery_json(job)},
+                )
                 return
 
             resumed_suffix = "/resumed"
@@ -331,8 +406,12 @@ def make_server(
     host: str = "127.0.0.1",
     port: int = 8765,
     index_path: Path = DEFAULT_INDEX,
+    deliveries: DurableDeliveryQueue | None = None,
 ) -> ThreadingHTTPServer:
-    return ThreadingHTTPServer((host, port), make_handler(queue, index_path))
+    return ThreadingHTTPServer(
+        (host, port),
+        make_handler(queue, index_path, deliveries),
+    )
 
 
 def main() -> None:
@@ -340,7 +419,8 @@ def main() -> None:
     host = os.environ.get("HUMANQUEUE_HOST", "127.0.0.1")
     port = int(os.environ.get("HUMANQUEUE_PORT", "8765"))
     queue = HumanQueue(db)
-    server = make_server(queue, host=host, port=port)
+    deliveries = DurableDeliveryQueue(db)
+    server = make_server(queue, host=host, port=port, deliveries=deliveries)
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
     try:
