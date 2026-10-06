@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 
 from adapters import RetryPolicy
 from delivery import DurableDeliveryQueue, Delivery
+from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
 
 
@@ -37,6 +38,18 @@ def delivery_json(item: Delivery) -> dict:
     return asdict(item)
 
 
+def destination_json(item: ResumeDestination) -> dict:
+    return {
+        "name": item.name,
+        "adapter": item.adapter,
+        "target": item.target,
+        "policy": asdict(item.policy),
+        "enabled": item.enabled,
+        "created_at": item.created_at,
+        "updated_at": item.updated_at,
+    }
+
+
 def _binding_policy(binding: dict) -> RetryPolicy:
     return RetryPolicy(
         max_attempts=int(binding.get("max_attempts") or 3),
@@ -50,8 +63,10 @@ def make_handler(
     queue: HumanQueue,
     index_path: Path = DEFAULT_INDEX,
     deliveries: DurableDeliveryQueue | None = None,
+    destinations: DestinationRegistry | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
+    destinations = destinations or DestinationRegistry(queue.db_path)
     class Handler(BaseHTTPRequestHandler):
         server_version = "HumanQueue/0.1"
 
@@ -139,10 +154,58 @@ def make_handler(
                 except (BrokenPipeError, ConnectionResetError):
                     return
 
+            if path == "/api/destinations":
+                name = str(body.get("name") or "").strip()
+                adapter_name = str(body.get("adapter") or "").strip()
+                target = str(body.get("target") or "").strip()
+                if not name or not adapter_name or not target:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "name_adapter_and_target_required"},
+                    )
+                    return
+                try:
+                    policy = RetryPolicy(
+                        max_attempts=int(body.get("max_attempts") or 3),
+                        base_delay=float(body.get("base_delay") or 0.25),
+                        multiplier=float(body.get("multiplier") or 2.0),
+                        max_delay=float(body.get("max_delay") or 5.0),
+                    )
+                    item = destinations.put(
+                        name,
+                        adapter=adapter_name,
+                        target=target,
+                        policy=policy,
+                        enabled=bool(body.get("enabled", True)),
+                    )
+                except (TypeError, ValueError) as exc:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "invalid_destination", "detail": str(exc)},
+                    )
+                    return
+                self._json(
+                    HTTPStatus.CREATED,
+                    {"destination": destination_json(item)},
+                )
+                return
+
             if path == "/api/waits":
                 self._json(
                     HTTPStatus.OK,
                     {"waits": [wait_json(item) for item in queue.pending()]},
+                )
+                return
+
+            if path == "/api/destinations":
+                self._json(
+                    HTTPStatus.OK,
+                    {
+                        "destinations": [
+                            destination_json(item)
+                            for item in destinations.list()
+                        ]
+                    },
                 )
                 return
 
@@ -223,23 +286,15 @@ def make_handler(
                     if not isinstance(binding, dict):
                         self._json(
                             HTTPStatus.BAD_REQUEST,
-                            {"error": "invalid_resume_binding", "detail": "resume_binding must be an object"},
-                        )
-                        return
-                    adapter_name = str(binding.get("adapter") or "").strip()
-                    target = str(binding.get("target") or "").strip()
-                    if not adapter_name or not target:
-                        self._json(
-                            HTTPStatus.BAD_REQUEST,
                             {
                                 "error": "invalid_resume_binding",
-                                "detail": "resume_binding requires adapter and target",
+                                "detail": "resume_binding must be an object",
                             },
                         )
                         return
                     try:
-                        _binding_policy(binding)
-                    except (TypeError, ValueError) as exc:
+                        resolve_resume_binding(binding, destinations)
+                    except (KeyError, RuntimeError, TypeError, ValueError) as exc:
                         self._json(
                             HTTPStatus.BAD_REQUEST,
                             {"error": "invalid_resume_binding", "detail": str(exc)},
@@ -433,16 +488,17 @@ def make_handler(
                 response = {"wait": wait_json(item)}
                 binding = item.resume_binding
                 if item.execution_state == "resume_requested" and binding:
-                    adapter_name = str(binding["adapter"]).strip()
-                    target = str(binding["target"]).strip()
                     try:
+                        resolved = resolve_resume_binding(binding, destinations)
+                        adapter_name = str(resolved["adapter"]).strip()
+                        target = str(resolved["target"]).strip()
                         job = deliveries.enqueue(
                             item.id,
                             adapter=adapter_name,
                             target=target,
-                            policy=_binding_policy(binding),
+                            policy=_binding_policy(resolved),
                         )
-                    except (TypeError, ValueError) as exc:
+                    except (KeyError, RuntimeError, TypeError, ValueError) as exc:
                         self._json(
                             HTTPStatus.CONFLICT,
                             {"error": "invalid_resume_binding", "detail": str(exc)},
@@ -471,10 +527,11 @@ def make_server(
     port: int = 8765,
     index_path: Path = DEFAULT_INDEX,
     deliveries: DurableDeliveryQueue | None = None,
+    destinations: DestinationRegistry | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
-        make_handler(queue, index_path, deliveries),
+        make_handler(queue, index_path, deliveries, destinations),
     )
 
 
@@ -484,7 +541,14 @@ def main() -> None:
     port = int(os.environ.get("HUMANQUEUE_PORT", "8765"))
     queue = HumanQueue(db)
     deliveries = DurableDeliveryQueue(db)
-    server = make_server(queue, host=host, port=port, deliveries=deliveries)
+    destinations = DestinationRegistry(db)
+    server = make_server(
+        queue,
+        host=host,
+        port=port,
+        deliveries=deliveries,
+        destinations=destinations,
+    )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
     try:
