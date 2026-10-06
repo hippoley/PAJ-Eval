@@ -54,7 +54,14 @@ def test_http_wait_decision_resume_contract(tmp_path):
     try:
         status, health = request_json(base, "/api/health")
         assert status == 200
-        assert health == {"ok": True, "mode": "durable"}
+        assert health["ok"] is True
+        assert health["mode"] == "durable"
+        assert health["audit_chain"]["ok"] is True
+        assert health["audit_checkpoint"] == {
+            "ok": True,
+            "configured": False,
+            "anchored": False,
+        }
 
         status, created = request_json(
             base,
