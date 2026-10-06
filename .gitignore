@@ -12,3 +12,8 @@ config.local.yaml
 secrets.yml
 secrets.yaml
 .supabase/
+
+# HumanQueue local runtime state
+human-queue/*.db
+human-queue/*.db-shm
+human-queue/*.db-wal
