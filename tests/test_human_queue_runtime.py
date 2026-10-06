@@ -192,9 +192,11 @@ def test_audit_log_records_wait_claim_release_and_decision(tmp_path):
         "RESUME_REQUESTED",
     ]
     assert events[0].actor == "ci"
-    assert events[-1].actor == "bob"
-    assert events[-1].data["action"] == "approve"
-    assert events[-1].data["state"] == "approved"
+    decision_event = next(e for e in events if e.event_type == "DECISION_COMMITTED")
+    assert decision_event.actor == "bob"
+    assert decision_event.data["action"] == "approve"
+    assert decision_event.data["state"] == "approved"
+    assert events[-1].event_type == "RESUME_REQUESTED"
 
 
 def test_idempotent_decision_replay_does_not_duplicate_audit_event(tmp_path):
