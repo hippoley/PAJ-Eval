@@ -214,3 +214,50 @@ def test_http_exposes_audit_provenance(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_http_machine_acknowledgement_protocol(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="Run step?",
+        source="agent",
+        resume_token="step-http",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, resumed = request_json(
+            base,
+            f"/api/waits/{item.id}/resumed",
+            method="POST",
+            body={"actor": "agent"},
+        )
+        assert status == 200
+        assert resumed["wait"]["execution_state"] == "resumed"
+
+        status, completed = request_json(
+            base,
+            f"/api/waits/{item.id}/complete",
+            method="POST",
+            body={"actor": "agent", "success": True, "detail": "done"},
+        )
+        assert status == 200
+        assert completed["wait"]["execution_state"] == "completed"
+
+        status, events = request_json(base, f"/api/waits/{item.id}/events")
+        assert status == 200
+        assert [event["event_type"] for event in events["events"]][-3:] == [
+            "RESUME_REQUESTED",
+            "PROCESS_RESUMED",
+            "PROCESS_COMPLETED",
+        ]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
