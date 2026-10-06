@@ -520,6 +520,7 @@ def make_handler(
                         audit_witness_receipts.append(
                             receipt,
                             provider=audit_witness_provider,
+                            already_verified=True,
                         )
                     except RuntimeError as exc:
                         self._json(
