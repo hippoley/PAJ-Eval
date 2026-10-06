@@ -264,3 +264,69 @@ this MVP; durable scheduled retries/workers are a later deployment concern.
 The important semantic boundary is already preserved: a dead-lettered resume
 request remains distinct from machine execution state and never becomes
 `PROCESS_RESUMED` by implication.
+
+
+## Durable delivery worker
+
+Resume delivery can now survive process restarts. Delivery jobs are persisted in
+the same SQLite database with:
+
+```text
+status
+attempt
+max_attempts
+next_attempt_at
+claimed_by
+claim_expires_at
+last_error
+```
+
+Create a durable delivery after a committed decision:
+
+```http
+POST /api/waits/{wait_id}/delivery
+Content-Type: application/json
+
+{
+  "adapter": "webhook",
+  "target": "https://worker.example/resume",
+  "max_attempts": 4,
+  "base_delay": 1,
+  "multiplier": 2,
+  "max_delay": 8
+}
+```
+
+Inspect persisted jobs:
+
+```http
+GET /api/deliveries
+```
+
+Run a worker:
+
+```bash
+HUMANQUEUE_WEBHOOK_URL=https://worker.example/resume \
+python human-queue/delivery_worker.py
+```
+
+or for GitHub:
+
+```bash
+HUMANQUEUE_GITHUB_REPOSITORY=owner/repo \
+HUMANQUEUE_GITHUB_TOKEN=... \
+python human-queue/delivery_worker.py
+```
+
+Adapter credentials stay in the worker process environment. SQLite persists only
+the adapter name, logical target, scheduling metadata, and delivery state.
+
+Workers claim one due job with a bounded lease. If a worker crashes, another
+worker can take over after lease expiry. Failed attempts persist
+`next_attempt_at`, so restarting the worker or the server does not reset the
+retry budget.
+
+Network delivery is deliberately at-least-once. Webhook requests include a
+stable `Idempotency-Key`, and GitHub repository-dispatch payloads include a
+stable `delivery_key`, allowing receivers to deduplicate the crash window
+between successful remote delivery and local `dispatched` persistence.
