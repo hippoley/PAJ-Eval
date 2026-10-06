@@ -22,6 +22,7 @@ runtime = load("runtime", ROOT / "runtime.py")
 adapters = load("human_queue_adapters", ROOT / "adapters.py")
 HumanQueue = runtime.HumanQueue
 GenericWebhookAdapter = adapters.GenericWebhookAdapter
+GitHubRepositoryDispatchAdapter = adapters.GitHubRepositoryDispatchAdapter
 sanitize_target = adapters.sanitize_target
 
 
@@ -129,3 +130,73 @@ def test_rejected_decision_cannot_be_dispatched(tmp_path):
 def test_sanitize_target_removes_credentials_query_and_fragment():
     safe = sanitize_target("https://user:pass@example.com:8443/resume?q=secret#frag")
     assert safe == "https://example.com:8443/resume"
+
+
+def test_github_repository_dispatch_adapter_sends_expected_payload(tmp_path):
+    received = {}
+
+    class Receiver(BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            return
+
+        def do_POST(self):
+            received["path"] = self.path
+            received["authorization"] = self.headers.get("Authorization")
+            received["accept"] = self.headers.get("Accept")
+            length = int(self.headers.get("Content-Length", "0"))
+            received["body"] = json.loads(self.rfile.read(length))
+            self.send_response(204)
+            self.end_headers()
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Receiver)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        q = HumanQueue(tmp_path / "queue.db")
+        item = q.ask(
+            uri="human://approve",
+            title="Deploy GitHub workflow?",
+            source="ci",
+            resume_token="deploy-step-7",
+        )
+        decided = q.decide(item.id, action="approve", actor="alice")
+        adapter = GitHubRepositoryDispatchAdapter(
+            "acme/app",
+            token="gh-secret",
+            event_type="humanqueue-resume",
+            api_base=f"http://127.0.0.1:{httpd.server_address[1]}",
+        )
+
+        result = adapter.dispatch(q, decided)
+
+        assert result["status"] == 204
+        assert received["path"] == "/repos/acme/app/dispatches"
+        assert received["authorization"] == "Bearer gh-secret"
+        assert received["accept"] == "application/vnd.github+json"
+        assert received["body"]["event_type"] == "humanqueue-resume"
+        payload = received["body"]["client_payload"]
+        assert payload["wait_id"] == item.id
+        assert payload["resume_token"] == "deploy-step-7"
+        assert payload["decision"]["action"] == "approve"
+
+        events = q.audit_events(item.id)
+        assert events[-1].event_type == "RESUME_DISPATCHED"
+        assert events[-1].data == {
+            "adapter": "github_repository_dispatch",
+            "target": "github://acme/app/humanqueue-resume",
+        }
+        assert "gh-secret" not in json.dumps([event.data for event in events])
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_github_repository_dispatch_validates_repository_name():
+    try:
+        GitHubRepositoryDispatchAdapter("invalid", token="x")
+    except ValueError as exc:
+        assert "owner/name" in str(exc)
+    else:
+        raise AssertionError("invalid repository name unexpectedly accepted")
