@@ -155,6 +155,58 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
                 self._json(HTTPStatus.CREATED, {"wait": wait_json(item)})
                 return
 
+            claim_suffix = "/claim"
+            if path.startswith("/api/waits/") and path.endswith(claim_suffix):
+                wait_id = path[len("/api/waits/") : -len(claim_suffix)]
+                actor = str(body.get("actor") or "").strip()
+                if not wait_id or not actor:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "wait_id_and_actor_required"},
+                    )
+                    return
+                try:
+                    item = queue.claim(
+                        wait_id,
+                        actor=actor,
+                        lease_seconds=float(body.get("lease_seconds") or 30),
+                    )
+                except KeyError:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                    return
+                except (RuntimeError, ValueError) as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "claim_conflict", "detail": str(exc)},
+                    )
+                    return
+                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
+                return
+
+            release_suffix = "/release"
+            if path.startswith("/api/waits/") and path.endswith(release_suffix):
+                wait_id = path[len("/api/waits/") : -len(release_suffix)]
+                actor = str(body.get("actor") or "").strip()
+                if not wait_id or not actor:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "wait_id_and_actor_required"},
+                    )
+                    return
+                try:
+                    item = queue.release_claim(wait_id, actor=actor)
+                except KeyError:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                    return
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "claim_conflict", "detail": str(exc)},
+                    )
+                    return
+                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
+                return
+
             suffix = "/decision"
             if path.startswith("/api/waits/") and path.endswith(suffix):
                 wait_id = path[len("/api/waits/") : -len(suffix)]
