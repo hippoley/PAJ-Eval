@@ -46,6 +46,7 @@ HttpCheckpointWitnessProvider = witness_module.HttpCheckpointWitnessProvider
 OnlineWitnessReceiptVerifier = witness_module.OnlineWitnessReceiptVerifier
 load_witness_provider = witness_module.load_witness_provider
 InMemoryWitnessProvider = witness_module.InMemoryWitnessProvider
+checkpoint_fingerprint = witness_module.checkpoint_fingerprint
 WitnessReceiptJournal = witness_module.WitnessReceiptJournal
 
 
@@ -140,6 +141,7 @@ def test_http_witness_round_trip_verifies_remote_receipt(tmp_path):
                 checkpoint_head_hash=received["head_hash"],
                 key_id="rw1",
                 signature="",
+                checkpoint_fingerprint=payload["checkpoint_fingerprint"],
             )
             receipt = WitnessReceipt(
                 **{
@@ -201,6 +203,7 @@ def test_http_witness_rejects_receipt_bound_to_wrong_checkpoint(tmp_path):
                 checkpoint_head_hash=checkpoint.head_hash,
                 key_id="rw1",
                 signature="",
+                checkpoint_fingerprint=checkpoint_fingerprint(checkpoint),
             )
             receipt = WitnessReceipt(
                 **{
@@ -537,6 +540,7 @@ def test_online_witness_verification_keeps_signing_secret_remote(tmp_path):
                     checkpoint_head_hash=received["head_hash"],
                     key_id="remote-k1",
                     signature="",
+                    checkpoint_fingerprint=payload["checkpoint_fingerprint"],
                 )
                 receipt = WitnessReceipt(
                     **{
@@ -650,6 +654,7 @@ def test_online_witness_rejects_when_remote_verification_is_unavailable(tmp_path
                 checkpoint_head_hash=received["head_hash"],
                 key_id="remote-k1",
                 signature="",
+                checkpoint_fingerprint=payload["checkpoint_fingerprint"],
             )
             receipt = WitnessReceipt(
                 **{
