@@ -207,6 +207,7 @@ class HumanQueue:
         action: str,
         actor: str = "human",
         value: Any = None,
+        principal: dict[str, Any] | None = None,
     ) -> Wait:
         """Resolve a wait exactly once.
 
@@ -246,7 +247,12 @@ class HumanQueue:
                 wait_id,
                 "DECISION_COMMITTED",
                 actor=actor,
-                data={"action": action, "value": value, "state": state},
+                data={
+                    "action": action,
+                    "value": value,
+                    "state": state,
+                    "principal": principal,
+                },
             )
             if state != "rejected":
                 conn.execute(
@@ -263,7 +269,10 @@ class HumanQueue:
                     wait_id,
                     "RESUME_REQUESTED",
                     actor=actor,
-                    data={"resume_token": current.resume_token},
+                    data={
+                        "resume_token": current.resume_token,
+                        "principal": principal,
+                    },
                 )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
@@ -385,7 +394,13 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
-    def mark_resumed(self, wait_id: str, *, actor: str = "machine") -> Wait:
+    def mark_resumed(
+        self,
+        wait_id: str,
+        *,
+        actor: str = "machine",
+        principal: dict[str, Any] | None = None,
+    ) -> Wait:
         now = time.time()
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -412,7 +427,10 @@ class HumanQueue:
                 wait_id,
                 "PROCESS_RESUMED",
                 actor=actor,
-                data={"resume_token": item.resume_token},
+                data={
+                    "resume_token": item.resume_token,
+                    "principal": principal,
+                },
             )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
@@ -425,6 +443,7 @@ class HumanQueue:
         actor: str = "machine",
         success: bool = True,
         detail: str | None = None,
+        principal: dict[str, Any] | None = None,
     ) -> Wait:
         now = time.time()
         target_state = "completed" if success else "failed"
@@ -456,7 +475,7 @@ class HumanQueue:
                 wait_id,
                 event_type,
                 actor=actor,
-                data={"detail": detail},
+                data={"detail": detail, "principal": principal},
             )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
@@ -470,6 +489,7 @@ class HumanQueue:
         callback: str,
         reason: str,
         data: dict[str, Any] | None = None,
+        principal: dict[str, Any] | None = None,
     ) -> Wait:
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -488,6 +508,7 @@ class HumanQueue:
                 data={
                     "callback": callback,
                     "reason": reason,
+                    "principal": principal,
                     **(data or {}),
                 },
             )
@@ -500,6 +521,7 @@ class HumanQueue:
         actor: str,
         reason: str,
         data: dict[str, Any] | None = None,
+        principal: dict[str, Any] | None = None,
     ) -> Wait:
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -517,6 +539,7 @@ class HumanQueue:
                 actor=actor,
                 data={
                     "reason": reason,
+                    "principal": principal,
                     **(data or {}),
                 },
             )
