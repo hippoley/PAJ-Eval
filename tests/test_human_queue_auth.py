@@ -1,6 +1,11 @@
+import base64
+import hashlib
+import hmac
 import importlib.util
+import json
 import os
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -27,6 +32,7 @@ AuthContext = auth.AuthContext
 Principal = auth.Principal
 BearerTokenAuthProvider = auth.BearerTokenAuthProvider
 TrustedHeaderAuthProvider = auth.TrustedHeaderAuthProvider
+Hs256JwtAuthProvider = auth.Hs256JwtAuthProvider
 load_auth_provider = auth.load_auth_provider
 adapt_authenticator = auth.adapt_authenticator
 ensure_disjoint_authenticators = auth.ensure_disjoint_authenticators
@@ -272,3 +278,150 @@ def test_human_machine_provider_secrets_must_be_disjoint():
     )
     with pytest.raises(ValueError, match="must not share credentials"):
         ensure_disjoint_providers(human, machine)
+
+
+def _jwt(secret, claims, *, kid="k1", alg="HS256"):
+    header = {"alg": alg, "typ": "JWT", "kid": kid}
+    def enc(value):
+        raw = json.dumps(value, separators=(",", ":"), sort_keys=True).encode()
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+    head = enc(header)
+    body = enc(claims)
+    sig = hmac.new(
+        secret.encode(),
+        f"{head}.{body}".encode(),
+        hashlib.sha256,
+    ).digest()
+    signature = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    return f"{head}.{body}.{signature}"
+
+
+def test_hs256_jwt_provider_authenticates_signed_principal():
+    now = time.time()
+    provider = Hs256JwtAuthProvider(
+        principal_kind="human",
+        keys={"k1": "secret-one", "k2": "secret-two"},
+        issuer="https://issuer.example",
+        audience="humanqueue",
+        leeway_seconds=0,
+    )
+    token = _jwt(
+        "secret-two",
+        {
+            "iss": "https://issuer.example",
+            "aud": "humanqueue",
+            "sub": "alice",
+            "exp": now + 60,
+        },
+        kid="k2",
+    )
+    principal = provider.authenticate(AuthContext(f"Bearer {token}"))
+    assert principal.actor == "alice"
+    assert principal.kind == "human"
+    assert principal.provider == "jwt-hs256"
+    assert principal.attributes == {
+        "issuer": "https://issuer.example",
+        "audience": "humanqueue",
+        "kid": "k2",
+    }
+
+
+@pytest.mark.parametrize(
+    "mutator,error",
+    [
+        (lambda c, now: {**c, "iss": "https://evil.example"}, "issuer"),
+        (lambda c, now: {**c, "aud": "other"}, "audience"),
+        (lambda c, now: {**c, "exp": now - 1}, "expired"),
+        (lambda c, now: {**c, "nbf": now + 60}, "not yet valid"),
+    ],
+)
+def test_hs256_jwt_provider_rejects_invalid_claims(mutator, error):
+    now = time.time()
+    provider = Hs256JwtAuthProvider(
+        principal_kind="human",
+        keys={"k1": "secret-one"},
+        issuer="https://issuer.example",
+        audience="humanqueue",
+        leeway_seconds=0,
+    )
+    claims = {
+        "iss": "https://issuer.example",
+        "aud": "humanqueue",
+        "sub": "alice",
+        "exp": now + 60,
+    }
+    token = _jwt("secret-one", mutator(claims, now))
+    with pytest.raises(AuthenticationError, match=error):
+        provider.authenticate(AuthContext(f"Bearer {token}"))
+
+
+def test_hs256_jwt_provider_rejects_wrong_signature_unknown_kid_and_alg():
+    now = time.time()
+    provider = Hs256JwtAuthProvider(
+        principal_kind="machine",
+        keys={"k1": "secret-one"},
+        issuer="issuer",
+        audience="aud",
+        leeway_seconds=0,
+    )
+    claims = {
+        "iss": "issuer",
+        "aud": "aud",
+        "sub": "worker-a",
+        "exp": now + 60,
+    }
+
+    wrong_signature = _jwt("wrong-secret", claims)
+    with pytest.raises(AuthenticationError, match="signature"):
+        provider.authenticate(AuthContext(f"Bearer {wrong_signature}"))
+
+    unknown_kid = _jwt("secret-two", claims, kid="k2")
+    with pytest.raises(AuthenticationError, match="unknown JWT kid"):
+        provider.authenticate(AuthContext(f"Bearer {unknown_kid}"))
+
+    wrong_alg = _jwt("secret-one", claims, alg="HS512")
+    with pytest.raises(AuthenticationError, match="alg"):
+        provider.authenticate(AuthContext(f"Bearer {wrong_alg}"))
+
+
+def test_hs256_jwt_provider_rejects_actor_spoof():
+    now = time.time()
+    provider = Hs256JwtAuthProvider(
+        principal_kind="human",
+        keys={"k1": "secret-one"},
+        issuer="issuer",
+        audience="aud",
+    )
+    token = _jwt(
+        "secret-one",
+        {
+            "iss": "issuer",
+            "aud": "aud",
+            "sub": "alice",
+            "exp": now + 60,
+        },
+    )
+    with pytest.raises(ActorMismatchError):
+        provider.authenticate(
+            AuthContext(f"Bearer {token}"),
+            claimed_actor="mallory",
+        )
+
+
+def test_auth_provider_factory_loads_hs256_jwt(monkeypatch):
+    monkeypatch.setenv("HUMANQUEUE_HUMAN_AUTH_PROVIDER", "jwt-hs256")
+    monkeypatch.setenv(
+        "HUMANQUEUE_HUMAN_JWT_KEYS",
+        '{"current":"secret-current","previous":"secret-previous"}',
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_HUMAN_JWT_ISSUER",
+        "https://issuer.example",
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_HUMAN_JWT_AUDIENCE",
+        "humanqueue",
+    )
+    provider = load_auth_provider("human")
+    assert isinstance(provider, Hs256JwtAuthProvider)
+    assert set(provider.keys) == {"current", "previous"}
