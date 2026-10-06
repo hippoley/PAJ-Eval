@@ -668,3 +668,63 @@ def test_active_checkpoint_lock_times_out_without_writing(tmp_path):
         raise AssertionError("active checkpoint lock unexpectedly ignored")
 
     assert checkpoint_path.exists() is False
+
+
+def test_checkpoint_accepts_custom_signature_provider(tmp_path):
+    class TestSignatureProvider:
+        signing_key_id = "external-kms-key"
+
+        def sign(self, payload):
+            return "sig:" + hashlib.sha256(
+                ("provider-secret|" + payload).encode()
+            ).hexdigest()
+
+        def verify(self, payload, *, key_id, signature):
+            if key_id != self.signing_key_id:
+                raise KeyError(key_id)
+            expected = self.sign(payload)
+            return signature == expected
+
+    import hashlib
+
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        signature_provider=TestSignatureProvider(),
+    )
+
+    checkpoint = signer.create(now=100)
+    assert checkpoint.key_id == "external-kms-key"
+    assert checkpoint.signature.startswith("sig:")
+    assert signer.keys == {}
+
+    verified = signer.verify()
+    assert verified["ok"] is True
+    assert verified["latest"]["key_id"] == "external-kms-key"
+
+
+def test_custom_checkpoint_provider_cannot_mix_with_hmac_arguments(tmp_path):
+    class TestSignatureProvider:
+        signing_key_id = "external"
+
+        def sign(self, payload):
+            return payload
+
+        def verify(self, payload, *, key_id, signature):
+            return True
+
+    queue, _ = make_queue(tmp_path / "queue.db")
+    try:
+        AuditCheckpointSigner(
+            queue,
+            tmp_path / "audit-checkpoints.jsonl",
+            key="legacy-secret",
+            signature_provider=TestSignatureProvider(),
+        )
+    except ValueError as exc:
+        assert "cannot be combined" in str(exc)
+    else:
+        raise AssertionError("custom provider mixed with HMAC key unexpectedly")
