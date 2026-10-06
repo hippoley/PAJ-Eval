@@ -776,3 +776,72 @@ provider attributes are deliberately not copied into the durable audit log.
 The provider boundary is designed so future OIDC/JWT, mTLS, SPIFFE/SPIRE, or
 gateway-asserted identity implementations can return the same `Principal`
 without changing HumanQueue authorization or execution semantics.
+
+
+## Signed JWT principal provider (HS256)
+
+HumanQueue now includes a stdlib-only signed JWT provider for deployments that
+need expiring, issuer-scoped principals without adding a Python JWT dependency.
+
+This is intentionally **HS256 JWT support**, not full OIDC discovery or JWKS /
+RS256 validation.
+
+Human configuration:
+
+```bash
+HUMANQUEUE_HUMAN_AUTH_PROVIDER=jwt-hs256
+HUMANQUEUE_HUMAN_JWT_KEYS='{
+  "current":"replace-with-current-secret",
+  "previous":"replace-with-previous-secret"
+}'
+HUMANQUEUE_HUMAN_JWT_ISSUER='https://identity.example/humans'
+HUMANQUEUE_HUMAN_JWT_AUDIENCE='humanqueue-human'
+```
+
+Machine configuration uses the same shape with the `HUMANQUEUE_MACHINE_*`
+prefix.
+
+The provider validates:
+
+```text
+alg == HS256
+kid -> configured key
+HMAC-SHA256 signature
+iss
+aud
+exp
+optional nbf
+actor claim (sub by default)
+optional request-body actor consistency
+```
+
+Multiple keys may be configured simultaneously so a new `kid` can be rolled
+out before the previous key is removed.
+
+Optional settings:
+
+```bash
+HUMANQUEUE_HUMAN_JWT_ACTOR_CLAIM=sub
+HUMANQUEUE_HUMAN_JWT_LEEWAY_SECONDS=30
+```
+
+Signed identity provenance is reduced to safe audit fields:
+
+```json
+{
+  "principal": {
+    "kind": "human",
+    "provider": "jwt-hs256",
+    "issuer": "https://identity.example/humans",
+    "audience": "humanqueue-human",
+    "kid": "current"
+  }
+}
+```
+
+The compact JWT, HMAC keys, and arbitrary claims are not copied into durable
+audit events.
+
+For deployments requiring asymmetric federation, OIDC discovery, or remote
+JWKS rotation, use the pluggable `AuthProvider` boundary with an external
+identity implementation instead of treating this HS256 provider as OIDC.
