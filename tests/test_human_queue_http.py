@@ -142,3 +142,45 @@ def test_http_validates_required_wait_fields(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_sse_stream_emits_queue_snapshot_and_change(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        request = Request(base + "/api/events", method="GET")
+        with urlopen(request, timeout=2) as response:
+            assert response.status == 200
+            assert response.headers["Content-Type"].startswith("text/event-stream")
+
+            event = response.readline().decode().strip()
+            data = response.readline().decode().strip()
+            blank = response.readline().decode().strip()
+            assert event == "event: queue"
+            assert data.startswith("data: ")
+            assert blank == ""
+            assert json.loads(data.removeprefix("data: ")) == {"waits": []}
+
+            queue.ask(
+                uri="human://approve",
+                title="Live task?",
+                source="agent",
+                idempotency_key="sse-task",
+            )
+
+            event = response.readline().decode().strip()
+            data = response.readline().decode().strip()
+            blank = response.readline().decode().strip()
+            assert event == "event: queue"
+            payload = json.loads(data.removeprefix("data: "))
+            assert blank == ""
+            assert len(payload["waits"]) == 1
+            assert payload["waits"][0]["title"] == "Live task?"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
