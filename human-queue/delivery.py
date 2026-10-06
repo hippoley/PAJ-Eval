@@ -26,6 +26,8 @@ class Delivery:
     target: str
     destination: str | None
     destination_revision: int | None
+    destination_changed_by: str | None
+    destination_change_reason: str | None
     status: str
     attempt: int
     max_attempts: int
@@ -61,6 +63,8 @@ class DurableDeliveryQueue:
                     target TEXT NOT NULL,
                     destination TEXT,
                     destination_revision INTEGER,
+                    destination_changed_by TEXT,
+                    destination_change_reason TEXT,
                     status TEXT NOT NULL,
                     attempt INTEGER NOT NULL,
                     max_attempts INTEGER NOT NULL,
@@ -92,6 +96,16 @@ class DurableDeliveryQueue:
                     "ALTER TABLE resume_deliveries "
                     "ADD COLUMN destination_revision INTEGER"
                 )
+            if "destination_changed_by" not in columns:
+                conn.execute(
+                    "ALTER TABLE resume_deliveries "
+                    "ADD COLUMN destination_changed_by TEXT"
+                )
+            if "destination_change_reason" not in columns:
+                conn.execute(
+                    "ALTER TABLE resume_deliveries "
+                    "ADD COLUMN destination_change_reason TEXT"
+                )
             conn.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_resume_deliveries_due
@@ -108,6 +122,8 @@ class DurableDeliveryQueue:
         policy: RetryPolicy | None = None,
         destination: str | None = None,
         destination_revision: int | None = None,
+        destination_changed_by: str | None = None,
+        destination_change_reason: str | None = None,
         now: float | None = None,
     ) -> Delivery:
         policy = policy or RetryPolicy()
@@ -121,11 +137,12 @@ class DurableDeliveryQueue:
                     """
                     INSERT INTO resume_deliveries (
                         id, wait_id, adapter, target, destination,
-                        destination_revision, status, attempt,
+                        destination_revision, destination_changed_by,
+                        destination_change_reason, status, attempt,
                         max_attempts, base_delay, multiplier, max_delay,
                         next_attempt_at, claimed_by, claim_expires_at,
                         last_error, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?, ?,
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?, ?,
                               NULL, NULL, NULL, ?, ?)
                     """,
                     (
@@ -135,6 +152,8 @@ class DurableDeliveryQueue:
                         target,
                         destination,
                         destination_revision,
+                        destination_changed_by,
+                        destination_change_reason,
                         policy.max_attempts,
                         policy.base_delay,
                         policy.multiplier,
@@ -348,6 +367,8 @@ class DurableDeliveryQueue:
             target=row["target"],
             destination=row["destination"],
             destination_revision=row["destination_revision"],
+            destination_changed_by=row["destination_changed_by"],
+            destination_change_reason=row["destination_change_reason"],
             status=row["status"],
             attempt=row["attempt"],
             max_attempts=row["max_attempts"],
@@ -401,6 +422,8 @@ def reconcile_bound_deliveries(
             policy=policy,
             destination=resolved.get("destination"),
             destination_revision=resolved.get("destination_revision"),
+            destination_changed_by=resolved.get("destination_changed_by"),
+            destination_change_reason=resolved.get("destination_change_reason"),
         )
         queue.mark_resume_delivery_queued(
             item.id,
