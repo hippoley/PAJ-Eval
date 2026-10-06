@@ -31,7 +31,7 @@ Terminal A — start HumanQueue:\n\n```bash\npython human-queue/server.py\n```\n
 
 The process remains blocked.
 
-The task appears automatically in the browser. Click **Approve**. Terminal B then continues by itself:
+The task appears automatically in the browser over **Server-Sent Events** (`GET /api/events`). If the stream disconnects, the UI falls back to polling while the browser reconnects. Click **Approve**. Terminal B then continues by itself:
 
 ```text
 [agent] RESUMED cleanup-step-3
@@ -58,3 +58,24 @@ That transition is the current Reality Delta.
 
 The architectural rule is simple: **UI is optional; the durable boundary is the
 product primitive.**
+
+
+## Live delivery
+
+The browser now prefers an SSE stream:
+
+```text
+producer ask()
+    ↓
+SQLite wait
+    ↓
+GET /api/events
+    ↓
+event: queue
+    ↓
+browser updates immediately
+```
+
+The stream sends a full pending-queue snapshot whenever its durable signature changes.
+This keeps the first implementation deliberately simple and deterministic. Browser
+polling remains as a resilience fallback if EventSource is unavailable or reconnecting.
