@@ -22,6 +22,7 @@ from auth import (
     ActorAuthenticator,
     ActorMismatchError,
     AuthenticationError,
+    AuthContext,
     AuthProvider,
     BearerTokenAuthProvider,
     adapt_authenticator,
@@ -109,6 +110,20 @@ def make_handler(
             self.end_headers()
             self.wfile.write(body)
 
+        def _auth_context(self) -> AuthContext:
+            return AuthContext(
+                authorization=self.headers.get("Authorization"),
+                headers={
+                    key: value
+                    for key, value in self.headers.items()
+                },
+                client=(
+                    str(self.client_address[0])
+                    if self.client_address
+                    else None
+                ),
+            )
+
         def _resolve_machine_actor(
             self,
             body: dict,
@@ -120,7 +135,7 @@ def make_handler(
                 return claimed or default
             try:
                 principal = machine_auth_provider.authenticate(
-                    self.headers.get("Authorization"),
+                    self._auth_context(),
                     claimed_actor=claimed or None,
                 )
                 if principal.kind != "machine":
@@ -150,7 +165,7 @@ def make_handler(
                 return claimed or default
             try:
                 principal = human_auth_provider.authenticate(
-                    self.headers.get("Authorization"),
+                    self._auth_context(),
                     claimed_actor=claimed or None,
                 )
                 if principal.kind != "human":
