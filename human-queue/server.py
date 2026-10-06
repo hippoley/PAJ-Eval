@@ -32,6 +32,7 @@ from auth import (
     load_auth_provider,
 )
 from audit_checkpoint import AuditCheckpointSigner
+from audit_witness import CheckpointWitnessProvider, load_witness_provider
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
@@ -88,6 +89,7 @@ def make_handler(
     human_auth_provider: AuthProvider | None = None,
     machine_auth_provider: AuthProvider | None = None,
     audit_checkpoint_signer: AuditCheckpointSigner | None = None,
+    audit_witness_provider: CheckpointWitnessProvider | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
@@ -437,6 +439,54 @@ def make_handler(
                 body = self._read_json()
             except ValueError as exc:
                 self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                return
+
+            if path == "/api/audit/checkpoint/witness":
+                if audit_checkpoint_signer is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_checkpoint_not_configured"},
+                    )
+                    return
+                if audit_witness_provider is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_witness_not_configured"},
+                    )
+                    return
+                principal = self._resolve_human_principal(
+                    body,
+                    default="witness-operator",
+                )
+                if principal is None:
+                    return
+                checkpoint = audit_checkpoint_signer.latest()
+                if checkpoint is None:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "audit_checkpoint_missing"},
+                    )
+                    return
+                try:
+                    receipt = audit_witness_provider.publish(checkpoint)
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.BAD_GATEWAY,
+                        {
+                            "error": "audit_witness_failed",
+                            "detail": str(exc),
+                            "checkpoint_sequence": checkpoint.sequence,
+                        },
+                    )
+                    return
+                self._json(
+                    HTTPStatus.CREATED,
+                    {
+                        "checkpoint": asdict(checkpoint),
+                        "receipt": asdict(receipt),
+                        "principal": self._principal_audit(principal),
+                    },
+                )
                 return
 
             if path == "/api/audit/checkpoint":
@@ -928,6 +978,7 @@ def make_server(
     human_auth_provider: AuthProvider | None = None,
     machine_auth_provider: AuthProvider | None = None,
     audit_checkpoint_signer: AuditCheckpointSigner | None = None,
+    audit_witness_provider: CheckpointWitnessProvider | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
@@ -941,6 +992,7 @@ def make_server(
             human_auth_provider,
             machine_auth_provider,
             audit_checkpoint_signer,
+            audit_witness_provider,
         ),
     )
 
@@ -956,6 +1008,7 @@ def main() -> None:
     machine_auth_provider = load_auth_provider("machine")
     ensure_disjoint_providers(human_auth_provider, machine_auth_provider)
     audit_checkpoint_signer = AuditCheckpointSigner.from_env(queue)
+    audit_witness_provider = load_witness_provider()
     server = make_server(
         queue,
         host=host,
@@ -965,6 +1018,7 @@ def main() -> None:
         human_auth_provider=human_auth_provider,
         machine_auth_provider=machine_auth_provider,
         audit_checkpoint_signer=audit_checkpoint_signer,
+        audit_witness_provider=audit_witness_provider,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
