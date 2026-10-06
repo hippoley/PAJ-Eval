@@ -41,6 +41,8 @@ AuditCheckpointSigner = checkpoint_module.AuditCheckpointSigner
 WitnessReceipt = witness_module.WitnessReceipt
 HmacWitnessReceiptVerifier = witness_module.HmacWitnessReceiptVerifier
 HttpCheckpointWitnessProvider = witness_module.HttpCheckpointWitnessProvider
+OnlineWitnessReceiptVerifier = witness_module.OnlineWitnessReceiptVerifier
+load_witness_provider = witness_module.load_witness_provider
 InMemoryWitnessProvider = witness_module.InMemoryWitnessProvider
 WitnessReceiptJournal = witness_module.WitnessReceiptJournal
 
@@ -497,6 +499,187 @@ def test_server_health_fails_on_tampered_witness_receipt(tmp_path):
         assert health["ok"] is False
         assert health["audit_witness"]["ok"] is False
         assert health["audit_witness"]["reason"] == "invalid_witness_receipt_signature"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_online_witness_verification_keeps_signing_secret_remote(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness_secret = "remote-only-secret"
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            return
+
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(length))
+
+            if self.path == "/witness":
+                received = payload["checkpoint"]
+                unsigned = WitnessReceipt(
+                    version=1,
+                    witness="independent-witness",
+                    receipt_id="online-1",
+                    received_at=300.0,
+                    checkpoint_sequence=received["sequence"],
+                    checkpoint_signature=received["signature"],
+                    checkpoint_head_hash=received["head_hash"],
+                    key_id="remote-k1",
+                    signature="",
+                )
+                receipt = WitnessReceipt(
+                    **{
+                        **asdict(unsigned),
+                        "signature": sign_receipt(unsigned, witness_secret),
+                    }
+                )
+                response = {"receipt": asdict(receipt)}
+            elif self.path == "/verify":
+                receipt = WitnessReceipt(**payload["receipt"])
+                expected = sign_receipt(
+                    WitnessReceipt(
+                        **{
+                            **asdict(receipt),
+                            "signature": "",
+                        }
+                    ),
+                    witness_secret,
+                )
+                response = {
+                    "valid": hmac.compare_digest(
+                        receipt.signature,
+                        expected,
+                    )
+                }
+            else:
+                self.send_response(404)
+                self.end_headers()
+                return
+
+            body = json.dumps(response).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        verifier = OnlineWitnessReceiptVerifier(base + "/verify")
+        provider = HttpCheckpointWitnessProvider(
+            base + "/witness",
+            verifier=verifier,
+        )
+        receipt = provider.publish(checkpoint)
+        assert receipt.witness == "independent-witness"
+        assert provider.verify(receipt) is True
+        assert not hasattr(verifier, "keys")
+        assert "remote-only-secret" not in repr(provider.__dict__)
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_witness_loader_prefers_online_verification_without_shared_keys(
+    monkeypatch,
+):
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_WITNESS_URL",
+        "https://witness.example/publish",
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_WITNESS_VERIFY_URL",
+        "https://witness.example/verify",
+    )
+    monkeypatch.delenv(
+        "HUMANQUEUE_AUDIT_WITNESS_KEYS",
+        raising=False,
+    )
+
+    provider = load_witness_provider()
+    assert isinstance(provider, HttpCheckpointWitnessProvider)
+    assert isinstance(provider.verifier, OnlineWitnessReceiptVerifier)
+
+
+def test_online_witness_rejects_when_remote_verification_is_unavailable(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness_secret = "remote-only-secret"
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            return
+
+        def do_POST(self):
+            if self.path == "/verify":
+                self.send_response(503)
+                self.end_headers()
+                return
+
+            length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(length))
+            received = payload["checkpoint"]
+            unsigned = WitnessReceipt(
+                version=1,
+                witness="independent-witness",
+                receipt_id="online-2",
+                received_at=300.0,
+                checkpoint_sequence=received["sequence"],
+                checkpoint_signature=received["signature"],
+                checkpoint_head_hash=received["head_hash"],
+                key_id="remote-k1",
+                signature="",
+            )
+            receipt = WitnessReceipt(
+                **{
+                    **asdict(unsigned),
+                    "signature": sign_receipt(unsigned, witness_secret),
+                }
+            )
+            body = json.dumps({"receipt": asdict(receipt)}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        provider = HttpCheckpointWitnessProvider(
+            base + "/witness",
+            verifier=OnlineWitnessReceiptVerifier(base + "/verify"),
+        )
+        try:
+            provider.publish(checkpoint)
+        except RuntimeError as exc:
+            assert "signature is invalid" in str(exc)
+        else:
+            raise AssertionError(
+                "receipt accepted while independent verifier was unavailable"
+            )
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
