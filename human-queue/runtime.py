@@ -470,11 +470,15 @@ class HumanQueue:
         adapter: str,
         target: str,
         delivery_id: str,
+        destination: str | None = None,
+        destination_revision: int | None = None,
     ) -> Wait:
         data = {
             "adapter": adapter,
             "target": target,
             "delivery_id": delivery_id,
+            "destination": destination,
+            "destination_revision": destination_revision,
         }
         with self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
