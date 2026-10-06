@@ -488,11 +488,14 @@ class WitnessReceiptJournal:
         with self._file_lock():
             existing = self.receipts()
             for current in existing:
-                if current.receipt_id == receipt.receipt_id:
+                if (
+                    current.witness == receipt.witness
+                    and current.receipt_id == receipt.receipt_id
+                ):
                     if current == receipt:
                         return current
                     raise RuntimeError(
-                        "witness receipt id conflicts with existing receipt"
+                        "witness receipt identity conflicts with existing receipt"
                     )
 
             if (
