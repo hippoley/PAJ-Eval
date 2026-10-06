@@ -661,3 +661,118 @@ This remains a lightweight local bearer-token implementation. Production
 deployments should use stronger workload identity (for example a trusted
 gateway, workload identity provider, signed service identity, or mTLS) while
 preserving the same HumanQueue actor and policy semantics.
+
+
+## Pluggable principal providers
+
+Authentication is now separated from HumanQueue policy semantics.
+
+The server authenticates through this logical contract:
+
+```text
+HTTP request
+  -> AuthContext
+       authorization
+       headers
+       client
+  -> AuthProvider
+  -> Principal
+       actor
+       kind       # human | machine
+       provider   # bearer-token | trusted-header | future provider
+  -> HumanQueue policy / audit
+```
+
+The core provider interface is intentionally small:
+
+```python
+class AuthProvider(Protocol):
+    def authenticate(
+        self,
+        context: AuthContext,
+        *,
+        claimed_actor: str | None = None,
+    ) -> Principal:
+        ...
+```
+
+This keeps decision policy, machine policy, durable delivery, and audit
+independent from the deployment's identity mechanism.
+
+### Built-in bearer provider
+
+The existing token-map configuration remains backward compatible:
+
+```bash
+HUMANQUEUE_ACTOR_TOKENS='{"alice":"..."}'
+HUMANQUEUE_MACHINE_TOKENS='{"worker-a":"..."}'
+```
+
+When no explicit provider mode is set, these variables automatically select the
+`bearer-token` provider.
+
+### Built-in trusted-header provider
+
+HumanQueue can also accept an identity asserted by a trusted reverse proxy or
+gateway.
+
+Human example:
+
+```bash
+HUMANQUEUE_HUMAN_AUTH_PROVIDER=trusted-header
+HUMANQUEUE_HUMAN_PROXY_SECRET='replace-with-shared-proxy-proof'
+HUMANQUEUE_HUMAN_ACTOR_HEADER='X-Verified-Human'
+```
+
+Machine example:
+
+```bash
+HUMANQUEUE_MACHINE_AUTH_PROVIDER=trusted-header
+HUMANQUEUE_MACHINE_PROXY_SECRET='replace-with-a-different-proof'
+HUMANQUEUE_MACHINE_ACTOR_HEADER='X-Verified-Machine'
+```
+
+The default proof header is:
+
+```text
+X-HumanQueue-Proxy-Secret
+```
+
+A trusted-header request must contain both the configured actor header and the
+correct proxy proof. Actor/header claims that disagree with the request body
+still fail closed.
+
+Do not expose trusted-header mode directly to untrusted clients. The deployment
+must prevent bypassing the authenticating proxy/gateway. Human and machine
+built-in provider credentials must also remain disjoint.
+
+### Principal provenance
+
+Execution audit now records only safe identity provenance:
+
+```json
+{
+  "principal": {
+    "kind": "human",
+    "provider": "trusted-proxy"
+  }
+}
+```
+
+or:
+
+```json
+{
+  "principal": {
+    "kind": "machine",
+    "provider": "bearer-token"
+  }
+}
+```
+
+Raw bearer tokens, trusted proxy proof secrets, request headers, and arbitrary
+provider attributes are deliberately not copied into the durable audit log.
+
+The provider boundary is designed so future OIDC/JWT, mTLS, SPIFFE/SPIRE, or
+gateway-asserted identity implementations can return the same `Principal`
+without changing HumanQueue authorization or execution semantics.
