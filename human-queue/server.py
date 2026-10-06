@@ -26,6 +26,7 @@ from auth import (
     AuthProvider,
     Principal,
     BearerTokenAuthProvider,
+    Hs256JwtAuthProvider,
     adapt_authenticator,
     ensure_disjoint_providers,
     load_auth_provider,
