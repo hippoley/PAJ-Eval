@@ -116,3 +116,16 @@ def test_raw_binding_remains_backward_compatible(tmp_path):
     assert snapshot["adapter"] == "webhook"
     assert snapshot["target"] == "https://worker.example/resume"
     assert snapshot["max_attempts"] == 2
+
+
+def test_webhook_destination_strips_url_secrets_before_persisting(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    item = registry.put(
+        "secret-free",
+        adapter="webhook",
+        target="https://user:pass@example.com:8443/resume?token=secret#frag",
+    )
+
+    assert item.target == "https://example.com:8443/resume"
+    reopened = DestinationRegistry(tmp_path / "queue.db")
+    assert reopened.get("secret-free").target == "https://example.com:8443/resume"
