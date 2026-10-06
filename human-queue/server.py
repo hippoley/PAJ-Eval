@@ -55,6 +55,7 @@ def destination_json(item: ResumeDestination) -> dict:
         "changed_by": item.changed_by,
         "change_reason": item.change_reason,
         "allowed_decision_actors": list(item.allowed_decision_actors),
+        "allowed_machine_actors": list(item.allowed_machine_actors),
         "created_at": item.created_at,
         "updated_at": item.updated_at,
     }
@@ -347,6 +348,7 @@ def make_handler(
                         actor=actor,
                         reason=body.get("reason"),
                         allowed_decision_actors=body.get("allowed_decision_actors"),
+                        allowed_machine_actors=body.get("allowed_machine_actors"),
                     )
                 except (TypeError, ValueError) as exc:
                     self._json(
@@ -459,6 +461,36 @@ def make_handler(
                 actor = self._resolve_machine_actor(body, default="machine")
                 if actor is None:
                     return
+                delivery = deliveries.for_wait(wait_id)
+                allowed_machines = (
+                    list(delivery.allowed_machine_actors)
+                    if delivery is not None
+                    else []
+                )
+                if allowed_machines and actor not in allowed_machines:
+                    queue.record_machine_callback_denied(
+                        wait_id,
+                        actor=actor,
+                        callback="resumed",
+                        reason="machine_not_authorized_for_delivery",
+                        data={
+                            "delivery_id": delivery.id if delivery else None,
+                            "destination": delivery.destination if delivery else None,
+                            "destination_revision": (
+                                delivery.destination_revision if delivery else None
+                            ),
+                            "allowed_machine_actors": allowed_machines,
+                        },
+                    )
+                    self._json(
+                        HTTPStatus.FORBIDDEN,
+                        {
+                            "error": "machine_not_authorized_for_delivery",
+                            "actor": actor,
+                            "delivery_id": delivery.id if delivery else None,
+                        },
+                    )
+                    return
                 try:
                     item = queue.mark_resumed(wait_id, actor=actor)
                 except KeyError:
@@ -478,6 +510,36 @@ def make_handler(
                 wait_id = path[len("/api/waits/") : -len(complete_suffix)]
                 actor = self._resolve_machine_actor(body, default="machine")
                 if actor is None:
+                    return
+                delivery = deliveries.for_wait(wait_id)
+                allowed_machines = (
+                    list(delivery.allowed_machine_actors)
+                    if delivery is not None
+                    else []
+                )
+                if allowed_machines and actor not in allowed_machines:
+                    queue.record_machine_callback_denied(
+                        wait_id,
+                        actor=actor,
+                        callback="complete",
+                        reason="machine_not_authorized_for_delivery",
+                        data={
+                            "delivery_id": delivery.id if delivery else None,
+                            "destination": delivery.destination if delivery else None,
+                            "destination_revision": (
+                                delivery.destination_revision if delivery else None
+                            ),
+                            "allowed_machine_actors": allowed_machines,
+                        },
+                    )
+                    self._json(
+                        HTTPStatus.FORBIDDEN,
+                        {
+                            "error": "machine_not_authorized_for_delivery",
+                            "actor": actor,
+                            "delivery_id": delivery.id if delivery else None,
+                        },
+                    )
                     return
                 success = bool(body.get("success", True))
                 try:
@@ -652,6 +714,7 @@ def make_handler(
                             destination_revision=resolved.get("destination_revision"),
                             destination_changed_by=resolved.get("destination_changed_by"),
                             destination_change_reason=resolved.get("destination_change_reason"),
+                            allowed_machine_actors=resolved.get("allowed_machine_actors"),
                         )
                     except (TypeError, ValueError) as exc:
                         self._json(
