@@ -46,6 +46,8 @@ def destination_json(item: ResumeDestination) -> dict:
         "policy": asdict(item.policy),
         "enabled": item.enabled,
         "revision": item.revision,
+        "changed_by": item.changed_by,
+        "change_reason": item.change_reason,
         "created_at": item.created_at,
         "updated_at": item.updated_at,
     }
@@ -276,6 +278,8 @@ def make_handler(
                         target=target,
                         policy=policy,
                         enabled=bool(body.get("enabled", True)),
+                        actor=str(body.get("actor") or "api-user"),
+                        reason=body.get("reason"),
                     )
                 except (TypeError, ValueError) as exc:
                     self._json(
@@ -536,6 +540,8 @@ def make_handler(
                             policy=_binding_policy(resolved),
                             destination=resolved.get("destination"),
                             destination_revision=resolved.get("destination_revision"),
+                            destination_changed_by=resolved.get("destination_changed_by"),
+                            destination_change_reason=resolved.get("destination_change_reason"),
                         )
                     except (TypeError, ValueError) as exc:
                         self._json(
@@ -551,6 +557,8 @@ def make_handler(
                         delivery_id=job.id,
                         destination=resolved.get("destination"),
                         destination_revision=resolved.get("destination_revision"),
+                        destination_changed_by=resolved.get("destination_changed_by"),
+                        destination_change_reason=resolved.get("destination_change_reason"),
                     )
                     response["delivery"] = delivery_json(job)
                 self._json(HTTPStatus.OK, response)
