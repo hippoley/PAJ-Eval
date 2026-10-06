@@ -22,7 +22,10 @@ from auth import (
     ActorAuthenticator,
     ActorMismatchError,
     AuthenticationError,
-    ensure_disjoint_authenticators,
+    AuthProvider,
+    BearerTokenAuthProvider,
+    adapt_authenticator,
+    ensure_disjoint_providers,
 )
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
@@ -77,9 +80,19 @@ def make_handler(
     destinations: DestinationRegistry | None = None,
     authenticator: ActorAuthenticator | None = None,
     machine_authenticator: ActorAuthenticator | None = None,
+    human_auth_provider: AuthProvider | None = None,
+    machine_auth_provider: AuthProvider | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
+    human_auth_provider = human_auth_provider or adapt_authenticator(
+        authenticator,
+        principal_kind="human",
+    )
+    machine_auth_provider = machine_auth_provider or adapt_authenticator(
+        machine_authenticator,
+        principal_kind="machine",
+    )
     class Handler(BaseHTTPRequestHandler):
         server_version = "HumanQueue/0.1"
 
@@ -103,13 +116,16 @@ def make_handler(
             default: str,
         ) -> str | None:
             claimed = str(body.get("actor") or "").strip()
-            if machine_authenticator is None:
+            if machine_auth_provider is None:
                 return claimed or default
             try:
-                return machine_authenticator.authenticate(
+                principal = machine_auth_provider.authenticate(
                     self.headers.get("Authorization"),
                     claimed_actor=claimed or None,
                 )
+                if principal.kind != "machine":
+                    raise AuthenticationError("machine principal required")
+                return principal.actor
             except ActorMismatchError as exc:
                 self._json(
                     HTTPStatus.FORBIDDEN,
@@ -130,13 +146,16 @@ def make_handler(
             default: str,
         ) -> str | None:
             claimed = str(body.get("actor") or "").strip()
-            if authenticator is None:
+            if human_auth_provider is None:
                 return claimed or default
             try:
-                return authenticator.authenticate(
+                principal = human_auth_provider.authenticate(
                     self.headers.get("Authorization"),
                     claimed_actor=claimed or None,
                 )
+                if principal.kind != "human":
+                    raise AuthenticationError("human principal required")
+                return principal.actor
             except ActorMismatchError as exc:
                 self._json(
                     HTTPStatus.FORBIDDEN,
@@ -752,6 +771,8 @@ def make_server(
     destinations: DestinationRegistry | None = None,
     authenticator: ActorAuthenticator | None = None,
     machine_authenticator: ActorAuthenticator | None = None,
+    human_auth_provider: AuthProvider | None = None,
+    machine_auth_provider: AuthProvider | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
@@ -762,6 +783,8 @@ def make_server(
             destinations,
             authenticator,
             machine_authenticator,
+            human_auth_provider,
+            machine_auth_provider,
         ),
     )
 
@@ -773,19 +796,23 @@ def main() -> None:
     queue = HumanQueue(db)
     deliveries = DurableDeliveryQueue(db)
     destinations = DestinationRegistry(db)
-    authenticator = ActorAuthenticator.from_env()
-    machine_authenticator = ActorAuthenticator.from_env(
-        "HUMANQUEUE_MACHINE_TOKENS"
+    human_auth_provider = BearerTokenAuthProvider.from_env(
+        "HUMANQUEUE_ACTOR_TOKENS",
+        principal_kind="human",
     )
-    ensure_disjoint_authenticators(authenticator, machine_authenticator)
+    machine_auth_provider = BearerTokenAuthProvider.from_env(
+        "HUMANQUEUE_MACHINE_TOKENS",
+        principal_kind="machine",
+    )
+    ensure_disjoint_providers(human_auth_provider, machine_auth_provider)
     server = make_server(
         queue,
         host=host,
         port=port,
         deliveries=deliveries,
         destinations=destinations,
-        authenticator=authenticator,
-        machine_authenticator=machine_authenticator,
+        human_auth_provider=human_auth_provider,
+        machine_auth_provider=machine_auth_provider,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
