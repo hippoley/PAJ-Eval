@@ -1794,10 +1794,16 @@ def test_signed_jwt_principals_drive_human_and_machine_policy_end_to_end(tmp_pat
         assert decision["data"]["principal"] == {
             "kind": "human",
             "provider": "jwt-hs256",
+            "issuer": "https://id.example/humans",
+            "audience": "humanqueue-human",
+            "kid": "h1",
         }
         assert process["data"]["principal"] == {
             "kind": "machine",
             "provider": "jwt-hs256",
+            "issuer": "https://id.example/machines",
+            "audience": "humanqueue-machine",
+            "kid": "m1",
         }
         serialized = json.dumps(events)
         assert alice_token not in serialized
