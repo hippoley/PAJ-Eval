@@ -42,6 +42,10 @@ class Wait:
     payload: dict[str, Any]
     claimed_by: str | None
     claim_expires_at: float | None
+    execution_state: str | None
+    resume_requested_at: float | None
+    resumed_at: float | None
+    completed_at: float | None
 
 
 class HumanQueue:
@@ -73,7 +77,11 @@ class HumanQueue:
                     resume_token TEXT,
                     payload_json TEXT NOT NULL,
                     claimed_by TEXT,
-                    claim_expires_at REAL
+                    claim_expires_at REAL,
+                    execution_state TEXT,
+                    resume_requested_at REAL,
+                    resumed_at REAL,
+                    completed_at REAL
                 )
                 """
             )
@@ -85,6 +93,14 @@ class HumanQueue:
                 conn.execute("ALTER TABLE waits ADD COLUMN claimed_by TEXT")
             if "claim_expires_at" not in columns:
                 conn.execute("ALTER TABLE waits ADD COLUMN claim_expires_at REAL")
+            if "execution_state" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN execution_state TEXT")
+            if "resume_requested_at" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN resume_requested_at REAL")
+            if "resumed_at" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN resumed_at REAL")
+            if "completed_at" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN completed_at REAL")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS audit_events (
@@ -224,6 +240,23 @@ class HumanQueue:
                 actor=actor,
                 data={"action": action, "value": value, "state": state},
             )
+            if state != "rejected":
+                conn.execute(
+                    """
+                    UPDATE waits
+                       SET execution_state = 'resume_requested',
+                           resume_requested_at = ?
+                     WHERE id = ?
+                    """,
+                    (now, wait_id),
+                )
+                self._append_event(
+                    conn,
+                    wait_id,
+                    "RESUME_REQUESTED",
+                    actor=actor,
+                    data={"resume_token": current.resume_token},
+                )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
             return self._row_to_wait(row)
@@ -332,6 +365,83 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
+    def mark_resumed(self, wait_id: str, *, actor: str = "machine") -> Wait:
+        now = time.time()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            if item.state == "rejected":
+                raise RuntimeError(f"{wait_id} was rejected and cannot resume")
+            if item.execution_state in {"resumed", "completed", "failed"}:
+                return item
+            if item.execution_state != "resume_requested":
+                raise RuntimeError(f"{wait_id} has no resume request")
+            conn.execute(
+                """
+                UPDATE waits
+                   SET execution_state = 'resumed', resumed_at = ?
+                 WHERE id = ?
+                """,
+                (now, wait_id),
+            )
+            self._append_event(
+                conn,
+                wait_id,
+                "PROCESS_RESUMED",
+                actor=actor,
+                data={"resume_token": item.resume_token},
+            )
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            assert row is not None
+            return self._row_to_wait(row)
+
+    def mark_completed(
+        self,
+        wait_id: str,
+        *,
+        actor: str = "machine",
+        success: bool = True,
+        detail: str | None = None,
+    ) -> Wait:
+        now = time.time()
+        target_state = "completed" if success else "failed"
+        event_type = "PROCESS_COMPLETED" if success else "PROCESS_FAILED"
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            if item.execution_state == target_state:
+                return item
+            if item.execution_state in {"completed", "failed"}:
+                raise RuntimeError(
+                    f"{wait_id} already finished as {item.execution_state}"
+                )
+            if item.execution_state != "resumed":
+                raise RuntimeError(f"{wait_id} has not resumed")
+            conn.execute(
+                """
+                UPDATE waits
+                   SET execution_state = ?, completed_at = ?
+                 WHERE id = ?
+                """,
+                (target_state, now, wait_id),
+            )
+            self._append_event(
+                conn,
+                wait_id,
+                event_type,
+                actor=actor,
+                data={"detail": detail},
+            )
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            assert row is not None
+            return self._row_to_wait(row)
+
     def recent_audit_events(self, limit: int = 100) -> list[AuditEvent]:
         if limit <= 0:
             return []
@@ -420,4 +530,8 @@ class HumanQueue:
             payload=json.loads(row["payload_json"]),
             claimed_by=row["claimed_by"],
             claim_expires_at=row["claim_expires_at"],
+            execution_state=row["execution_state"],
+            resume_requested_at=row["resume_requested_at"],
+            resumed_at=row["resumed_at"],
+            completed_at=row["completed_at"],
         )
