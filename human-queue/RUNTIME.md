@@ -486,3 +486,57 @@ human decision
 
 Later edits to `prod-deploy` create a new revision and do not rewrite already
 approved deliveries or their audit history.
+
+
+## Actor and policy provenance
+
+Destination revisions now record who changed them and why:
+
+```json
+{
+  "name": "prod-deploy",
+  "actor": "release-admin",
+  "reason": "CAB-42",
+  "allowed_decision_actors": ["alice", "bob"]
+}
+```
+
+A material destination change records `changed_by` and `change_reason` on the
+new revision. Repeating an identical configuration is a no-op: it does not
+create a fake revision, change `updated_at`, or overwrite the original
+provenance.
+
+The resolved revision snapshots these fields into the durable delivery:
+
+```text
+destination = prod-deploy
+destination_revision = 7
+destination_changed_by = release-admin
+destination_change_reason = CAB-42
+```
+
+and into `RESUME_DELIVERY_QUEUED`, so destination history, delivery rows, and
+wait audit events can be cross-checked.
+
+### Logical decision actor policy
+
+A destination may specify a logical allowlist:
+
+```json
+{
+  "allowed_decision_actors": ["alice", "bob"]
+}
+```
+
+For non-reject decisions, HumanQueue checks this policy before committing the
+decision. An unauthorized actor receives HTTP 403, the wait remains waiting,
+and no `DECISION_COMMITTED` event is written. The denied attempt is instead
+recorded as `DECISION_DENIED` with the destination revision and policy
+context.
+
+Reject remains available as a safe exit even for actors outside the continuation
+allowlist because it does not cause machine execution.
+
+Important: actor strings are logical identities in this local MVP. They are not
+cryptographically authenticated principals yet. Production authorization still
+requires an authentication layer that binds requests to trustworthy identities.
