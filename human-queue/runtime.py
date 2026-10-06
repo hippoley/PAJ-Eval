@@ -332,6 +332,16 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
+    def recent_audit_events(self, limit: int = 100) -> list[AuditEvent]:
+        if limit <= 0:
+            return []
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT * FROM audit_events ORDER BY id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [self._row_to_event(row) for row in reversed(rows)]
+
     def audit_events(self, wait_id: str) -> list[AuditEvent]:
         with self._connect() as conn:
             exists = conn.execute("SELECT 1 FROM waits WHERE id = ?", (wait_id,)).fetchone()
