@@ -188,3 +188,34 @@ machine completed
 
 Webhook audit provenance strips URL credentials, query strings, fragments, and
 bearer tokens so secrets are not written into the durable event log.
+
+
+### GitHub Actions / repository_dispatch
+
+HumanQueue can also resume a GitHub-hosted workflow without custom glue:
+
+```python
+from adapters import GitHubRepositoryDispatchAdapter
+
+adapter = GitHubRepositoryDispatchAdapter(
+    "owner/repo",
+    token=os.environ["GITHUB_TOKEN"],
+    event_type="humanqueue-resume",
+)
+
+adapter.dispatch(queue, decided_wait)
+```
+
+The adapter calls GitHub's `repository_dispatch` endpoint with the wait ID,
+resume token, URI, source, and committed human decision. Audit provenance stores
+only:
+
+```text
+github://owner/repo/humanqueue-resume
+```
+
+and never persists the GitHub token.
+
+As with every adapter, dispatch success means delivery only. The resumed GitHub
+workflow should acknowledge actual execution through the HumanQueue
+`/resumed` and `/complete` endpoints.
