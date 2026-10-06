@@ -594,3 +594,70 @@ This is intentionally a lightweight local authentication layer, not a full IAM
 system. Production deployments should replace or front it with an identity
 provider / gateway that supplies trustworthy principals, rotation, revocation,
 and stronger credential lifecycle management.
+
+
+## Authenticated machine callbacks
+
+Machine execution acknowledgements can now use a separate bearer-token trust
+domain from human operators.
+
+Configure machine principals:
+
+```bash
+export HUMANQUEUE_MACHINE_TOKENS='{
+  "worker-a": "replace-with-machine-token-a",
+  "worker-b": "replace-with-machine-token-b"
+}'
+```
+
+Then callbacks use:
+
+```http
+Authorization: Bearer replace-with-machine-token-a
+
+POST /api/waits/{wait_id}/resumed
+POST /api/waits/{wait_id}/complete
+```
+
+When machine authentication is configured, the runtime derives the callback
+actor from the machine bearer token. Missing or invalid credentials return
+HTTP 401. A body that claims a different machine actor returns HTTP 403
+`machine_actor_mismatch`.
+
+Human and machine token domains are configured separately and must not reuse
+the same credential.
+
+### Destination machine policy
+
+A destination revision may also pin which machine principals may acknowledge an
+execution:
+
+```json
+{
+  "allowed_machine_actors": ["worker-a", "worker-b"]
+}
+```
+
+The allowlist is snapshotted into the durable delivery at approval time. Later
+destination revisions cannot retroactively change the machine authorization
+policy for an already-approved execution.
+
+If an authenticated but unauthorized machine calls `/resumed` or
+`/complete`, HumanQueue returns HTTP 403 and records
+`MACHINE_CALLBACK_DENIED` without changing execution state.
+
+The resulting trust chain is:
+
+```text
+authenticated human
+→ versioned destination policy
+→ immutable delivery snapshot
+→ authenticated machine
+→ machine actor policy
+→ PROCESS_RESUMED / PROCESS_COMPLETED
+```
+
+This remains a lightweight local bearer-token implementation. Production
+deployments should use stronger workload identity (for example a trusted
+gateway, workload identity provider, signed service identity, or mTLS) while
+preserving the same HumanQueue actor and policy semantics.
