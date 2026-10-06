@@ -139,6 +139,12 @@ class AuditCheckpointSigner:
 
     def create(self, *, now: float | None = None) -> AuditCheckpoint:
         with self._lock:
+            existing_status = self.verify()
+            if not existing_status["ok"]:
+                raise RuntimeError(
+                    "cannot append to an invalid audit checkpoint chain"
+                )
+
             chain = self.queue.verify_audit_chain()
             if not chain["ok"]:
                 raise RuntimeError(
