@@ -189,6 +189,7 @@ def test_audit_log_records_wait_claim_release_and_decision(tmp_path):
         "CLAIM_RELEASED",
         "CLAIMED",
         "DECISION_COMMITTED",
+        "RESUME_REQUESTED",
     ]
     assert events[0].actor == "ci"
     assert events[-1].actor == "bob"
