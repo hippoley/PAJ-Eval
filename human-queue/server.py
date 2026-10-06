@@ -337,6 +337,7 @@ def make_handler(
                         quorum_status = {
                             "ok": result.satisfied,
                             "configured": True,
+                            "checkpoint_sequence": latest_checkpoint.sequence,
                             **result.to_dict(),
                         }
 
