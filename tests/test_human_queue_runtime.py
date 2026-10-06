@@ -148,10 +148,10 @@ def test_claim_lease_blocks_other_actor_until_expiry(tmp_path):
     with pytest.raises(RuntimeError):
         q.claim(item.id, actor="bob", lease_seconds=1)
 
-    renewed = q.claim(item.id, actor="alice", lease_seconds=1)
+    renewed = q.claim(item.id, actor="alice", lease_seconds=0.05)
     assert renewed.claimed_by == "alice"
 
-    time.sleep(0.12)
+    time.sleep(0.08)
     taken = q.claim(item.id, actor="bob", lease_seconds=1)
     assert taken.claimed_by == "bob"
 
