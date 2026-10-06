@@ -45,6 +45,7 @@ def destination_json(item: ResumeDestination) -> dict:
         "target": item.target,
         "policy": asdict(item.policy),
         "enabled": item.enabled,
+        "revision": item.revision,
         "created_at": item.created_at,
         "updated_at": item.updated_at,
     }
@@ -168,6 +169,22 @@ def make_handler(
                         "destinations": [
                             destination_json(item)
                             for item in destinations.list()
+                        ]
+                    },
+                )
+                return
+
+            if path.startswith("/api/destinations/") and path.endswith("/history"):
+                name = path[len("/api/destinations/") : -len("/history")]
+                if not name or "/" in name:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
+                    return
+                self._json(
+                    HTTPStatus.OK,
+                    {
+                        "history": [
+                            destination_json(item)
+                            for item in destinations.history(name)
                         ]
                     },
                 )
