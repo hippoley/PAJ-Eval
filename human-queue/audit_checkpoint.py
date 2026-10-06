@@ -283,18 +283,9 @@ class AuditCheckpointSigner:
             }
 
         if current_count > latest.event_count:
-            # Recompute the historical head at the checkpoint boundary.
-            with self.queue._connect() as conn:
-                row = conn.execute(
-                    """
-                    SELECT event_hash
-                      FROM audit_events
-                     ORDER BY id
-                     LIMIT 1 OFFSET ?
-                    """,
-                    (latest.event_count - 1,),
-                ).fetchone()
-            boundary_hash = row["event_hash"] if row else None
+            boundary_hash = self.queue.audit_head_at_count(
+                latest.event_count
+            )
             if boundary_hash != latest.head_hash:
                 return {
                     "ok": False,
