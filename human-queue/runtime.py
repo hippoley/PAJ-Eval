@@ -861,6 +861,23 @@ class HumanQueue:
             (prev_hash, event_hash, event_id),
         )
 
+    def audit_head_at_count(self, event_count: int) -> str | None:
+        if event_count < 0:
+            raise ValueError("event_count must be >= 0")
+        if event_count == 0:
+            return None
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT event_hash
+                  FROM audit_events
+                 ORDER BY id
+                 LIMIT 1 OFFSET ?
+                """,
+                (event_count - 1,),
+            ).fetchone()
+        return row["event_hash"] if row else None
+
     def verify_audit_chain(self) -> dict[str, Any]:
         with self._connect() as conn:
             rows = conn.execute(
