@@ -24,6 +24,7 @@ from auth import (
     AuthenticationError,
     AuthContext,
     AuthProvider,
+    Principal,
     BearerTokenAuthProvider,
     adapt_authenticator,
     ensure_disjoint_providers,
@@ -124,15 +125,19 @@ def make_handler(
                 ),
             )
 
-        def _resolve_machine_actor(
+        def _resolve_machine_principal(
             self,
             body: dict,
             *,
             default: str,
-        ) -> str | None:
+        ) -> Principal | None:
             claimed = str(body.get("actor") or "").strip()
             if machine_auth_provider is None:
-                return claimed or default
+                return Principal(
+                    actor=claimed or default,
+                    kind="machine",
+                    provider="unverified-body",
+                )
             try:
                 principal = machine_auth_provider.authenticate(
                     self._auth_context(),
@@ -140,7 +145,7 @@ def make_handler(
                 )
                 if principal.kind != "machine":
                     raise AuthenticationError("machine principal required")
-                return principal.actor
+                return principal
             except ActorMismatchError as exc:
                 self._json(
                     HTTPStatus.FORBIDDEN,
@@ -154,15 +159,28 @@ def make_handler(
                 )
                 return None
 
-        def _resolve_human_actor(
+        def _resolve_machine_actor(
             self,
             body: dict,
             *,
             default: str,
         ) -> str | None:
+            principal = self._resolve_machine_principal(body, default=default)
+            return None if principal is None else principal.actor
+
+        def _resolve_human_principal(
+            self,
+            body: dict,
+            *,
+            default: str,
+        ) -> Principal | None:
             claimed = str(body.get("actor") or "").strip()
             if human_auth_provider is None:
-                return claimed or default
+                return Principal(
+                    actor=claimed or default,
+                    kind="human",
+                    provider="unverified-body",
+                )
             try:
                 principal = human_auth_provider.authenticate(
                     self._auth_context(),
@@ -170,7 +188,7 @@ def make_handler(
                 )
                 if principal.kind != "human":
                     raise AuthenticationError("human principal required")
-                return principal.actor
+                return principal
             except ActorMismatchError as exc:
                 self._json(
                     HTTPStatus.FORBIDDEN,
@@ -183,6 +201,22 @@ def make_handler(
                     {"error": "authentication_required", "detail": str(exc)},
                 )
                 return None
+
+        def _resolve_human_actor(
+            self,
+            body: dict,
+            *,
+            default: str,
+        ) -> str | None:
+            principal = self._resolve_human_principal(body, default=default)
+            return None if principal is None else principal.actor
+
+        @staticmethod
+        def _principal_audit(principal: Principal) -> dict:
+            return {
+                "kind": principal.kind,
+                "provider": principal.provider,
+            }
 
         def _read_json(self) -> dict:
             length = int(self.headers.get("Content-Length", "0"))
@@ -492,9 +526,14 @@ def make_handler(
             resumed_suffix = "/resumed"
             if path.startswith("/api/waits/") and path.endswith(resumed_suffix):
                 wait_id = path[len("/api/waits/") : -len(resumed_suffix)]
-                actor = self._resolve_machine_actor(body, default="machine")
-                if actor is None:
+                machine_principal = self._resolve_machine_principal(
+                    body,
+                    default="machine",
+                )
+                if machine_principal is None:
                     return
+                actor = machine_principal.actor
+                principal_audit = self._principal_audit(machine_principal)
                 delivery = deliveries.for_wait(wait_id)
                 allowed_machines = (
                     list(delivery.allowed_machine_actors)
@@ -515,6 +554,7 @@ def make_handler(
                             ),
                             "allowed_machine_actors": allowed_machines,
                         },
+                        principal=principal_audit,
                     )
                     self._json(
                         HTTPStatus.FORBIDDEN,
@@ -526,7 +566,11 @@ def make_handler(
                     )
                     return
                 try:
-                    item = queue.mark_resumed(wait_id, actor=actor)
+                    item = queue.mark_resumed(
+                        wait_id,
+                        actor=actor,
+                        principal=principal_audit,
+                    )
                 except KeyError:
                     self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
                     return
@@ -542,9 +586,14 @@ def make_handler(
             complete_suffix = "/complete"
             if path.startswith("/api/waits/") and path.endswith(complete_suffix):
                 wait_id = path[len("/api/waits/") : -len(complete_suffix)]
-                actor = self._resolve_machine_actor(body, default="machine")
-                if actor is None:
+                machine_principal = self._resolve_machine_principal(
+                    body,
+                    default="machine",
+                )
+                if machine_principal is None:
                     return
+                actor = machine_principal.actor
+                principal_audit = self._principal_audit(machine_principal)
                 delivery = deliveries.for_wait(wait_id)
                 allowed_machines = (
                     list(delivery.allowed_machine_actors)
@@ -565,6 +614,7 @@ def make_handler(
                             ),
                             "allowed_machine_actors": allowed_machines,
                         },
+                        principal=principal_audit,
                     )
                     self._json(
                         HTTPStatus.FORBIDDEN,
@@ -582,6 +632,7 @@ def make_handler(
                         actor=actor,
                         success=success,
                         detail=body.get("detail"),
+                        principal=principal_audit,
                     )
                 except KeyError:
                     self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
@@ -663,13 +714,14 @@ def make_handler(
                         {"error": "wait_id_and_action_required"},
                     )
                     return
-                decision_actor = self._resolve_human_actor(
+                human_principal = self._resolve_human_principal(
                     body,
                     default="web-human",
                 )
-                if decision_actor is None:
+                if human_principal is None:
                     return
-                decision_actor = decision_actor.strip()
+                decision_actor = human_principal.actor.strip()
+                principal_audit = self._principal_audit(human_principal)
                 resolved = None
                 if action != "reject":
                     try:
@@ -705,6 +757,7 @@ def make_handler(
                                     ),
                                     "allowed_decision_actors": allowed,
                                 },
+                                principal=principal_audit,
                             )
                             self._json(
                                 HTTPStatus.FORBIDDEN,
@@ -724,6 +777,7 @@ def make_handler(
                         action=action,
                         actor=decision_actor,
                         value=body.get("value"),
+                        principal=principal_audit,
                     )
                 except KeyError:
                     self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
