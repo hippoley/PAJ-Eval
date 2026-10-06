@@ -6,6 +6,7 @@ core primitive can be embedded anywhere before a larger service is introduced.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 import time
@@ -26,6 +27,8 @@ class AuditEvent:
     actor: str | None
     created_at: float
     data: dict[str, Any]
+    prev_hash: str | None
+    event_hash: str | None
 
 
 @dataclass(frozen=True)
@@ -114,6 +117,8 @@ class HumanQueue:
                     actor TEXT,
                     created_at REAL NOT NULL,
                     data_json TEXT NOT NULL,
+                    prev_hash TEXT,
+                    event_hash TEXT,
                     FOREIGN KEY(wait_id) REFERENCES waits(id)
                 )
                 """
@@ -122,6 +127,21 @@ class HumanQueue:
                 "CREATE INDEX IF NOT EXISTS idx_audit_wait_id "
                 "ON audit_events(wait_id, id)"
             )
+            audit_columns = {
+                row["name"]
+                for row in conn.execute(
+                    "PRAGMA table_info(audit_events)"
+                ).fetchall()
+            }
+            if "prev_hash" not in audit_columns:
+                conn.execute(
+                    "ALTER TABLE audit_events ADD COLUMN prev_hash TEXT"
+                )
+            if "event_hash" not in audit_columns:
+                conn.execute(
+                    "ALTER TABLE audit_events ADD COLUMN event_hash TEXT"
+                )
+            self._backfill_audit_hashes(conn)
 
     def ask(
         self,
@@ -717,7 +737,69 @@ class HumanQueue:
         return [self._row_to_event(row) for row in rows]
 
     @staticmethod
+    def _audit_hash(
+        *,
+        event_id: int,
+        wait_id: str,
+        event_type: str,
+        actor: str | None,
+        created_at: float,
+        data_json: str,
+        prev_hash: str | None,
+    ) -> str:
+        canonical = json.dumps(
+            {
+                "id": event_id,
+                "wait_id": wait_id,
+                "event_type": event_type,
+                "actor": actor,
+                "created_at": created_at,
+                "data_json": data_json,
+                "prev_hash": prev_hash,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(canonical.encode()).hexdigest()
+
+    @classmethod
+    def _backfill_audit_hashes(
+        cls,
+        conn: sqlite3.Connection,
+    ) -> None:
+        rows = conn.execute(
+            """
+            SELECT id, wait_id, event_type, actor, created_at, data_json,
+                   prev_hash, event_hash
+              FROM audit_events
+             ORDER BY id
+            """
+        ).fetchall()
+        prev_hash: str | None = None
+        for row in rows:
+            expected = cls._audit_hash(
+                event_id=row["id"],
+                wait_id=row["wait_id"],
+                event_type=row["event_type"],
+                actor=row["actor"],
+                created_at=row["created_at"],
+                data_json=row["data_json"],
+                prev_hash=prev_hash,
+            )
+            if row["prev_hash"] != prev_hash or row["event_hash"] != expected:
+                conn.execute(
+                    """
+                    UPDATE audit_events
+                       SET prev_hash = ?, event_hash = ?
+                     WHERE id = ?
+                    """,
+                    (prev_hash, expected, row["id"]),
+                )
+            prev_hash = expected
+
+    @classmethod
     def _append_event(
+        cls,
         conn: sqlite3.Connection,
         wait_id: str,
         event_type: str,
@@ -725,20 +807,92 @@ class HumanQueue:
         actor: str | None,
         data: dict[str, Any],
     ) -> None:
-        conn.execute(
+        created_at = time.time()
+        data_json = json.dumps(data, sort_keys=True)
+        cursor = conn.execute(
             """
             INSERT INTO audit_events (
-                wait_id, event_type, actor, created_at, data_json
-            ) VALUES (?, ?, ?, ?, ?)
+                wait_id, event_type, actor, created_at, data_json,
+                prev_hash, event_hash
+            ) VALUES (?, ?, ?, ?, ?, NULL, NULL)
             """,
             (
                 wait_id,
                 event_type,
                 actor,
-                time.time(),
-                json.dumps(data, sort_keys=True),
+                created_at,
+                data_json,
             ),
         )
+        event_id = int(cursor.lastrowid)
+        previous = conn.execute(
+            """
+            SELECT event_hash
+              FROM audit_events
+             WHERE id < ?
+             ORDER BY id DESC
+             LIMIT 1
+            """,
+            (event_id,),
+        ).fetchone()
+        prev_hash = previous["event_hash"] if previous else None
+        event_hash = cls._audit_hash(
+            event_id=event_id,
+            wait_id=wait_id,
+            event_type=event_type,
+            actor=actor,
+            created_at=created_at,
+            data_json=data_json,
+            prev_hash=prev_hash,
+        )
+        conn.execute(
+            """
+            UPDATE audit_events
+               SET prev_hash = ?, event_hash = ?
+             WHERE id = ?
+            """,
+            (prev_hash, event_hash, event_id),
+        )
+
+    def verify_audit_chain(self) -> dict[str, Any]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, wait_id, event_type, actor, created_at, data_json,
+                       prev_hash, event_hash
+                  FROM audit_events
+                 ORDER BY id
+                """
+            ).fetchall()
+
+        prev_hash: str | None = None
+        for index, row in enumerate(rows, start=1):
+            expected = self._audit_hash(
+                event_id=row["id"],
+                wait_id=row["wait_id"],
+                event_type=row["event_type"],
+                actor=row["actor"],
+                created_at=row["created_at"],
+                data_json=row["data_json"],
+                prev_hash=prev_hash,
+            )
+            if row["prev_hash"] != prev_hash or row["event_hash"] != expected:
+                return {
+                    "ok": False,
+                    "checked": index,
+                    "broken_event_id": row["id"],
+                    "expected_prev_hash": prev_hash,
+                    "actual_prev_hash": row["prev_hash"],
+                    "expected_event_hash": expected,
+                    "actual_event_hash": row["event_hash"],
+                }
+            prev_hash = row["event_hash"]
+
+        return {
+            "ok": True,
+            "checked": len(rows),
+            "head_hash": prev_hash,
+        }
 
     def wait_for_decision(
         self,
@@ -766,6 +920,8 @@ class HumanQueue:
             actor=row["actor"],
             created_at=row["created_at"],
             data=json.loads(row["data_json"]),
+            prev_hash=row["prev_hash"],
+            event_hash=row["event_hash"],
         )
 
     @staticmethod
