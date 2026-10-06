@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import threading
 import time
 from dataclasses import asdict
@@ -161,7 +162,11 @@ class WitnessStore:
         return len(self._records())
 
 
-def make_handler(store: WitnessStore):
+def make_handler(
+    store: WitnessStore,
+    *,
+    publish_token: str | None = None,
+):
     class Handler(BaseHTTPRequestHandler):
         server_version = "HumanQueueWitness/0.1"
 
@@ -219,6 +224,18 @@ def make_handler(store: WitnessStore):
                 return
 
             if self.path == "/witness":
+                if publish_token is not None:
+                    authorization = self.headers.get("Authorization", "")
+                    expected = f"Bearer {publish_token}"
+                    if not secrets.compare_digest(
+                        authorization,
+                        expected,
+                    ):
+                        self._json(
+                            HTTPStatus.UNAUTHORIZED,
+                            {"error": "witness_publish_authentication_required"},
+                        )
+                        return
                 raw_checkpoint = body.get("checkpoint")
                 supplied_fingerprint = body.get(
                     "checkpoint_fingerprint"
@@ -302,10 +319,14 @@ def make_server(
     *,
     host: str = "127.0.0.1",
     port: int = 8876,
+    publish_token: str | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
-        make_handler(store),
+        make_handler(
+            store,
+            publish_token=publish_token,
+        ),
     )
 
 
@@ -352,6 +373,10 @@ def main() -> None:
         store,
         host=host,
         port=port,
+        publish_token=os.environ.get(
+            "HUMANQUEUE_WITNESS_PUBLISH_TOKEN",
+            "",
+        ) or None,
     )
     print(
         f"human:// witness listening on http://{host}:{port}"
