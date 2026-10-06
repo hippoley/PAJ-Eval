@@ -703,3 +703,84 @@ def test_destination_routes_separate_read_from_mutation(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_destination_history_api_and_delivery_revision_snapshot(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, first = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/v1",
+                "max_attempts": 4,
+            },
+        )
+        assert status == 201
+        assert first["destination"]["revision"] == 1
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Revision snapshot?",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        delivery_id = decided["delivery"]["id"]
+
+        status, second = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/v2",
+                "max_attempts": 4,
+            },
+        )
+        assert status == 201
+        assert second["destination"]["revision"] == 2
+
+        status, history = request_json(
+            base,
+            "/api/destinations/prod-deploy/history",
+        )
+        assert status == 200
+        assert [item["revision"] for item in history["history"]] == [1, 2]
+
+        status, listing = request_json(base, "/api/deliveries")
+        job = next(d for d in listing["deliveries"] if d["id"] == delivery_id)
+        assert job["target"] == "https://worker.example/v1"
+
+        status, events = request_json(base, f"/api/waits/{wait_id}/events")
+        queued = next(
+            e for e in events["events"]
+            if e["event_type"] == "RESUME_DELIVERY_QUEUED"
+        )
+        assert queued["data"]["target"] == "https://worker.example/v1"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
