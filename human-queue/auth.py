@@ -10,6 +10,13 @@ from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
+class AuthContext:
+    authorization: str | None
+    headers: dict[str, str] = field(default_factory=dict)
+    client: str | None = None
+
+
+@dataclass(frozen=True)
 class Principal:
     actor: str
     kind: str
@@ -20,7 +27,7 @@ class Principal:
 class AuthProvider(Protocol):
     def authenticate(
         self,
-        authorization: str | None,
+        context: AuthContext,
         *,
         claimed_actor: str | None = None,
     ) -> Principal:
@@ -140,12 +147,12 @@ class BearerTokenAuthProvider:
 
     def authenticate(
         self,
-        authorization: str | None,
+        context: AuthContext,
         *,
         claimed_actor: str | None = None,
     ) -> Principal:
         actor = self.authenticator.authenticate(
-            authorization,
+            context.authorization,
             claimed_actor=claimed_actor,
         )
         return Principal(
