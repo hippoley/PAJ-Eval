@@ -46,6 +46,7 @@ class Wait:
     resume_requested_at: float | None
     resumed_at: float | None
     completed_at: float | None
+    resume_binding: dict[str, Any] | None
 
 
 class HumanQueue:
@@ -81,7 +82,8 @@ class HumanQueue:
                     execution_state TEXT,
                     resume_requested_at REAL,
                     resumed_at REAL,
-                    completed_at REAL
+                    completed_at REAL,
+                    resume_binding_json TEXT
                 )
                 """
             )
@@ -101,6 +103,8 @@ class HumanQueue:
                 conn.execute("ALTER TABLE waits ADD COLUMN resumed_at REAL")
             if "completed_at" not in columns:
                 conn.execute("ALTER TABLE waits ADD COLUMN completed_at REAL")
+            if "resume_binding_json" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN resume_binding_json TEXT")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS audit_events (
@@ -128,6 +132,7 @@ class HumanQueue:
         payload: dict[str, Any] | None = None,
         idempotency_key: str | None = None,
         resume_token: str | None = None,
+        resume_binding: dict[str, Any] | None = None,
     ) -> Wait:
         """Create a durable wait or return the existing idempotent wait."""
         payload = payload or {}
@@ -147,8 +152,9 @@ class HumanQueue:
                     """
                     INSERT INTO waits (
                         id, idempotency_key, uri, title, source, state, created_at,
-                        decided_at, decision_json, resume_token, payload_json
-                    ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, NULL, NULL, ?, ?)
+                        decided_at, decision_json, resume_token, payload_json,
+                        resume_binding_json
+                    ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, NULL, NULL, ?, ?, ?)
                     """,
                     (
                         wait_id,
@@ -159,6 +165,7 @@ class HumanQueue:
                         created_at,
                         resume_token,
                         json.dumps(payload, sort_keys=True),
+                        json.dumps(resume_binding, sort_keys=True) if resume_binding else None,
                     ),
                 )
             except sqlite3.IntegrityError:
@@ -186,6 +193,7 @@ class HumanQueue:
                     "title": title,
                     "resume_token": resume_token,
                     "payload": payload,
+                    "resume_binding": resume_binding,
                 },
             )
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
@@ -630,4 +638,9 @@ class HumanQueue:
             resume_requested_at=row["resume_requested_at"],
             resumed_at=row["resumed_at"],
             completed_at=row["completed_at"],
+            resume_binding=(
+                json.loads(row["resume_binding_json"])
+                if row["resume_binding_json"]
+                else None
+            ),
         )
