@@ -219,3 +219,86 @@ def test_conflicting_decision_does_not_append_false_audit_event(tmp_path):
     assert len(decisions) == 1
     assert decisions[0].actor == "alice"
     assert decisions[0].data["action"] == "approve"
+
+
+def test_approve_requests_resume_then_machine_acknowledges_completion(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(
+        uri="human://approve",
+        title="Resume?",
+        source="agent",
+        resume_token="step-9",
+    )
+
+    approved = q.decide(item.id, action="approve", actor="alice")
+    assert approved.execution_state == "resume_requested"
+    assert approved.resume_requested_at is not None
+
+    resumed = q.mark_resumed(item.id, actor="agent")
+    assert resumed.execution_state == "resumed"
+    assert resumed.resumed_at is not None
+
+    completed = q.mark_completed(
+        item.id,
+        actor="agent",
+        success=True,
+        detail="done",
+    )
+    assert completed.execution_state == "completed"
+    assert completed.completed_at is not None
+
+    assert [event.event_type for event in q.audit_events(item.id)] == [
+        "WAIT_CREATED",
+        "DECISION_COMMITTED",
+        "RESUME_REQUESTED",
+        "PROCESS_RESUMED",
+        "PROCESS_COMPLETED",
+    ]
+
+
+def test_rejected_wait_never_requests_or_allows_resume(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://approve", title="Do not run?", source="agent")
+    rejected = q.decide(item.id, action="reject", actor="alice")
+
+    assert rejected.execution_state is None
+    assert "RESUME_REQUESTED" not in [
+        event.event_type for event in q.audit_events(item.id)
+    ]
+
+    with pytest.raises(RuntimeError):
+        q.mark_resumed(item.id, actor="agent")
+
+
+def test_completion_requires_resume_and_terminal_result_is_idempotent(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://approve", title="Order matters", source="agent")
+    q.decide(item.id, action="approve", actor="alice")
+
+    with pytest.raises(RuntimeError):
+        q.mark_completed(item.id, actor="agent", success=True)
+
+    q.mark_resumed(item.id, actor="agent")
+    first = q.mark_completed(item.id, actor="agent", success=False, detail="boom")
+    second = q.mark_completed(item.id, actor="agent", success=False, detail="ignored replay")
+
+    assert first.execution_state == "failed"
+    assert second.execution_state == "failed"
+    events = q.audit_events(item.id)
+    assert [e.event_type for e in events].count("PROCESS_FAILED") == 1
+
+    with pytest.raises(RuntimeError):
+        q.mark_completed(item.id, actor="agent", success=True)
+
+
+def test_mark_resumed_is_idempotent(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://approve", title="Resume once", source="agent")
+    q.decide(item.id, action="approve", actor="alice")
+
+    first = q.mark_resumed(item.id, actor="agent")
+    second = q.mark_resumed(item.id, actor="agent")
+
+    assert first.execution_state == "resumed"
+    assert second.execution_state == "resumed"
+    assert [e.event_type for e in q.audit_events(item.id)].count("PROCESS_RESUMED") == 1
