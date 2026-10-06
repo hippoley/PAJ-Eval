@@ -48,6 +48,7 @@ def destination_json(item: ResumeDestination) -> dict:
         "revision": item.revision,
         "changed_by": item.changed_by,
         "change_reason": item.change_reason,
+        "allowed_decision_actors": list(item.allowed_decision_actors),
         "created_at": item.created_at,
         "updated_at": item.updated_at,
     }
@@ -280,6 +281,7 @@ def make_handler(
                         enabled=bool(body.get("enabled", True)),
                         actor=str(body.get("actor") or "api-user"),
                         reason=body.get("reason"),
+                        allowed_decision_actors=body.get("allowed_decision_actors"),
                     )
                 except (TypeError, ValueError) as exc:
                     self._json(
@@ -490,6 +492,7 @@ def make_handler(
                         {"error": "wait_id_and_action_required"},
                     )
                     return
+                decision_actor = str(body.get("actor") or "web-human").strip()
                 resolved = None
                 if action != "reject":
                     try:
@@ -512,11 +515,25 @@ def make_handler(
                                 },
                             )
                             return
+                        allowed = resolved.get("allowed_decision_actors") or []
+                        if allowed and decision_actor not in allowed:
+                            self._json(
+                                HTTPStatus.FORBIDDEN,
+                                {
+                                    "error": "actor_not_authorized_for_destination",
+                                    "actor": decision_actor,
+                                    "destination": resolved.get("destination"),
+                                    "destination_revision": resolved.get(
+                                        "destination_revision"
+                                    ),
+                                },
+                            )
+                            return
                 try:
                     item = queue.decide(
                         wait_id,
                         action=action,
-                        actor=str(body.get("actor") or "web-human"),
+                        actor=decision_actor,
                         value=body.get("value"),
                     )
                 except KeyError:
