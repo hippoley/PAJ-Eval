@@ -9,6 +9,7 @@ Terminal B:
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -17,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from runtime import HumanQueue  # noqa: E402
 
 
-DB = Path(__file__).with_name("demo-human-queue.db")
+DB = Path(os.environ.get("HUMANQUEUE_DB", str(Path(__file__).with_name("demo-human-queue.db"))))
 
 
 def producer() -> None:
@@ -30,10 +31,20 @@ def producer() -> None:
         source="demo-agent",
         idempotency_key="demo-cache-cleanup-v1",
         resume_token="cleanup-step-3",
-        payload={"keys": 1842, "environment": "production"},
+        payload={
+            "keys": 1842,
+            "environment": "production",
+            "summary": "The agent found 1,842 stale production cache keys and prepared a destructive cleanup.",
+            "why": "Destructive production action. The blocked agent will continue immediately after your decision.",
+            "risk": "high",
+            "unblocks": 1,
+            "sec": 8,
+            "priority": 98,
+            "actions": ["Approve", "Reject"],
+        },
     )
     print(f"[agent] WAITING_FOR_HUMAN {item.id}")
-    print("[agent] open another terminal and run: ... demo_blocked_process.py human")
+    print("[agent] decide in the web UI at http://127.0.0.1:8765 or run the terminal human mode")
     result = q.wait_for_decision(item.id)
     if result.decision and result.decision["action"] == "approve":
         print("[agent] RESUMED cleanup-step-3")
