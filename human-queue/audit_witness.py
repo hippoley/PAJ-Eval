@@ -122,14 +122,17 @@ class OnlineWitnessReceiptVerifier:
             sort_keys=True,
             separators=(",", ":"),
         ).encode()
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if self.publish_token is not None:
+            headers["Authorization"] = f"Bearer {self.publish_token}"
         request = urllib.request.Request(
             self.endpoint,
             method="POST",
             data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
+            headers=headers,
         )
         try:
             with urllib.request.urlopen(
@@ -175,6 +178,7 @@ class HttpCheckpointWitnessProvider:
         *,
         verifier: WitnessReceiptVerifier,
         timeout_seconds: float = 5.0,
+        publish_token: str | None = None,
     ) -> None:
         endpoint = endpoint.strip()
         if not endpoint.startswith(("http://", "https://")):
@@ -184,6 +188,7 @@ class HttpCheckpointWitnessProvider:
         self.endpoint = endpoint
         self.verifier = verifier
         self.timeout_seconds = float(timeout_seconds)
+        self.publish_token = publish_token or None
 
     def publish(self, checkpoint: AuditCheckpoint) -> WitnessReceipt:
         body = json.dumps(
@@ -361,6 +366,10 @@ def load_witness_provider() -> CheckpointWitnessProvider | None:
         endpoint,
         verifier=verifier,
         timeout_seconds=timeout,
+        publish_token=os.environ.get(
+            "HUMANQUEUE_AUDIT_WITNESS_PUBLISH_TOKEN",
+            "",
+        ) or None,
     )
 
 
