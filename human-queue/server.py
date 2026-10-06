@@ -517,6 +517,18 @@ def make_handler(
                             return
                         allowed = resolved.get("allowed_decision_actors") or []
                         if allowed and decision_actor not in allowed:
+                            queue.record_decision_denied(
+                                wait_id,
+                                actor=decision_actor,
+                                reason="actor_not_authorized_for_destination",
+                                data={
+                                    "destination": resolved.get("destination"),
+                                    "destination_revision": resolved.get(
+                                        "destination_revision"
+                                    ),
+                                    "allowed_decision_actors": allowed,
+                                },
+                            )
                             self._json(
                                 HTTPStatus.FORBIDDEN,
                                 {
