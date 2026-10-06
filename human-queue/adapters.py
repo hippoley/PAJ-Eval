@@ -142,9 +142,11 @@ class GenericWebhookAdapter:
             "decision": item.decision,
             "execution_state": item.execution_state,
         }
+        delivery_key = f"humanqueue:{item.id}:{item.resume_token or 'resume'}"
         headers = {
             "Content-Type": "application/json",
             "User-Agent": "HumanQueue/0.1",
+            "Idempotency-Key": delivery_key,
         }
         if self.bearer_token:
             headers["Authorization"] = f"Bearer {self.bearer_token}"
@@ -216,6 +218,7 @@ class GitHubRepositoryDispatchAdapter:
                 "source": item.source,
                 "resume_token": item.resume_token,
                 "decision": item.decision,
+                "delivery_key": f"humanqueue:{item.id}:{item.resume_token or 'resume'}",
             },
         }
         request = Request(
