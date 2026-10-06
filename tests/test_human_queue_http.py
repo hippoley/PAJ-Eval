@@ -571,6 +571,8 @@ def test_named_destination_auto_materializes_snapshot(tmp_path):
         assert status == 200
         job = next(d for d in listing["deliveries"] if d["id"] == delivery_id)
         assert job["target"] == "https://worker.example/v1"
+        assert job["destination"] == "prod-deploy"
+        assert job["destination_revision"] == 1
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
@@ -780,6 +782,8 @@ def test_destination_history_api_and_delivery_revision_snapshot(tmp_path):
             if e["event_type"] == "RESUME_DELIVERY_QUEUED"
         )
         assert queued["data"]["target"] == "https://worker.example/v1"
+        assert queued["data"]["destination"] == "prod-deploy"
+        assert queued["data"]["destination_revision"] == 1
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
