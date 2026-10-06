@@ -348,3 +348,137 @@ def load_witness_provider() -> CheckpointWitnessProvider | None:
     )
 
 
+
+
+class WitnessReceiptJournal:
+    """Local cache of independently signed witness receipts."""
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+
+    def receipts(self) -> list[WitnessReceipt]:
+        if not self.path.exists():
+            return []
+        receipts: list[WitnessReceipt] = []
+        with self.path.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    raw = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise RuntimeError(
+                        f"invalid witness receipt JSON at line {line_number}"
+                    ) from exc
+                if not isinstance(raw, dict):
+                    raise RuntimeError(
+                        f"invalid witness receipt at line {line_number}"
+                    )
+                try:
+                    receipts.append(WitnessReceipt(**raw))
+                except TypeError as exc:
+                    raise RuntimeError(
+                        f"invalid witness receipt shape at line {line_number}"
+                    ) from exc
+        return receipts
+
+    def append(
+        self,
+        receipt: WitnessReceipt,
+        *,
+        provider: CheckpointWitnessProvider,
+    ) -> WitnessReceipt:
+        if not provider.verify(receipt):
+            raise RuntimeError("cannot persist invalid witness receipt")
+
+        existing = self.receipts()
+        for current in existing:
+            if current.receipt_id == receipt.receipt_id:
+                if current == receipt:
+                    return current
+                raise RuntimeError(
+                    "witness receipt id conflicts with existing receipt"
+                )
+
+        if (
+            existing
+            and receipt.checkpoint_sequence
+            < existing[-1].checkpoint_sequence
+        ):
+            raise RuntimeError(
+                "witness receipt checkpoint sequence moved backwards"
+            )
+
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a", encoding="utf-8") as handle:
+            handle.write(
+                json.dumps(
+                    asdict(receipt),
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+        return receipt
+
+    def status(
+        self,
+        checkpoint: AuditCheckpoint | None,
+        *,
+        provider: CheckpointWitnessProvider,
+    ) -> dict[str, Any]:
+        try:
+            receipts = self.receipts()
+        except RuntimeError as exc:
+            return {
+                "ok": False,
+                "reason": "invalid_witness_receipt_journal",
+                "detail": str(exc),
+            }
+
+        for receipt in receipts:
+            try:
+                valid = provider.verify(receipt)
+            except Exception:
+                valid = False
+            if not valid:
+                return {
+                    "ok": False,
+                    "reason": "invalid_witness_receipt_signature",
+                    "receipt_id": receipt.receipt_id,
+                }
+
+        if checkpoint is None:
+            return {
+                "ok": True,
+                "witnessed": False,
+                "receipt_count": len(receipts),
+                "checkpoint_sequence": None,
+            }
+
+        matching = [
+            receipt
+            for receipt in receipts
+            if receipt.checkpoint_sequence == checkpoint.sequence
+            and receipt.checkpoint_signature == checkpoint.signature
+            and receipt.checkpoint_head_hash == checkpoint.head_hash
+        ]
+        latest = matching[-1] if matching else None
+        return {
+            "ok": True,
+            "witnessed": latest is not None,
+            "receipt_count": len(receipts),
+            "checkpoint_sequence": checkpoint.sequence,
+            "receipt": asdict(latest) if latest else None,
+        }
+
+
+def load_witness_receipt_journal() -> WitnessReceiptJournal | None:
+    path = os.environ.get(
+        "HUMANQUEUE_AUDIT_WITNESS_RECEIPTS_FILE",
+        "",
+    ).strip()
+    return WitnessReceiptJournal(path) if path else None
