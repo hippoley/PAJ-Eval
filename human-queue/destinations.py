@@ -22,6 +22,7 @@ class ResumeDestination:
     revision: int
     changed_by: str | None
     change_reason: str | None
+    allowed_decision_actors: tuple[str, ...]
     created_at: float
     updated_at: float
 
@@ -33,6 +34,7 @@ class ResumeDestination:
             "destination_revision": self.revision,
             "destination_changed_by": self.changed_by,
             "destination_change_reason": self.change_reason,
+            "allowed_decision_actors": list(self.allowed_decision_actors),
             "max_attempts": self.policy.max_attempts,
             "base_delay": self.policy.base_delay,
             "multiplier": self.policy.multiplier,
@@ -136,6 +138,7 @@ class DestinationRegistry:
         enabled: bool = True,
         actor: str = "system",
         reason: str | None = None,
+        allowed_decision_actors: list[str] | tuple[str, ...] | None = None,
         now: float | None = None,
     ) -> ResumeDestination:
         name = name.strip()
@@ -156,6 +159,15 @@ class DestinationRegistry:
         if not actor:
             raise ValueError("destination change actor is required")
         reason = reason.strip() if isinstance(reason, str) else reason
+        allowed = tuple(
+            sorted(
+                {
+                    str(value).strip()
+                    for value in (allowed_decision_actors or ())
+                    if str(value).strip()
+                }
+            )
+        )
         now = time.time() if now is None else now
         policy_json = json.dumps(
             {
@@ -163,6 +175,7 @@ class DestinationRegistry:
                 "base_delay": policy.base_delay,
                 "multiplier": policy.multiplier,
                 "max_delay": policy.max_delay,
+                "allowed_decision_actors": list(allowed),
             },
             sort_keys=True,
         )
@@ -278,6 +291,7 @@ class DestinationRegistry:
             enabled=enabled,
             actor=actor,
             reason=reason,
+            allowed_decision_actors=current.allowed_decision_actors,
             now=now,
         )
 
@@ -313,6 +327,7 @@ class DestinationRegistry:
             revision=int(row["revision"]),
             changed_by=row["changed_by"],
             change_reason=row["change_reason"],
+            allowed_decision_actors=tuple(policy.get("allowed_decision_actors", [])),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
