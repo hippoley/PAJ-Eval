@@ -5,7 +5,26 @@ from __future__ import annotations
 import json
 import os
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any, Protocol
+
+
+@dataclass(frozen=True)
+class Principal:
+    actor: str
+    kind: str
+    provider: str
+    attributes: dict[str, Any] = field(default_factory=dict)
+
+
+class AuthProvider(Protocol):
+    def authenticate(
+        self,
+        authorization: str | None,
+        *,
+        claimed_actor: str | None = None,
+    ) -> Principal:
+        ...
 
 
 class AuthenticationError(RuntimeError):
@@ -92,3 +111,73 @@ def ensure_disjoint_authenticators(
         raise ValueError(
             "human and machine token domains must not share credentials"
         )
+
+
+@dataclass(frozen=True)
+class BearerTokenAuthProvider:
+    """Adapt the local token map to the generic Principal/AuthProvider contract."""
+
+    authenticator: ActorAuthenticator
+    principal_kind: str
+    provider_name: str = "bearer-token"
+
+    @classmethod
+    def from_env(
+        cls,
+        env_var: str,
+        *,
+        principal_kind: str,
+        provider_name: str = "bearer-token",
+    ) -> "BearerTokenAuthProvider | None":
+        authenticator = ActorAuthenticator.from_env(env_var)
+        if authenticator is None:
+            return None
+        return cls(
+            authenticator=authenticator,
+            principal_kind=principal_kind,
+            provider_name=provider_name,
+        )
+
+    def authenticate(
+        self,
+        authorization: str | None,
+        *,
+        claimed_actor: str | None = None,
+    ) -> Principal:
+        actor = self.authenticator.authenticate(
+            authorization,
+            claimed_actor=claimed_actor,
+        )
+        return Principal(
+            actor=actor,
+            kind=self.principal_kind,
+            provider=self.provider_name,
+        )
+
+
+def adapt_authenticator(
+    authenticator: ActorAuthenticator | None,
+    *,
+    principal_kind: str,
+) -> BearerTokenAuthProvider | None:
+    if authenticator is None:
+        return None
+    return BearerTokenAuthProvider(
+        authenticator=authenticator,
+        principal_kind=principal_kind,
+    )
+
+
+def ensure_disjoint_providers(
+    human: AuthProvider | None,
+    machine: AuthProvider | None,
+) -> None:
+    """Enforce token-domain separation when both providers expose local maps."""
+    if not isinstance(human, BearerTokenAuthProvider):
+        return
+    if not isinstance(machine, BearerTokenAuthProvider):
+        return
+    ensure_disjoint_authenticators(
+        human.authenticator,
+        machine.authenticator,
+    )
