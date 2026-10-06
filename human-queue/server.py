@@ -469,6 +469,28 @@ def make_handler(
                         {"error": "wait_id_and_action_required"},
                     )
                     return
+                resolved = None
+                if action != "reject":
+                    try:
+                        current = queue.get(wait_id)
+                    except KeyError:
+                        self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                        return
+                    if current.resume_binding:
+                        try:
+                            resolved = resolve_resume_binding(
+                                current.resume_binding,
+                                destinations,
+                            )
+                        except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+                            self._json(
+                                HTTPStatus.CONFLICT,
+                                {
+                                    "error": "resume_destination_unavailable",
+                                    "detail": str(exc),
+                                },
+                            )
+                            return
                 try:
                     item = queue.decide(
                         wait_id,
@@ -486,19 +508,17 @@ def make_handler(
                     )
                     return
                 response = {"wait": wait_json(item)}
-                binding = item.resume_binding
-                if item.execution_state == "resume_requested" and binding:
+                if item.execution_state == "resume_requested" and resolved:
+                    adapter_name = str(resolved["adapter"]).strip()
+                    target = str(resolved["target"]).strip()
                     try:
-                        resolved = resolve_resume_binding(binding, destinations)
-                        adapter_name = str(resolved["adapter"]).strip()
-                        target = str(resolved["target"]).strip()
                         job = deliveries.enqueue(
                             item.id,
                             adapter=adapter_name,
                             target=target,
                             policy=_binding_policy(resolved),
                         )
-                    except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+                    except (TypeError, ValueError) as exc:
                         self._json(
                             HTTPStatus.CONFLICT,
                             {"error": "invalid_resume_binding", "detail": str(exc)},
