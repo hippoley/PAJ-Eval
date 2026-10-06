@@ -40,17 +40,41 @@ class AuditCheckpointSigner:
         queue: HumanQueue,
         checkpoint_path: str | Path,
         *,
-        key: str,
+        key: str | None = None,
         key_id: str = "default",
+        keys: dict[str, str] | None = None,
+        signing_key_id: str | None = None,
     ) -> None:
-        if not key:
-            raise ValueError("audit checkpoint signing key is required")
-        if not key_id.strip():
-            raise ValueError("audit checkpoint key_id is required")
+        keyring = {
+            str(kid).strip(): str(secret)
+            for kid, secret in (keys or {}).items()
+            if str(kid).strip() and str(secret)
+        }
+        if key is not None:
+            if not key:
+                raise ValueError("audit checkpoint signing key is required")
+            legacy_key_id = key_id.strip()
+            if not legacy_key_id:
+                raise ValueError("audit checkpoint key_id is required")
+            keyring.setdefault(legacy_key_id, key)
+            active_key_id = signing_key_id or legacy_key_id
+        else:
+            active_key_id = signing_key_id or key_id
+
+        active_key_id = str(active_key_id or "").strip()
+        if not keyring:
+            raise ValueError("audit checkpoint keyring is required")
+        if not active_key_id:
+            raise ValueError("audit checkpoint signing key_id is required")
+        if active_key_id not in keyring:
+            raise ValueError(
+                f"audit checkpoint signing key_id {active_key_id!r} is not in keyring"
+            )
+
         self.queue = queue
         self.checkpoint_path = Path(checkpoint_path)
-        self.key = key
-        self.key_id = key_id.strip()
+        self.keys = keyring
+        self.key_id = active_key_id
         self._lock = threading.Lock()
 
     @classmethod
@@ -59,21 +83,50 @@ class AuditCheckpointSigner:
         queue: HumanQueue,
     ) -> "AuditCheckpointSigner | None":
         path = os.environ.get("HUMANQUEUE_AUDIT_CHECKPOINT_FILE", "").strip()
-        key = os.environ.get("HUMANQUEUE_AUDIT_CHECKPOINT_KEY", "")
-        if not path and not key:
+        legacy_key = os.environ.get("HUMANQUEUE_AUDIT_CHECKPOINT_KEY", "")
+        raw_keys = os.environ.get("HUMANQUEUE_AUDIT_CHECKPOINT_KEYS", "").strip()
+
+        if not path and not legacy_key and not raw_keys:
             return None
         if not path:
             raise ValueError(
                 "HUMANQUEUE_AUDIT_CHECKPOINT_FILE is required when checkpoint signing is enabled"
             )
-        if not key:
+
+        if raw_keys:
+            try:
+                parsed = json.loads(raw_keys)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS must contain a JSON object"
+                ) from exc
+            if not isinstance(parsed, dict):
+                raise ValueError(
+                    "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS must contain a JSON object"
+                )
+            signing_key_id = os.environ.get(
+                "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID",
+                "",
+            ).strip()
+            if not signing_key_id:
+                raise ValueError(
+                    "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID is required with keyring configuration"
+                )
+            return cls(
+                queue,
+                path,
+                keys={str(k): str(v) for k, v in parsed.items()},
+                signing_key_id=signing_key_id,
+            )
+
+        if not legacy_key:
             raise ValueError(
                 "HUMANQUEUE_AUDIT_CHECKPOINT_KEY is required when checkpoint signing is enabled"
             )
         return cls(
             queue,
             path,
-            key=key,
+            key=legacy_key,
             key_id=os.environ.get(
                 "HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID",
                 "default",
@@ -105,9 +158,12 @@ class AuditCheckpointSigner:
             separators=(",", ":"),
         )
 
-    def _sign_payload(self, payload: str) -> str:
+    def _sign_payload(self, payload: str, *, key_id: str) -> str:
+        key = self.keys.get(key_id)
+        if key is None:
+            raise KeyError(key_id)
         return hmac.new(
-            self.key.encode(),
+            key.encode(),
             payload.encode(),
             hashlib.sha256,
         ).hexdigest()
@@ -177,7 +233,10 @@ class AuditCheckpointSigner:
             signed = AuditCheckpoint(
                 **{
                     **asdict(checkpoint),
-                    "signature": self._sign_payload(payload),
+                    "signature": self._sign_payload(
+                        payload,
+                        key_id=checkpoint.key_id,
+                    ),
                 }
             )
 
@@ -238,7 +297,18 @@ class AuditCheckpointSigner:
                 previous_signature=checkpoint.previous_signature,
                 key_id=checkpoint.key_id,
             )
-            expected_signature = self._sign_payload(payload)
+            try:
+                expected_signature = self._sign_payload(
+                    payload,
+                    key_id=checkpoint.key_id,
+                )
+            except KeyError:
+                return {
+                    "ok": False,
+                    "reason": "unknown_checkpoint_key_id",
+                    "checkpoint_sequence": checkpoint.sequence,
+                    "key_id": checkpoint.key_id,
+                }
             if not hmac.compare_digest(
                 checkpoint.signature,
                 expected_signature,
