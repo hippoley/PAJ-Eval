@@ -88,10 +88,24 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
                 try:
                     while True:
                         waits = [wait_json(item) for item in queue.pending()]
-                        signature = json.dumps(waits, sort_keys=True, separators=(",", ":"))
+                        events = [
+                            asdict(event)
+                            for event in queue.recent_audit_events(limit=50)
+                        ]
+                        signature = json.dumps(
+                            {
+                                "waits": waits,
+                                "last_event_id": events[-1]["id"] if events else None,
+                            },
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
                         now = time.monotonic()
                         if signature != last_signature:
-                            payload = json.dumps({"waits": waits}, separators=(",", ":"))
+                            payload = json.dumps(
+                                {"waits": waits, "events": events},
+                                separators=(",", ":"),
+                            )
                             frame = f"event: queue\ndata: {payload}\n\n".encode()
                             self.wfile.write(frame)
                             self.wfile.flush()
