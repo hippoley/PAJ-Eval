@@ -53,6 +53,60 @@ def checkpoint_fingerprint(checkpoint: AuditCheckpoint) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
+class WitnessReceiptSignatureProvider(Protocol):
+    @property
+    def signing_key_id(self) -> str:
+        ...
+
+    def sign(self, receipt: WitnessReceipt) -> str:
+        ...
+
+    def verify(self, receipt: WitnessReceipt) -> bool:
+        ...
+
+
+@dataclass(frozen=True)
+class HmacWitnessReceiptSignatureProvider:
+    keys: dict[str, str]
+    signing_key_id: str
+
+    def __post_init__(self) -> None:
+        cleaned = {
+            str(kid).strip(): str(secret)
+            for kid, secret in self.keys.items()
+            if str(kid).strip() and str(secret)
+        }
+        active = str(self.signing_key_id or "").strip()
+        if not cleaned:
+            raise ValueError("witness receipt signing keys are required")
+        if not active or active not in cleaned:
+            raise ValueError(
+                "witness receipt signing_key_id must reference a configured key"
+            )
+        object.__setattr__(self, "keys", cleaned)
+        object.__setattr__(self, "signing_key_id", active)
+
+    def sign(self, receipt: WitnessReceipt) -> str:
+        key = self.keys[self.signing_key_id]
+        payload = HmacWitnessReceiptVerifier.payload(receipt)
+        return hmac.new(
+            key.encode(),
+            payload.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+    def verify(self, receipt: WitnessReceipt) -> bool:
+        key = self.keys.get(receipt.key_id)
+        if key is None:
+            raise KeyError(receipt.key_id)
+        expected = hmac.new(
+            key.encode(),
+            HmacWitnessReceiptVerifier.payload(receipt).encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        return hmac.compare_digest(receipt.signature, expected)
+
+
 @dataclass(frozen=True)
 class HmacWitnessReceiptVerifier:
     keys: dict[str, str]
