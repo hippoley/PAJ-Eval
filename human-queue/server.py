@@ -37,6 +37,15 @@ def delivery_json(item: Delivery) -> dict:
     return asdict(item)
 
 
+def _binding_policy(binding: dict) -> RetryPolicy:
+    return RetryPolicy(
+        max_attempts=int(binding.get("max_attempts") or 3),
+        base_delay=float(binding.get("base_delay") or 0.25),
+        multiplier=float(binding.get("multiplier") or 2.0),
+        max_delay=float(binding.get("max_delay") or 5.0),
+    )
+
+
 def make_handler(
     queue: HumanQueue,
     index_path: Path = DEFAULT_INDEX,
@@ -187,7 +196,42 @@ def make_handler(
                 except KeyError:
                     self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
                     return
-                self._json(HTTPStatus.OK, {"wait": wait_json(item)})
+                response = {"wait": wait_json(item)}
+                binding = item.resume_binding
+                if item.execution_state == "resume_requested" and binding:
+                    adapter_name = str(binding.get("adapter") or "").strip()
+                    target = str(binding.get("target") or "").strip()
+                    if not adapter_name or not target:
+                        self._json(
+                            HTTPStatus.CONFLICT,
+                            {
+                                "error": "invalid_resume_binding",
+                                "detail": "resume_binding requires adapter and target",
+                            },
+                        )
+                        return
+                    try:
+                        job = deliveries.enqueue(
+                            item.id,
+                            adapter=adapter_name,
+                            target=target,
+                            policy=_binding_policy(binding),
+                        )
+                    except (TypeError, ValueError) as exc:
+                        self._json(
+                            HTTPStatus.CONFLICT,
+                            {"error": "invalid_resume_binding", "detail": str(exc)},
+                        )
+                        return
+                    queue.mark_resume_delivery_queued(
+                        item.id,
+                        actor="runtime",
+                        adapter=adapter_name,
+                        target=target,
+                        delivery_id=job.id,
+                    )
+                    response["delivery"] = delivery_json(job)
+                self._json(HTTPStatus.OK, response)
                 return
 
             self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
@@ -216,6 +260,7 @@ def make_handler(
                     payload=body.get("payload") or {},
                     idempotency_key=body.get("idempotency_key"),
                     resume_token=body.get("resume_token"),
+                    resume_binding=body.get("resume_binding"),
                 )
                 self._json(HTTPStatus.CREATED, {"wait": wait_json(item)})
                 return
