@@ -184,3 +184,33 @@ def test_sse_stream_emits_queue_snapshot_and_change(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_http_exposes_audit_provenance(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(uri="human://approve", title="Trace?", source="agent")
+    queue.claim(item.id, actor="alice", lease_seconds=1)
+    queue.decide(item.id, action="approve", actor="alice")
+
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, one = request_json(base, f"/api/waits/{item.id}/events")
+        assert status == 200
+        assert [e["event_type"] for e in one["events"]] == [
+            "WAIT_CREATED",
+            "CLAIMED",
+            "DECISION_COMMITTED",
+        ]
+
+        status, recent = request_json(base, "/api/audit")
+        assert status == 200
+        assert recent["events"][-1]["event_type"] == "DECISION_COMMITTED"
+        assert recent["events"][-1]["actor"] == "alice"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
