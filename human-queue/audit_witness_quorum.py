@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
+import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from audit_checkpoint import AuditCheckpoint
 from audit_witness import (
     CheckpointWitnessProvider,
+    HmacWitnessReceiptVerifier,
+    HttpCheckpointWitnessProvider,
+    OnlineWitnessReceiptVerifier,
     WitnessReceipt,
     checkpoint_fingerprint,
 )
@@ -252,3 +257,95 @@ class WitnessQuorum:
             receipts=accepted,
             failures=failures,
         )
+
+
+
+def load_witness_quorum() -> WitnessQuorum | None:
+    raw = os.environ.get(
+        "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON",
+        "",
+    ).strip()
+    if not raw:
+        return None
+    try:
+        config = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON must contain a JSON object"
+        ) from exc
+    if not isinstance(config, dict):
+        raise ValueError(
+            "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON must contain a JSON object"
+        )
+
+    raw_witnesses = config.get("witnesses")
+    if not isinstance(raw_witnesses, dict) or not raw_witnesses:
+        raise ValueError("witness quorum requires a non-empty witnesses object")
+
+    providers: dict[str, CheckpointWitnessProvider] = {}
+    for name, raw_target in raw_witnesses.items():
+        witness_name = str(name).strip()
+        if not witness_name or not isinstance(raw_target, dict):
+            raise ValueError("each witness quorum target must be a named object")
+
+        endpoint = str(raw_target.get("url") or "").strip()
+        verify_endpoint = str(
+            raw_target.get("verify_url") or ""
+        ).strip()
+        raw_keys = raw_target.get("keys")
+        if not endpoint:
+            raise ValueError(
+                f"witness {witness_name!r} requires url"
+            )
+        if bool(verify_endpoint) == bool(raw_keys):
+            raise ValueError(
+                f"witness {witness_name!r} must configure exactly one "
+                "of verify_url or keys"
+            )
+
+        timeout = float(raw_target.get("timeout_seconds") or 5)
+        if verify_endpoint:
+            verifier = OnlineWitnessReceiptVerifier(
+                verify_endpoint,
+                timeout_seconds=timeout,
+            )
+        else:
+            if not isinstance(raw_keys, dict):
+                raise ValueError(
+                    f"witness {witness_name!r} keys must be an object"
+                )
+            verifier = HmacWitnessReceiptVerifier(
+                {
+                    str(k): str(v)
+                    for k, v in raw_keys.items()
+                }
+            )
+
+        providers[witness_name] = HttpCheckpointWitnessProvider(
+            endpoint,
+            verifier=verifier,
+            timeout_seconds=timeout,
+            publish_token=(
+                str(raw_target.get("publish_token") or "")
+                or None
+            ),
+        )
+
+    threshold = int(config.get("threshold") or 1)
+    required = config.get("required_witnesses") or []
+    if not isinstance(required, list):
+        raise ValueError("required_witnesses must be an array")
+
+    return WitnessQuorum(
+        providers,
+        threshold=threshold,
+        required_witnesses=[
+            str(value)
+            for value in required
+        ],
+        max_workers=(
+            int(config["max_workers"])
+            if config.get("max_workers") is not None
+            else None
+        ),
+    )
