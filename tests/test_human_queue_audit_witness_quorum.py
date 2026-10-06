@@ -519,3 +519,90 @@ def test_quorum_loader_rejects_ambiguous_verifier_config(monkeypatch):
         assert "exactly one" in str(exc)
     else:
         raise AssertionError("ambiguous quorum verifier accepted")
+
+
+
+def test_quorum_ignores_historical_receipts_for_newer_checkpoint(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    first_wait = queue.ask(
+        uri="human://approve",
+        title="First checkpoint",
+        source="agent",
+    )
+    queue.decide(first_wait.id, action="approve", actor="alice")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint_one = signer.create(now=100)
+
+    witness_a = InMemoryWitnessProvider(
+        witness="witness-a",
+        key="secret-a",
+    )
+    witness_b = InMemoryWitnessProvider(
+        witness="witness-b",
+        key="secret-b",
+    )
+    old_receipts = [
+        witness_a.publish(checkpoint_one),
+        witness_b.publish(checkpoint_one),
+    ]
+
+    second_wait = queue.ask(
+        uri="human://approve",
+        title="Second checkpoint",
+        source="agent",
+    )
+    queue.decide(second_wait.id, action="approve", actor="alice")
+    checkpoint_two = signer.create(now=200)
+    current_receipts = [
+        witness_a.publish(checkpoint_two),
+        witness_b.publish(checkpoint_two),
+    ]
+
+    quorum = WitnessQuorum(
+        {
+            "witness-a": witness_a,
+            "witness-b": witness_b,
+        },
+        threshold=2,
+    )
+    result = quorum.evaluate(
+        checkpoint_two,
+        old_receipts + current_receipts,
+    )
+
+    assert result.satisfied is True
+    assert result.confirmed_witnesses == (
+        "witness-a",
+        "witness-b",
+    )
+    assert "witness-a" not in result.failures
+    assert "witness-b" not in result.failures
+
+
+def test_quorum_flags_receipt_from_future_checkpoint(tmp_path):
+    checkpoint = make_checkpoint(tmp_path)
+    witness = InMemoryWitnessProvider(
+        witness="witness-a",
+        key="secret-a",
+    )
+    receipt = witness.publish(checkpoint)
+    future = replace(
+        receipt,
+        checkpoint_sequence=checkpoint.sequence + 1,
+    )
+    quorum = WitnessQuorum(
+        {"witness-a": witness},
+        threshold=1,
+    )
+
+    result = quorum.evaluate(
+        checkpoint,
+        [future],
+    )
+
+    assert result.satisfied is False
+    assert result.failures["witness-a"] == "future_checkpoint_receipt"
