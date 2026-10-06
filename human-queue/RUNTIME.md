@@ -845,3 +845,34 @@ audit events.
 For deployments requiring asymmetric federation, OIDC discovery, or remote
 JWKS rotation, use the pluggable `AuthProvider` boundary with an external
 identity implementation instead of treating this HS256 provider as OIDC.
+
+
+### JWT age, token-id, and revocation controls
+
+The HS256 provider can additionally bound replay exposure:
+
+```bash
+HUMANQUEUE_HUMAN_JWT_MAX_TOKEN_AGE_SECONDS=300
+HUMANQUEUE_HUMAN_JWT_REQUIRE_JTI=true
+HUMANQUEUE_HUMAN_JWT_REVOKED_JTIS='[
+  "incident-token-123",
+  "compromised-token-456"
+]'
+```
+
+When a maximum token age is configured, `iat` becomes required and the token
+is rejected if it is too old or issued in the future beyond configured leeway.
+
+When `JWT_REQUIRE_JTI=true`, signed tokens must carry a non-empty `jti`.
+Configured revoked token IDs fail closed even if the JWT signature, issuer,
+audience, and expiry are otherwise valid.
+
+HumanQueue does not persist the raw `jti` in its execution audit. If a token ID
+is present, audit may retain only a short SHA-256-derived `token_id_hash` so an
+incident can correlate events without copying the original token identifier.
+
+The environment revocation list is loaded at process startup. It is deliberately
+not described as an online revocation service or dynamic CRL. Deployments that
+need immediate distributed revocation should implement that policy behind the
+`AuthProvider` boundary or restart/reload the runtime after configuration
+changes.
