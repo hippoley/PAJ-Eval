@@ -534,6 +534,8 @@ def make_handler(
                             adapter=adapter_name,
                             target=target,
                             policy=_binding_policy(resolved),
+                            destination=resolved.get("destination"),
+                            destination_revision=resolved.get("destination_revision"),
                         )
                     except (TypeError, ValueError) as exc:
                         self._json(
@@ -547,6 +549,8 @@ def make_handler(
                         adapter=adapter_name,
                         target=target,
                         delivery_id=job.id,
+                        destination=resolved.get("destination"),
+                        destination_revision=resolved.get("destination_revision"),
                     )
                     response["delivery"] = delivery_json(job)
                 self._json(HTTPStatus.OK, response)
