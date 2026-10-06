@@ -12,7 +12,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 TERMINAL_STATES = {"approved", "rejected", "edited", "resolved"}
@@ -87,24 +87,40 @@ class HumanQueue:
                 if row:
                     return self._row_to_wait(row)
 
-            conn.execute(
-                """
-                INSERT INTO waits (
-                    id, idempotency_key, uri, title, source, state, created_at,
-                    decided_at, decision_json, resume_token, payload_json
-                ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, NULL, NULL, ?, ?)
-                """,
-                (
-                    wait_id,
-                    idempotency_key,
-                    uri,
-                    title,
-                    source,
-                    created_at,
-                    resume_token,
-                    json.dumps(payload, sort_keys=True),
-                ),
-            )
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO waits (
+                        id, idempotency_key, uri, title, source, state, created_at,
+                        decided_at, decision_json, resume_token, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, NULL, NULL, ?, ?)
+                    """,
+                    (
+                        wait_id,
+                        idempotency_key,
+                        uri,
+                        title,
+                        source,
+                        created_at,
+                        resume_token,
+                        json.dumps(payload, sort_keys=True),
+                    ),
+                )
+            except sqlite3.IntegrityError:
+                # A concurrent producer may have won the same idempotency key
+                # after our initial read. Resolve that race into the existing
+                # durable wait instead of surfacing a database error.
+                conn.rollback()
+                if not idempotency_key:
+                    raise
+                row = conn.execute(
+                    "SELECT * FROM waits WHERE idempotency_key = ?",
+                    (idempotency_key,),
+                ).fetchone()
+                if row is None:
+                    raise
+                return self._row_to_wait(row)
+
             row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
             assert row is not None
             return self._row_to_wait(row)
