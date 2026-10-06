@@ -85,15 +85,14 @@ def test_named_binding_resolves_to_immutable_snapshot(tmp_path):
         {"destination": "github-release"},
         registry,
     )
-    assert snapshot == {
-        "destination": "github-release",
-        "adapter": "github_repository_dispatch",
-        "target": "github://acme/app/humanqueue-resume",
-        "max_attempts": 4,
-        "base_delay": 1,
-        "multiplier": 2,
-        "max_delay": 8,
-    }
+    assert snapshot["destination"] == "github-release"
+    assert snapshot["destination_revision"] == 1
+    assert snapshot["adapter"] == "github_repository_dispatch"
+    assert snapshot["target"] == "github://acme/app/humanqueue-resume"
+    assert snapshot["max_attempts"] == 4
+    assert snapshot["base_delay"] == 1.0
+    assert snapshot["multiplier"] == 2.0
+    assert snapshot["max_delay"] == 8.0
 
     registry.put(
         "github-release",
