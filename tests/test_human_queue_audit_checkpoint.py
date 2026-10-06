@@ -4,6 +4,9 @@ import sqlite3
 import sys
 import threading
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+import os
+import time
 
 
 ROOT = Path(__file__).parents[1] / "human-queue"
@@ -591,3 +594,77 @@ def test_checkpoint_cli_create_and_verify_without_http_server(
     verified = json.loads(capsys.readouterr().out)
     assert verified["ok"] is True
     assert verified["anchored"] is True
+
+
+def test_multiple_signer_instances_serialize_checkpoint_writes(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+
+    signer_a = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        key="checkpoint-secret",
+    )
+    signer_b = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        key="checkpoint-secret",
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(
+            pool.map(
+                lambda signer: signer.create(),
+                [signer_a, signer_b],
+            )
+        )
+
+    assert sorted(item.sequence for item in results) == [1, 2]
+    lines = checkpoint_path.read_text().splitlines()
+    assert len(lines) == 2
+    assert signer_a.verify()["ok"] is True
+
+
+def test_stale_checkpoint_lock_is_recovered(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        key="checkpoint-secret",
+        lock_timeout_seconds=0.5,
+        stale_lock_seconds=0.05,
+    )
+
+    signer.lock_path.write_text('{"pid":999999}')
+    old = time.time() - 10
+    os.utime(signer.lock_path, (old, old))
+
+    checkpoint = signer.create()
+    assert checkpoint.sequence == 1
+    assert signer.lock_path.exists() is False
+
+
+def test_active_checkpoint_lock_times_out_without_writing(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        key="checkpoint-secret",
+        lock_timeout_seconds=0.1,
+        stale_lock_seconds=60,
+    )
+
+    signer.lock_path.write_text('{"pid":123}')
+    try:
+        signer.create()
+    except RuntimeError as exc:
+        assert "writer lock" in str(exc)
+    else:
+        raise AssertionError("active checkpoint lock unexpectedly ignored")
+
+    assert checkpoint_path.exists() is False
