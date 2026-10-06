@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from adapters import RetryPolicy
+from adapters import RetryPolicy, sanitize_target
 
 
 @dataclass(frozen=True)
@@ -79,6 +79,8 @@ class DestinationRegistry:
         name = name.strip()
         adapter = adapter.strip()
         target = target.strip()
+        if adapter == "webhook":
+            target = sanitize_target(target)
         if not name:
             raise ValueError("destination name is required")
         if not adapter:
