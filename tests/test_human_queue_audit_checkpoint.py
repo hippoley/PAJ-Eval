@@ -447,3 +447,73 @@ def test_checkpoint_env_loads_sequence_floor(tmp_path, monkeypatch):
     signer = AuditCheckpointSigner.from_env(queue)
     assert signer is not None
     assert signer.minimum_sequence == 7
+
+
+def test_health_fails_when_signed_checkpoint_is_tampered(tmp_path):
+    db = tmp_path / "queue.db"
+    checkpoint_path = tmp_path / "audit-checkpoints.jsonl"
+    queue, _ = make_queue(db)
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        key="checkpoint-secret",
+    )
+    signer.create(now=100)
+
+    row = json.loads(checkpoint_path.read_text().strip())
+    row["event_count"] += 1
+    checkpoint_path.write_text(json.dumps(row) + "\n")
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, health = request_json(base, "/api/health")
+        assert status == 503
+        assert health["ok"] is False
+        assert health["audit_chain"]["ok"] is True
+        assert health["audit_checkpoint"]["ok"] is False
+        assert health["audit_checkpoint"]["reason"] == "invalid_checkpoint_signature"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_health_fails_when_local_audit_chain_is_tampered(tmp_path):
+    db = tmp_path / "queue.db"
+    queue, item = make_queue(db)
+
+    with sqlite3.connect(db) as conn:
+        event_id = queue.audit_events(item.id)[1].id
+        conn.execute(
+            "UPDATE audit_events SET actor = ? WHERE id = ?",
+            ("mallory", event_id),
+        )
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, health = request_json(base, "/api/health")
+        assert status == 503
+        assert health["ok"] is False
+        assert health["audit_chain"]["ok"] is False
+        assert health["audit_checkpoint"]["configured"] is False
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
