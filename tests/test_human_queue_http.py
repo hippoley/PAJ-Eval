@@ -861,3 +861,124 @@ def test_destination_actor_reason_flow_into_delivery_and_audit(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_destination_actor_policy_blocks_unauthorized_approve_without_commit(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, destination = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "actor": "security-admin",
+                "reason": "restrict production approvals",
+                "allowed_decision_actors": ["alice"],
+            },
+        )
+        assert status == 201
+        assert destination["destination"]["allowed_decision_actors"] == ["alice"]
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Restricted deploy",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, denied = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "mallory"},
+        )
+        assert status == 403
+        assert denied["error"] == "actor_not_authorized_for_destination"
+        assert denied["actor"] == "mallory"
+        assert denied["destination"] == "prod-deploy"
+        assert denied["destination_revision"] == 1
+
+        status, current = request_json(base, f"/api/waits/{wait_id}")
+        assert status == 200
+        assert current["wait"]["state"] == "waiting"
+        assert current["wait"]["decision"] is None
+
+        status, events = request_json(base, f"/api/waits/{wait_id}/events")
+        assert "DECISION_COMMITTED" not in [
+            event["event_type"] for event in events["events"]
+        ]
+
+        status, approved = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        assert approved["wait"]["state"] == "approved"
+        assert approved["delivery"]["destination_revision"] == 1
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_destination_actor_policy_still_allows_reject_as_safe_exit(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "allowed_decision_actors": ["alice"],
+            },
+        )
+        _, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Reject safely",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, rejected = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "reject", "actor": "mallory"},
+        )
+        assert status == 200
+        assert rejected["wait"]["state"] == "rejected"
+        assert "delivery" not in rejected
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
