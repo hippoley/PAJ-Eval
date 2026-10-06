@@ -677,7 +677,7 @@ def test_online_witness_rejects_when_remote_verification_is_unavailable(tmp_path
         try:
             provider.publish(checkpoint)
         except RuntimeError as exc:
-            assert "signature is invalid" in str(exc)
+            assert "verification returned HTTP 503" in str(exc)
         else:
             raise AssertionError(
                 "receipt accepted while independent verifier was unavailable"
@@ -780,3 +780,35 @@ def test_active_witness_receipt_journal_lock_times_out(tmp_path):
         raise AssertionError("active witness journal lock unexpectedly ignored")
 
     assert journal.path.exists() is False
+
+
+def test_receipt_journal_distinguishes_verifier_outage_from_invalid_receipt(
+    tmp_path,
+):
+    class UnavailableVerifier:
+        def publish(self, checkpoint):
+            raise AssertionError("not used")
+
+        def verify(self, receipt):
+            raise RuntimeError("independent witness unavailable")
+
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(tmp_path / "witness-receipts.jsonl")
+    journal.append(receipt, provider=witness)
+
+    status = journal.status(
+        checkpoint,
+        provider=UnavailableVerifier(),
+    )
+    assert status["ok"] is False
+    assert status["reason"] == "witness_verification_unavailable"
+    assert status["receipt_id"] == receipt.receipt_id
+    assert "independent witness unavailable" in status["detail"]
