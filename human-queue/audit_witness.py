@@ -122,17 +122,14 @@ class OnlineWitnessReceiptVerifier:
             sort_keys=True,
             separators=(",", ":"),
         ).encode()
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-        if self.publish_token is not None:
-            headers["Authorization"] = f"Bearer {self.publish_token}"
         request = urllib.request.Request(
             self.endpoint,
             method="POST",
             data=body,
-            headers=headers,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
         )
         try:
             with urllib.request.urlopen(
@@ -199,14 +196,17 @@ class HttpCheckpointWitnessProvider:
             sort_keys=True,
             separators=(",", ":"),
         ).encode()
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if self.publish_token is not None:
+            headers["Authorization"] = f"Bearer {self.publish_token}"
         request = urllib.request.Request(
             self.endpoint,
             method="POST",
             data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
+            headers=headers,
         )
         try:
             with urllib.request.urlopen(
