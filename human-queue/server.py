@@ -32,7 +32,12 @@ from auth import (
     load_auth_provider,
 )
 from audit_checkpoint import AuditCheckpointSigner
-from audit_witness import CheckpointWitnessProvider, load_witness_provider
+from audit_witness import (
+    CheckpointWitnessProvider,
+    WitnessReceiptJournal,
+    load_witness_provider,
+    load_witness_receipt_journal,
+)
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
@@ -90,6 +95,7 @@ def make_handler(
     machine_auth_provider: AuthProvider | None = None,
     audit_checkpoint_signer: AuditCheckpointSigner | None = None,
     audit_witness_provider: CheckpointWitnessProvider | None = None,
+    audit_witness_receipts: WitnessReceiptJournal | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
@@ -266,9 +272,38 @@ def make_handler(
                         "anchored": False,
                     }
                 )
+                if audit_witness_provider is None:
+                    witness_status = {
+                        "ok": True,
+                        "configured": False,
+                        "journal_configured": audit_witness_receipts is not None,
+                        "witnessed": False,
+                    }
+                elif audit_witness_receipts is None:
+                    witness_status = {
+                        "ok": True,
+                        "configured": True,
+                        "journal_configured": False,
+                        "witnessed": False,
+                    }
+                else:
+                    latest_checkpoint = (
+                        audit_checkpoint_signer.latest()
+                        if audit_checkpoint_signer is not None
+                        else None
+                    )
+                    witness_status = {
+                        "configured": True,
+                        "journal_configured": True,
+                        **audit_witness_receipts.status(
+                            latest_checkpoint,
+                            provider=audit_witness_provider,
+                        ),
+                    }
                 healthy = bool(
                     audit_status.get("ok")
                     and checkpoint_status.get("ok")
+                    and witness_status.get("ok")
                 )
                 self._json(
                     HTTPStatus.OK if healthy else HTTPStatus.SERVICE_UNAVAILABLE,
@@ -277,6 +312,7 @@ def make_handler(
                         "mode": "durable",
                         "audit_chain": audit_status,
                         "audit_checkpoint": checkpoint_status,
+                        "audit_witness": witness_status,
                     },
                 )
                 return
@@ -479,11 +515,29 @@ def make_handler(
                         },
                     )
                     return
+                if audit_witness_receipts is not None:
+                    try:
+                        audit_witness_receipts.append(
+                            receipt,
+                            provider=audit_witness_provider,
+                        )
+                    except RuntimeError as exc:
+                        self._json(
+                            HTTPStatus.INTERNAL_SERVER_ERROR,
+                            {
+                                "error": "audit_witness_receipt_persist_failed",
+                                "detail": str(exc),
+                                "checkpoint_sequence": checkpoint.sequence,
+                                "receipt": asdict(receipt),
+                            },
+                        )
+                        return
                 self._json(
                     HTTPStatus.CREATED,
                     {
                         "checkpoint": asdict(checkpoint),
                         "receipt": asdict(receipt),
+                        "receipt_persisted": audit_witness_receipts is not None,
                         "principal": self._principal_audit(principal),
                     },
                 )
@@ -979,6 +1033,7 @@ def make_server(
     machine_auth_provider: AuthProvider | None = None,
     audit_checkpoint_signer: AuditCheckpointSigner | None = None,
     audit_witness_provider: CheckpointWitnessProvider | None = None,
+    audit_witness_receipts: WitnessReceiptJournal | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
@@ -993,6 +1048,7 @@ def make_server(
             machine_auth_provider,
             audit_checkpoint_signer,
             audit_witness_provider,
+            audit_witness_receipts,
         ),
     )
 
@@ -1009,6 +1065,11 @@ def main() -> None:
     ensure_disjoint_providers(human_auth_provider, machine_auth_provider)
     audit_checkpoint_signer = AuditCheckpointSigner.from_env(queue)
     audit_witness_provider = load_witness_provider()
+    audit_witness_receipts = load_witness_receipt_journal()
+    if audit_witness_receipts is not None and audit_witness_provider is None:
+        raise ValueError(
+            "witness receipt journal requires an audit witness provider"
+        )
     server = make_server(
         queue,
         host=host,
@@ -1019,6 +1080,7 @@ def main() -> None:
         machine_auth_provider=machine_auth_provider,
         audit_checkpoint_signer=audit_checkpoint_signer,
         audit_witness_provider=audit_witness_provider,
+        audit_witness_receipts=audit_witness_receipts,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
