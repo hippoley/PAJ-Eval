@@ -23,6 +23,7 @@ class ResumeDestination:
     changed_by: str | None
     change_reason: str | None
     allowed_decision_actors: tuple[str, ...]
+    allowed_machine_actors: tuple[str, ...]
     created_at: float
     updated_at: float
 
@@ -35,6 +36,7 @@ class ResumeDestination:
             "destination_changed_by": self.changed_by,
             "destination_change_reason": self.change_reason,
             "allowed_decision_actors": list(self.allowed_decision_actors),
+            "allowed_machine_actors": list(self.allowed_machine_actors),
             "max_attempts": self.policy.max_attempts,
             "base_delay": self.policy.base_delay,
             "multiplier": self.policy.multiplier,
@@ -139,6 +141,7 @@ class DestinationRegistry:
         actor: str = "system",
         reason: str | None = None,
         allowed_decision_actors: list[str] | tuple[str, ...] | None = None,
+        allowed_machine_actors: list[str] | tuple[str, ...] | None = None,
         now: float | None = None,
     ) -> ResumeDestination:
         name = name.strip()
@@ -161,11 +164,22 @@ class DestinationRegistry:
         reason = reason.strip() if isinstance(reason, str) else reason
         if isinstance(allowed_decision_actors, str):
             raise ValueError("allowed_decision_actors must be an array")
+        if isinstance(allowed_machine_actors, str):
+            raise ValueError("allowed_machine_actors must be an array")
         allowed = tuple(
             sorted(
                 {
                     str(value).strip()
                     for value in (allowed_decision_actors or ())
+                    if str(value).strip()
+                }
+            )
+        )
+        allowed_machines = tuple(
+            sorted(
+                {
+                    str(value).strip()
+                    for value in (allowed_machine_actors or ())
                     if str(value).strip()
                 }
             )
@@ -178,6 +192,7 @@ class DestinationRegistry:
                 "multiplier": policy.multiplier,
                 "max_delay": policy.max_delay,
                 "allowed_decision_actors": list(allowed),
+                "allowed_machine_actors": list(allowed_machines),
             },
             sort_keys=True,
         )
@@ -294,6 +309,7 @@ class DestinationRegistry:
             actor=actor,
             reason=reason,
             allowed_decision_actors=current.allowed_decision_actors,
+            allowed_machine_actors=current.allowed_machine_actors,
             now=now,
         )
 
@@ -330,6 +346,7 @@ class DestinationRegistry:
             changed_by=row["changed_by"],
             change_reason=row["change_reason"],
             allowed_decision_actors=tuple(policy.get("allowed_decision_actors", [])),
+            allowed_machine_actors=tuple(policy.get("allowed_machine_actors", [])),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
