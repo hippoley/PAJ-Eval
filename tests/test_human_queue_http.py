@@ -1,4 +1,7 @@
 import importlib.util
+import base64
+import hashlib
+import hmac
 import json
 import sys
 import threading
@@ -1648,6 +1651,159 @@ def test_audit_records_machine_auth_provider_on_execution_events(tmp_path):
         assert resumed["data"]["principal"] == expected
         assert completed["data"]["principal"] == expected
         assert "machine-secret" not in json.dumps(events)
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def _http_jwt(secret, claims, *, kid="k1"):
+    header = {"alg": "HS256", "typ": "JWT", "kid": kid}
+    def enc(value):
+        raw = json.dumps(value, separators=(",", ":"), sort_keys=True).encode()
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+    head = enc(header)
+    body = enc(claims)
+    signature = hmac.new(
+        secret.encode(),
+        f"{head}.{body}".encode(),
+        hashlib.sha256,
+    ).digest()
+    sig = base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
+    return f"{head}.{body}.{sig}"
+
+
+def test_signed_jwt_principals_drive_human_and_machine_policy_end_to_end(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    human_provider = server_module.Hs256JwtAuthProvider(
+        principal_kind="human",
+        keys={"h1": "human-secret"},
+        issuer="https://id.example/humans",
+        audience="humanqueue-human",
+        leeway_seconds=0,
+    )
+    machine_provider = server_module.Hs256JwtAuthProvider(
+        principal_kind="machine",
+        keys={"m1": "machine-secret"},
+        issuer="https://id.example/machines",
+        audience="humanqueue-machine",
+        leeway_seconds=0,
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        human_auth_provider=human_provider,
+        machine_auth_provider=machine_provider,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+    now = time.time()
+
+    alice_token = _http_jwt(
+        "human-secret",
+        {
+            "iss": "https://id.example/humans",
+            "aud": "humanqueue-human",
+            "sub": "alice",
+            "exp": now + 120,
+        },
+        kid="h1",
+    )
+    worker_token = _http_jwt(
+        "machine-secret",
+        {
+            "iss": "https://id.example/machines",
+            "aud": "humanqueue-machine",
+            "sub": "worker-a",
+            "exp": now + 120,
+        },
+        kid="m1",
+    )
+
+    try:
+        status, destination = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "jwt-prod",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "allowed_decision_actors": ["alice"],
+                "allowed_machine_actors": ["worker-a"],
+            },
+            headers={"Authorization": f"Bearer {alice_token}"},
+        )
+        assert status == 201
+        assert destination["destination"]["changed_by"] == "alice"
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "JWT-governed deploy",
+                "source": "agent",
+                "resume_binding": {"destination": "jwt-prod"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve"},
+            headers={"Authorization": f"Bearer {alice_token}"},
+        )
+        assert status == 200
+        assert decided["wait"]["decision"]["actor"] == "alice"
+
+        status, resumed = request_json(
+            base,
+            f"/api/waits/{wait_id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": f"Bearer {worker_token}"},
+        )
+        assert status == 200
+        assert resumed["wait"]["execution_state"] == "resumed"
+
+        status, completed = request_json(
+            base,
+            f"/api/waits/{wait_id}/complete",
+            method="POST",
+            body={"success": True},
+            headers={"Authorization": f"Bearer {worker_token}"},
+        )
+        assert status == 200
+        assert completed["wait"]["execution_state"] == "completed"
+
+        _, events = request_json(base, f"/api/waits/{wait_id}/events")
+        decision = next(
+            e for e in events["events"]
+            if e["event_type"] == "DECISION_COMMITTED"
+        )
+        process = next(
+            e for e in events["events"]
+            if e["event_type"] == "PROCESS_COMPLETED"
+        )
+        assert decision["data"]["principal"] == {
+            "kind": "human",
+            "provider": "jwt-hs256",
+        }
+        assert process["data"]["principal"] == {
+            "kind": "machine",
+            "provider": "jwt-hs256",
+        }
+        serialized = json.dumps(events)
+        assert alice_token not in serialized
+        assert worker_token not in serialized
+        assert "human-secret" not in serialized
+        assert "machine-secret" not in serialized
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
