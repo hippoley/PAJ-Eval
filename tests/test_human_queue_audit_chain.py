@@ -1,4 +1,5 @@
 import importlib.util
+from concurrent.futures import ThreadPoolExecutor
 import sqlite3
 import sys
 from pathlib import Path
@@ -105,3 +106,33 @@ def test_audit_chain_detects_deleted_middle_event(tmp_path):
     broken = queue.verify_audit_chain()
     assert broken["ok"] is False
     assert broken["broken_event_id"] == events[2].id
+
+
+def test_concurrent_audit_writers_do_not_fork_global_chain(tmp_path):
+    db = tmp_path / "queue.db"
+    queue = HumanQueue(db)
+    waits = [
+        queue.ask(
+            uri="human://approve",
+            title=f"Concurrent audit {index}",
+            source="agent",
+        )
+        for index in range(12)
+    ]
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(
+            pool.map(
+                lambda item: queue.decide(
+                    item.id,
+                    action="approve",
+                    actor="alice",
+                ),
+                waits,
+            )
+        )
+
+    assert len(results) == 12
+    verified = queue.verify_audit_chain()
+    assert verified["ok"] is True
+    assert verified["checked"] >= 24
