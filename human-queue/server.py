@@ -254,7 +254,29 @@ def make_handler(
                 return
 
             if path == "/api/health":
-                self._json(HTTPStatus.OK, {"ok": True, "mode": "durable"})
+                audit_status = queue.verify_audit_chain()
+                checkpoint_status = (
+                    audit_checkpoint_signer.verify()
+                    if audit_checkpoint_signer is not None
+                    else {
+                        "ok": True,
+                        "configured": False,
+                        "anchored": False,
+                    }
+                )
+                healthy = bool(
+                    audit_status.get("ok")
+                    and checkpoint_status.get("ok")
+                )
+                self._json(
+                    HTTPStatus.OK if healthy else HTTPStatus.SERVICE_UNAVAILABLE,
+                    {
+                        "ok": healthy,
+                        "mode": "durable",
+                        "audit_chain": audit_status,
+                        "audit_checkpoint": checkpoint_status,
+                    },
+                )
                 return
 
             if path == "/api/events":
