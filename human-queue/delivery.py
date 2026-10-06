@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from adapters import ResumeAdapter, RetryPolicy
+from destinations import DestinationRegistry, resolve_resume_binding
 from runtime import HumanQueue
 
 
@@ -339,6 +340,7 @@ class DurableDeliveryQueue:
 def reconcile_bound_deliveries(
     queue: HumanQueue,
     deliveries: DurableDeliveryQueue,
+    destinations: DestinationRegistry | None = None,
 ) -> list[Delivery]:
     """Materialize any persisted resume bindings missing a delivery job.
 
@@ -349,15 +351,22 @@ def reconcile_bound_deliveries(
     materialized: list[Delivery] = []
     for item in queue.resume_requested():
         binding = item.resume_binding or {}
-        adapter = str(binding.get("adapter") or "").strip()
-        target = str(binding.get("target") or "").strip()
+        if destinations is None and binding.get("destination"):
+            continue
+        resolved = (
+            resolve_resume_binding(binding, destinations)
+            if destinations is not None
+            else binding
+        )
+        adapter = str(resolved.get("adapter") or "").strip()
+        target = str(resolved.get("target") or "").strip()
         if not adapter or not target:
             continue
         policy = RetryPolicy(
-            max_attempts=int(binding.get("max_attempts") or 3),
-            base_delay=float(binding.get("base_delay") or 0.25),
-            multiplier=float(binding.get("multiplier") or 2.0),
-            max_delay=float(binding.get("max_delay") or 5.0),
+            max_attempts=int(resolved.get("max_attempts") or 3),
+            base_delay=float(resolved.get("base_delay") or 0.25),
+            multiplier=float(resolved.get("multiplier") or 2.0),
+            max_delay=float(resolved.get("max_delay") or 5.0),
         )
         job = deliveries.enqueue(
             item.id,
