@@ -23,6 +23,7 @@ auth = load("human_queue_auth", ROOT / "auth.py")
 ActorAuthenticator = auth.ActorAuthenticator
 AuthenticationError = auth.AuthenticationError
 ActorMismatchError = auth.ActorMismatchError
+AuthContext = auth.AuthContext
 Principal = auth.Principal
 BearerTokenAuthProvider = auth.BearerTokenAuthProvider
 adapt_authenticator = auth.adapt_authenticator
@@ -109,7 +110,7 @@ def test_bearer_provider_returns_typed_principal():
         principal_kind="human",
         provider_name="local-test",
     )
-    principal = provider.authenticate("Bearer token-a")
+    principal = provider.authenticate(AuthContext("Bearer token-a"))
     assert principal == Principal(
         actor="alice",
         kind="human",
@@ -125,7 +126,7 @@ def test_legacy_authenticator_can_be_adapted_without_breaking_api():
         principal_kind="machine",
     )
     assert provider is not None
-    principal = provider.authenticate("Bearer machine-token")
+    principal = provider.authenticate(AuthContext("Bearer machine-token"))
     assert principal.actor == "worker-a"
     assert principal.kind == "machine"
 
