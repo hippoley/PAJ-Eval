@@ -167,3 +167,55 @@ def test_release_claim_requires_owner(tmp_path):
     released = q.release_claim(item.id, actor="alice")
     assert released.claimed_by is None
     assert released.claim_expires_at is None
+
+
+def test_audit_log_records_wait_claim_release_and_decision(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(
+        uri="human://approve",
+        title="Audit me",
+        source="ci",
+        payload={"risk": "high"},
+    )
+    q.claim(item.id, actor="alice", lease_seconds=1)
+    q.release_claim(item.id, actor="alice")
+    q.claim(item.id, actor="bob", lease_seconds=1)
+    q.decide(item.id, action="approve", actor="bob")
+
+    events = q.audit_events(item.id)
+    assert [event.event_type for event in events] == [
+        "WAIT_CREATED",
+        "CLAIMED",
+        "CLAIM_RELEASED",
+        "CLAIMED",
+        "DECISION_COMMITTED",
+    ]
+    assert events[0].actor == "ci"
+    assert events[-1].actor == "bob"
+    assert events[-1].data["action"] == "approve"
+    assert events[-1].data["state"] == "approved"
+
+
+def test_idempotent_decision_replay_does_not_duplicate_audit_event(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://approve", title="Once", source="agent")
+    q.decide(item.id, action="approve", actor="alice")
+    q.decide(item.id, action="approve", actor="alice")
+
+    event_types = [event.event_type for event in q.audit_events(item.id)]
+    assert event_types.count("DECISION_COMMITTED") == 1
+
+
+def test_conflicting_decision_does_not_append_false_audit_event(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://approve", title="One truth", source="agent")
+    q.decide(item.id, action="approve", actor="alice")
+
+    with pytest.raises(RuntimeError):
+        q.decide(item.id, action="reject", actor="bob")
+
+    events = q.audit_events(item.id)
+    decisions = [event for event in events if event.event_type == "DECISION_COMMITTED"]
+    assert len(decisions) == 1
+    assert decisions[0].actor == "alice"
+    assert decisions[0].data["action"] == "approve"
