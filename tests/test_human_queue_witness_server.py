@@ -63,12 +63,12 @@ def make_checkpoint(tmp_path):
     return signer.create(now=100)
 
 
-def post_json(base, path, payload):
+def post_json(base, path, payload, *, headers=None):
     request = urllib.request.Request(
         base + path,
         method="POST",
         data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", **(headers or {})},
     )
     try:
         with urllib.request.urlopen(request) as response:
@@ -235,6 +235,71 @@ def test_witness_server_rejects_checkpoint_fingerprint_mismatch(tmp_path):
         assert status == 400
         assert payload["error"] == "checkpoint_fingerprint_mismatch"
         assert store.count() == 0
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_witness_publish_endpoint_can_require_bearer_auth(tmp_path):
+    checkpoint = make_checkpoint(tmp_path)
+    store = WitnessStore(
+        tmp_path / "witness.jsonl",
+        witness="witness-a",
+        key_id="w1",
+        key="witness-secret",
+    )
+    httpd = witness_server.make_server(
+        store,
+        host="127.0.0.1",
+        port=0,
+        publish_token="publish-token",
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        payload = {
+            "checkpoint": asdict(checkpoint),
+            "checkpoint_fingerprint": checkpoint_fingerprint(checkpoint),
+        }
+        status, denied = post_json(
+            base,
+            "/witness",
+            payload,
+        )
+        assert status == 401
+        assert denied["error"] == "witness_publish_authentication_required"
+
+        status, denied = post_json(
+            base,
+            "/witness",
+            payload,
+            headers={"Authorization": "Bearer wrong-token"},
+        )
+        assert status == 401
+        assert denied["error"] == "witness_publish_authentication_required"
+        assert store.count() == 0
+
+        provider = HttpCheckpointWitnessProvider(
+            base + "/witness",
+            verifier=OnlineWitnessReceiptVerifier(
+                base + "/verify"
+            ),
+            publish_token="publish-token",
+        )
+        receipt = provider.publish(checkpoint)
+        assert receipt.checkpoint_sequence == checkpoint.sequence
+        assert store.count() == 1
+
+        status, verified = post_json(
+            base,
+            "/verify",
+            {"receipt": asdict(receipt)},
+        )
+        assert status == 200
+        assert verified == {"valid": True}
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
