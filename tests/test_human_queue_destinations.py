@@ -323,3 +323,44 @@ def test_decision_actor_policy_rejects_string_shape(tmp_path):
         assert "must be an array" in str(exc)
     else:
         raise AssertionError("string actor policy unexpectedly accepted")
+
+
+def test_machine_actor_policy_is_versioned_with_destination(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    first = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="security-admin",
+        reason="bind production workers",
+        allowed_machine_actors=["worker-a", "worker-b", "worker-a"],
+        now=100,
+    )
+    second = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="security-admin",
+        reason="rotate to worker-b",
+        allowed_machine_actors=["worker-b"],
+        now=200,
+    )
+
+    assert first.allowed_machine_actors == ("worker-a", "worker-b")
+    assert second.revision == 2
+    assert second.allowed_machine_actors == ("worker-b",)
+
+    history = registry.history("prod-deploy")
+    assert history[0].allowed_machine_actors == ("worker-a", "worker-b")
+    assert history[1].allowed_machine_actors == ("worker-b",)
+
+
+def test_machine_actor_policy_rejects_string_shape(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    with pytest.raises(ValueError, match="allowed_machine_actors must be an array"):
+        registry.put(
+            "prod-deploy",
+            adapter="webhook",
+            target="https://worker.example/resume",
+            allowed_machine_actors="worker-a",
+        )
