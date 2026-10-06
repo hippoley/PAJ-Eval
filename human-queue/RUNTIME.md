@@ -219,3 +219,48 @@ and never persists the GitHub token.
 As with every adapter, dispatch success means delivery only. The resumed GitHub
 workflow should acknowledge actual execution through the HumanQueue
 `/resumed` and `/complete` endpoints.
+
+
+## Reliable resume delivery
+
+All resume adapters can now share a common delivery contract:
+
+```python
+from adapters import RetryPolicy, dispatch_with_retry
+
+dispatch_with_retry(
+    queue,
+    decided_wait,
+    adapter,
+    policy=RetryPolicy(
+        max_attempts=3,
+        base_delay=0.25,
+        multiplier=2,
+        max_delay=5,
+    ),
+)
+```
+
+Delivery provenance is explicit:
+
+```text
+RESUME_DELIVERY_ATTEMPT
+RESUME_DELIVERY_FAILED
+RESUME_DELIVERY_ATTEMPT
+RESUME_DISPATCHED
+```
+
+If every attempt fails:
+
+```text
+RESUME_DELIVERY_ATTEMPT
+RESUME_DELIVERY_FAILED
+...
+RESUME_DEAD_LETTERED
+```
+
+Retries use bounded exponential backoff. The retry wrapper is synchronous in
+this MVP; durable scheduled retries/workers are a later deployment concern.
+The important semantic boundary is already preserved: a dead-lettered resume
+request remains distinct from machine execution state and never becomes
+`PROCESS_RESUMED` by implication.
