@@ -16,9 +16,85 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 from runtime import HumanQueue
+
+
+class CheckpointSignatureProvider(Protocol):
+    @property
+    def signing_key_id(self) -> str:
+        ...
+
+    def sign(self, payload: str) -> str:
+        ...
+
+    def verify(
+        self,
+        payload: str,
+        *,
+        key_id: str,
+        signature: str,
+    ) -> bool:
+        ...
+
+
+@dataclass(frozen=True)
+class HmacCheckpointSignatureProvider:
+    keys: dict[str, str]
+    signing_key_id: str
+
+    def __post_init__(self) -> None:
+        cleaned: dict[str, str] = {}
+        for raw_kid, raw_secret in self.keys.items():
+            kid = str(raw_kid).strip()
+            secret = str(raw_secret)
+            if not kid or not secret:
+                raise ValueError(
+                    "audit checkpoint key ids and secrets must be non-empty"
+                )
+            if secret in cleaned.values():
+                raise ValueError(
+                    "audit checkpoint signing secrets must be unique per key id"
+                )
+            cleaned[kid] = secret
+
+        active = str(self.signing_key_id or "").strip()
+        if not cleaned:
+            raise ValueError("audit checkpoint keyring is required")
+        if not active:
+            raise ValueError("audit checkpoint signing key_id is required")
+        if active not in cleaned:
+            raise ValueError(
+                f"audit checkpoint signing key_id {active!r} is not in keyring"
+            )
+        object.__setattr__(self, "keys", cleaned)
+        object.__setattr__(self, "signing_key_id", active)
+
+    def sign(self, payload: str) -> str:
+        key = self.keys[self.signing_key_id]
+        return hmac.new(
+            key.encode(),
+            payload.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+    def verify(
+        self,
+        payload: str,
+        *,
+        key_id: str,
+        signature: str,
+    ) -> bool:
+        key = self.keys.get(key_id)
+        if key is None:
+            raise KeyError(key_id)
+        expected = hmac.new(
+            key.encode(),
+            payload.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        return hmac.compare_digest(signature, expected)
 
 
 @dataclass(frozen=True)
@@ -45,43 +121,35 @@ class AuditCheckpointSigner:
         key_id: str = "default",
         keys: dict[str, str] | None = None,
         signing_key_id: str | None = None,
+        signature_provider: CheckpointSignatureProvider | None = None,
         minimum_sequence: int = 0,
         lock_timeout_seconds: float = 5.0,
         stale_lock_seconds: float = 60.0,
     ) -> None:
-        keyring: dict[str, str] = {}
-        for raw_kid, raw_secret in (keys or {}).items():
-            kid = str(raw_kid).strip()
-            secret = str(raw_secret)
-            if not kid or not secret:
-                raise ValueError(
-                    "audit checkpoint key ids and secrets must be non-empty"
-                )
-            if secret in keyring.values():
-                raise ValueError(
-                    "audit checkpoint signing secrets must be unique per key id"
-                )
-            keyring[kid] = secret
-        if key is not None:
-            if not key:
-                raise ValueError("audit checkpoint signing key is required")
-            legacy_key_id = key_id.strip()
-            if not legacy_key_id:
-                raise ValueError("audit checkpoint key_id is required")
-            keyring.setdefault(legacy_key_id, key)
-            active_key_id = signing_key_id or legacy_key_id
-        else:
-            active_key_id = signing_key_id or key_id
-
-        active_key_id = str(active_key_id or "").strip()
-        if not keyring:
-            raise ValueError("audit checkpoint keyring is required")
-        if not active_key_id:
-            raise ValueError("audit checkpoint signing key_id is required")
-        if active_key_id not in keyring:
+        if signature_provider is not None and (
+            key is not None or keys is not None or signing_key_id is not None
+        ):
             raise ValueError(
-                f"audit checkpoint signing key_id {active_key_id!r} is not in keyring"
+                "custom signature_provider cannot be combined with HMAC key arguments"
             )
+
+        if signature_provider is None:
+            keyring: dict[str, str] = dict(keys or {})
+            if key is not None:
+                if not key:
+                    raise ValueError("audit checkpoint signing key is required")
+                legacy_key_id = key_id.strip()
+                if not legacy_key_id:
+                    raise ValueError("audit checkpoint key_id is required")
+                keyring.setdefault(legacy_key_id, key)
+                active_key_id = signing_key_id or legacy_key_id
+            else:
+                active_key_id = signing_key_id or key_id
+            signature_provider = HmacCheckpointSignatureProvider(
+                keyring,
+                str(active_key_id or ""),
+            )
+
         if minimum_sequence < 0:
             raise ValueError("audit checkpoint minimum_sequence must be >= 0")
         if lock_timeout_seconds <= 0:
@@ -98,8 +166,13 @@ class AuditCheckpointSigner:
                 )
         except OSError:
             pass
-        self.keys = keyring
-        self.key_id = active_key_id
+        self.signature_provider = signature_provider
+        self.key_id = signature_provider.signing_key_id
+        self.keys = (
+            dict(signature_provider.keys)
+            if isinstance(signature_provider, HmacCheckpointSignatureProvider)
+            else {}
+        )
         self.minimum_sequence = int(minimum_sequence)
         self.lock_timeout_seconds = float(lock_timeout_seconds)
         self.stale_lock_seconds = float(stale_lock_seconds)
@@ -221,16 +294,6 @@ class AuditCheckpointSigner:
             sort_keys=True,
             separators=(",", ":"),
         )
-
-    def _sign_payload(self, payload: str, *, key_id: str) -> str:
-        key = self.keys.get(key_id)
-        if key is None:
-            raise KeyError(key_id)
-        return hmac.new(
-            key.encode(),
-            payload.encode(),
-            hashlib.sha256,
-        ).hexdigest()
 
     def _read_raw(self) -> list[dict[str, Any]]:
         if not self.checkpoint_path.exists():
@@ -422,9 +485,10 @@ class AuditCheckpointSigner:
                 key_id=checkpoint.key_id,
             )
             try:
-                expected_signature = self._sign_payload(
+                signature_valid = self.signature_provider.verify(
                     payload,
                     key_id=checkpoint.key_id,
+                    signature=checkpoint.signature,
                 )
             except KeyError:
                 return {
@@ -433,10 +497,7 @@ class AuditCheckpointSigner:
                     "checkpoint_sequence": checkpoint.sequence,
                     "key_id": checkpoint.key_id,
                 }
-            if not hmac.compare_digest(
-                checkpoint.signature,
-                expected_signature,
-            ):
+            if not signature_valid:
                 return {
                     "ok": False,
                     "reason": "invalid_checkpoint_signature",
