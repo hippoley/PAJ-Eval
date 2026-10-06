@@ -219,8 +219,9 @@ def make_handler(
                 "kind": principal.kind,
                 "provider": principal.provider,
             }
+            attributes = getattr(principal, "attributes", None) or {}
             for key in ("issuer", "audience", "kid"):
-                value = principal.attributes.get(key)
+                value = attributes.get(key)
                 if value is not None:
                     data[key] = value
             return data
