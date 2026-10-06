@@ -668,3 +668,38 @@ def test_unknown_destination_rejected_at_wait_creation(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_destination_routes_separate_read_from_mutation(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, listing = request_json(base, "/api/destinations")
+        assert status == 200
+        assert listing == {"destinations": []}
+
+        status, created = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "read-write-contract",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+            },
+        )
+        assert status == 201
+
+        status, listing = request_json(base, "/api/destinations")
+        assert status == 200
+        assert [d["name"] for d in listing["destinations"]] == [
+            "read-write-contract"
+        ]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
