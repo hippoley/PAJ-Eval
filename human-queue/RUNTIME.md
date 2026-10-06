@@ -79,3 +79,36 @@ browser updates immediately
 The stream sends a full pending-queue snapshot whenever its durable signature changes.
 This keeps the first implementation deliberately simple and deterministic. Browser
 polling remains as a resilience fallback if EventSource is unavailable or reconnecting.
+
+
+## Audit provenance
+
+Every durable boundary now has a transactional audit trail. Events are written
+in the same SQLite transaction as the state change they describe.
+
+Current event types:
+
+```text
+WAIT_CREATED
+CLAIMED
+CLAIM_RENEWED
+CLAIM_RELEASED
+DECISION_COMMITTED
+```
+
+Read the history for one wait:
+
+```http
+GET /api/waits/{wait_id}/events
+```
+
+Or the most recent cross-queue activity:
+
+```http
+GET /api/audit
+```
+
+The live browser timeline uses this durable provenance instead of inventing a
+parallel UI-only history when connected to the runtime. Idempotent decision
+replays do not duplicate `DECISION_COMMITTED`, and rejected conflicting
+decisions do not append false events.
