@@ -1,4 +1,8 @@
 import importlib.util
+import json
+import threading
+import urllib.error
+import urllib.request
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -30,11 +34,17 @@ quorum_module = load(
     "human_queue_witness_quorum",
     ROOT / "audit_witness_quorum.py",
 )
+server_module = load(
+    "human_queue_server_witness_quorum",
+    ROOT / "server.py",
+)
 
 HumanQueue = runtime.HumanQueue
 AuditCheckpointSigner = checkpoint_module.AuditCheckpointSigner
 InMemoryWitnessProvider = witness_module.InMemoryWitnessProvider
+WitnessReceiptJournal = witness_module.WitnessReceiptJournal
 WitnessQuorum = quorum_module.WitnessQuorum
+load_witness_quorum = quorum_module.load_witness_quorum
 
 
 def make_checkpoint(tmp_path):
@@ -239,3 +249,273 @@ def test_quorum_rejects_unknown_required_witness():
         assert "not configured" in str(exc)
     else:
         raise AssertionError("unknown required witness accepted")
+
+
+
+def request_json(base, path, *, method="GET", body=None):
+    data = None if body is None else json.dumps(body).encode()
+    request = urllib.request.Request(
+        base + path,
+        method=method,
+        data=data,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read())
+
+
+def test_quorum_http_health_transitions_from_unsatisfied_to_satisfied(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="Quorum HTTP checkpoint",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+
+    quorum = WitnessQuorum(
+        {
+            "witness-a": InMemoryWitnessProvider(
+                witness="witness-a",
+                key="secret-a",
+            ),
+            "witness-b": InMemoryWitnessProvider(
+                witness="witness-b",
+                key="secret-b",
+            ),
+            "witness-c": FailingWitness(),
+        },
+        threshold=2,
+    )
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl"
+    )
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+        audit_witness_receipts=journal,
+        audit_witness_quorum=quorum,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, before = request_json(base, "/api/health")
+        assert status == 503
+        assert before["ok"] is False
+        assert before["audit_witness_quorum"]["configured"] is True
+        assert before["audit_witness_quorum"]["satisfied"] is False
+        assert before["audit_witness_quorum"]["checkpoint_sequence"] == checkpoint.sequence
+
+        status, published = request_json(
+            base,
+            "/api/audit/checkpoint/witness-quorum",
+            method="POST",
+            body={"actor": "auditor"},
+        )
+        assert status == 201
+        assert published["quorum"]["satisfied"] is True
+        assert published["quorum"]["confirmed_witnesses"] == [
+            "witness-a",
+            "witness-b",
+        ]
+        assert "witness-c" in published["quorum"]["failures"]
+        assert len(journal.receipts()) == 2
+
+        status, after = request_json(base, "/api/health")
+        assert status == 200
+        assert after["ok"] is True
+        assert after["audit_witness_quorum"]["satisfied"] is True
+        assert after["audit_witness_quorum"]["confirmed_witnesses"] == [
+            "witness-a",
+            "witness-b",
+        ]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_quorum_http_returns_bad_gateway_when_required_witness_missing(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="Required witness",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    signer.create(now=100)
+
+    quorum = WitnessQuorum(
+        {
+            "witness-a": InMemoryWitnessProvider(
+                witness="witness-a",
+                key="secret-a",
+            ),
+            "security-witness": FailingWitness(),
+        },
+        threshold=1,
+        required_witnesses=["security-witness"],
+    )
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl"
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+        audit_witness_receipts=journal,
+        audit_witness_quorum=quorum,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, payload = request_json(
+            base,
+            "/api/audit/checkpoint/witness-quorum",
+            method="POST",
+            body={"actor": "auditor"},
+        )
+        assert status == 502
+        assert payload["quorum"]["satisfied"] is False
+        assert payload["quorum"]["missing_required_witnesses"] == [
+            "security-witness"
+        ]
+        assert len(journal.receipts()) == 1
+
+        status, health = request_json(base, "/api/health")
+        assert status == 503
+        assert health["audit_witness_quorum"]["satisfied"] is False
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_quorum_health_is_nonfailing_before_first_checkpoint(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    quorum = WitnessQuorum(
+        {
+            "witness-a": InMemoryWitnessProvider(
+                witness="witness-a",
+                key="secret-a",
+            )
+        },
+        threshold=1,
+    )
+    journal = WitnessReceiptJournal(
+        tmp_path / "witness-receipts.jsonl"
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+        audit_witness_receipts=journal,
+        audit_witness_quorum=quorum,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, health = request_json(base, "/api/health")
+        assert status == 200
+        assert health["ok"] is True
+        assert health["audit_witness_quorum"] == {
+            "ok": True,
+            "configured": True,
+            "satisfied": False,
+            "checkpoint_sequence": None,
+        }
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_quorum_loader_builds_independent_online_witnesses(monkeypatch):
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON",
+        json.dumps(
+            {
+                "threshold": 2,
+                "required_witnesses": ["witness-a"],
+                "witnesses": {
+                    "witness-a": {
+                        "url": "https://a.example/witness",
+                        "verify_url": "https://a.example/verify",
+                        "publish_token": "token-a",
+                    },
+                    "witness-b": {
+                        "url": "https://b.example/witness",
+                        "verify_url": "https://b.example/verify",
+                    },
+                },
+            }
+        ),
+    )
+
+    quorum = load_witness_quorum()
+    assert quorum is not None
+    assert quorum.threshold == 2
+    assert quorum.required_witnesses == ("witness-a",)
+    assert set(quorum.providers) == {
+        "witness-a",
+        "witness-b",
+    }
+    assert (
+        quorum.providers["witness-a"].publish_token
+        == "token-a"
+    )
+
+
+def test_quorum_loader_rejects_ambiguous_verifier_config(monkeypatch):
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON",
+        json.dumps(
+            {
+                "threshold": 1,
+                "witnesses": {
+                    "witness-a": {
+                        "url": "https://a.example/witness",
+                        "verify_url": "https://a.example/verify",
+                        "keys": {"k1": "shared-secret"},
+                    }
+                },
+            }
+        ),
+    )
+
+    try:
+        load_witness_quorum()
+    except ValueError as exc:
+        assert "exactly one" in str(exc)
+    else:
+        raise AssertionError("ambiguous quorum verifier accepted")
