@@ -42,6 +42,7 @@ WitnessReceipt = witness_module.WitnessReceipt
 HmacWitnessReceiptVerifier = witness_module.HmacWitnessReceiptVerifier
 HttpCheckpointWitnessProvider = witness_module.HttpCheckpointWitnessProvider
 InMemoryWitnessProvider = witness_module.InMemoryWitnessProvider
+WitnessReceiptJournal = witness_module.WitnessReceiptJournal
 
 
 def make_queue(db):
@@ -354,6 +355,148 @@ def test_server_surfaces_witness_failure_without_creating_checkpoint(tmp_path):
         assert payload["error"] == "audit_witness_failed"
         assert payload["checkpoint_sequence"] == checkpoint.sequence
         assert len(signer.checkpoints()) == 1
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_witness_receipt_journal_persists_only_verified_receipts(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(tmp_path / "witness-receipts.jsonl")
+
+    stored = journal.append(receipt, provider=witness)
+    assert stored == receipt
+    assert journal.receipts() == [receipt]
+
+    status = journal.status(checkpoint, provider=witness)
+    assert status["ok"] is True
+    assert status["witnessed"] is True
+    assert status["checkpoint_sequence"] == checkpoint.sequence
+    assert status["receipt"]["receipt_id"] == receipt.receipt_id
+
+    raw = journal.path.read_text()
+    assert "witness-secret" not in raw
+    assert "checkpoint-secret" not in raw
+
+
+def test_witness_receipt_journal_detects_tamper(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(tmp_path / "witness-receipts.jsonl")
+    journal.append(receipt, provider=witness)
+
+    raw = json.loads(journal.path.read_text().strip())
+    raw["checkpoint_head_hash"] = "0" * 64
+    journal.path.write_text(json.dumps(raw) + "\n")
+
+    status = journal.status(checkpoint, provider=witness)
+    assert status["ok"] is False
+    assert status["reason"] == "invalid_witness_receipt_signature"
+
+
+def test_server_health_moves_from_signed_to_witnessed(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    journal = WitnessReceiptJournal(tmp_path / "witness-receipts.jsonl")
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+        audit_witness_provider=witness,
+        audit_witness_receipts=journal,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, before = request_json(base, "/api/health")
+        assert status == 200
+        assert before["audit_checkpoint"]["anchored"] is True
+        assert before["audit_witness"]["configured"] is True
+        assert before["audit_witness"]["journal_configured"] is True
+        assert before["audit_witness"]["witnessed"] is False
+
+        status, published = request_json(
+            base,
+            "/api/audit/checkpoint/witness",
+            method="POST",
+            body={"actor": "auditor"},
+        )
+        assert status == 201
+        assert published["receipt_persisted"] is True
+        assert published["checkpoint"]["sequence"] == checkpoint.sequence
+
+        status, after = request_json(base, "/api/health")
+        assert status == 200
+        assert after["audit_witness"]["ok"] is True
+        assert after["audit_witness"]["witnessed"] is True
+        assert after["audit_witness"]["checkpoint_sequence"] == checkpoint.sequence
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_server_health_fails_on_tampered_witness_receipt(tmp_path):
+    queue = make_queue(tmp_path / "queue.db")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    checkpoint = signer.create(now=100)
+    witness = InMemoryWitnessProvider(key="witness-secret")
+    receipt = witness.publish(checkpoint)
+    journal = WitnessReceiptJournal(tmp_path / "witness-receipts.jsonl")
+    journal.append(receipt, provider=witness)
+
+    raw = json.loads(journal.path.read_text().strip())
+    raw["witness"] = "forged-witness"
+    journal.path.write_text(json.dumps(raw) + "\n")
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+        audit_witness_provider=witness,
+        audit_witness_receipts=journal,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, health = request_json(base, "/api/health")
+        assert status == 503
+        assert health["ok"] is False
+        assert health["audit_witness"]["ok"] is False
+        assert health["audit_witness"]["reason"] == "invalid_witness_receipt_signature"
     finally:
         httpd.shutdown()
         thread.join(timeout=2)
