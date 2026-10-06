@@ -876,3 +876,62 @@ not described as an online revocation service or dynamic CRL. Deployments that
 need immediate distributed revocation should implement that policy behind the
 `AuthProvider` boundary or restart/reload the runtime after configuration
 changes.
+
+
+## Tamper-evident audit chain
+
+HumanQueue audit events now form one global SHA-256 hash chain across the SQLite
+audit log.
+
+Each event persists:
+
+```text
+prev_hash
+event_hash
+```
+
+The hash covers the canonical event identity and payload:
+
+```text
+id
+wait_id
+event_type
+actor
+created_at
+data_json
+prev_hash
+```
+
+Verify the chain through:
+
+```http
+GET /api/audit/verify
+```
+
+A healthy response includes:
+
+```json
+{
+  "ok": true,
+  "checked": 42,
+  "head_hash": "..."
+}
+```
+
+If an event payload, hash link, or middle row is modified/deleted, verification
+returns `ok: false` and identifies the first broken event.
+
+Legacy databases whose audit table has never had hashes are backfilled once
+during schema migration. Once any chain hashes exist, startup **never rewrites
+or auto-heals them**. This prevents a restart from silently laundering a
+tampered audit history.
+
+Concurrent writers are serialized by SQLite write locking: HumanQueue inserts
+the row first to obtain its monotonic event ID, then links it to the immediately
+preceding event hash within the same transaction.
+
+This is **tamper-evident**, not tamper-proof. An attacker with unrestricted
+database access could rewrite the full chain. Stronger deployments should
+periodically anchor the reported head hash outside the database (for example in
+an append-only log, transparency service, signed checkpoint, or external audit
+store).
