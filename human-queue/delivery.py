@@ -433,6 +433,8 @@ def reconcile_bound_deliveries(
             delivery_id=job.id,
             destination=resolved.get("destination"),
             destination_revision=resolved.get("destination_revision"),
+            destination_changed_by=resolved.get("destination_changed_by"),
+            destination_change_reason=resolved.get("destination_change_reason"),
         )
         materialized.append(job)
     return materialized
