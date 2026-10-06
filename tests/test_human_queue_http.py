@@ -471,7 +471,7 @@ def test_resume_binding_does_not_materialize_delivery_on_reject(tmp_path):
         httpd.server_close()
 
 
-def test_invalid_resume_binding_fails_closed_after_decision(tmp_path):
+def test_invalid_resume_binding_is_rejected_before_wait_creation(tmp_path):
     queue = HumanQueue(tmp_path / "queue.db")
     httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -479,7 +479,7 @@ def test_invalid_resume_binding_fails_closed_after_decision(tmp_path):
     base = f"http://127.0.0.1:{httpd.server_address[1]}"
 
     try:
-        status, created = request_json(
+        status, payload = request_json(
             base,
             "/api/waits",
             method="POST",
@@ -490,16 +490,11 @@ def test_invalid_resume_binding_fails_closed_after_decision(tmp_path):
                 "resume_binding": {"adapter": "webhook"},
             },
         )
-        wait_id = created["wait"]["id"]
-
-        status, payload = request_json(
-            base,
-            f"/api/waits/{wait_id}/decision",
-            method="POST",
-            body={"action": "approve", "actor": "alice"},
-        )
-        assert status == 409
+        assert status == 400
         assert payload["error"] == "invalid_resume_binding"
+
+        status, pending = request_json(base, "/api/waits")
+        assert pending["waits"] == []
 
         status, listing = request_json(base, "/api/deliveries")
         assert listing["deliveries"] == []
