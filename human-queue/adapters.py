@@ -93,3 +93,79 @@ class GenericWebhookAdapter:
             "target": self.audit_target,
             "body": raw.decode(errors="replace"),
         }
+
+
+class GitHubRepositoryDispatchAdapter:
+    """Resume a GitHub workflow through repository_dispatch."""
+
+    name = "github_repository_dispatch"
+
+    def __init__(
+        self,
+        repository: str,
+        *,
+        token: str,
+        event_type: str = "humanqueue-resume",
+        api_base: str = "https://api.github.com",
+        timeout: float = 5.0,
+    ) -> None:
+        if "/" not in repository or repository.startswith("/") or repository.endswith("/"):
+            raise ValueError("repository must be in owner/name form")
+        self.repository = repository
+        self.token = token
+        self.event_type = event_type
+        self.timeout = timeout
+        self.url = (
+            api_base.rstrip("/")
+            + f"/repos/{repository}/dispatches"
+        )
+        self.audit_target = sanitize_target(self.url)
+
+    def dispatch(self, queue: HumanQueue, item: Wait) -> dict:
+        if item.execution_state not in {
+            "resume_requested",
+            "resumed",
+            "completed",
+            "failed",
+        }:
+            raise RuntimeError(f"{item.id} has no resume request")
+
+        payload = {
+            "event_type": self.event_type,
+            "client_payload": {
+                "wait_id": item.id,
+                "uri": item.uri,
+                "source": item.source,
+                "resume_token": item.resume_token,
+                "decision": item.decision,
+            },
+        }
+        request = Request(
+            self.url,
+            data=json.dumps(payload, separators=(",", ":")).encode(),
+            headers={
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json",
+                "User-Agent": "HumanQueue/0.1",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            method="POST",
+        )
+        with urlopen(request, timeout=self.timeout) as response:
+            raw = response.read()
+            if response.status < 200 or response.status >= 300:
+                raise RuntimeError(f"GitHub returned HTTP {response.status}")
+
+        queue.mark_resume_dispatched(
+            item.id,
+            actor=self.name,
+            adapter=self.name,
+            target=f"github://{self.repository}/{self.event_type}",
+        )
+        return {
+            "status": response.status,
+            "repository": self.repository,
+            "event_type": self.event_type,
+            "body": raw.decode(errors="replace"),
+        }
