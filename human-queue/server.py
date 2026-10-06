@@ -112,6 +112,34 @@ def make_handler(queue: HumanQueue, index_path: Path = DEFAULT_INDEX):
                 )
                 return
 
+            if path == "/api/audit":
+                self._json(
+                    HTTPStatus.OK,
+                    {
+                        "events": [
+                            asdict(event)
+                            for event in queue.recent_audit_events(limit=100)
+                        ]
+                    },
+                )
+                return
+
+            if path.startswith("/api/waits/") and path.endswith("/events"):
+                wait_id = path[len("/api/waits/") : -len("/events")]
+                if not wait_id or "/" in wait_id:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
+                    return
+                try:
+                    events = queue.audit_events(wait_id)
+                except KeyError:
+                    self._json(HTTPStatus.NOT_FOUND, {"error": "wait_not_found"})
+                    return
+                self._json(
+                    HTTPStatus.OK,
+                    {"events": [asdict(event) for event in events]},
+                )
+                return
+
             if path.startswith("/api/waits/"):
                 wait_id = path.removeprefix("/api/waits/")
                 if not wait_id or "/" in wait_id:
