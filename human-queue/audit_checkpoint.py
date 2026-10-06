@@ -46,11 +46,19 @@ class AuditCheckpointSigner:
         signing_key_id: str | None = None,
         minimum_sequence: int = 0,
     ) -> None:
-        keyring = {
-            str(kid).strip(): str(secret)
-            for kid, secret in (keys or {}).items()
-            if str(kid).strip() and str(secret)
-        }
+        keyring: dict[str, str] = {}
+        for raw_kid, raw_secret in (keys or {}).items():
+            kid = str(raw_kid).strip()
+            secret = str(raw_secret)
+            if not kid or not secret:
+                raise ValueError(
+                    "audit checkpoint key ids and secrets must be non-empty"
+                )
+            if secret in keyring.values():
+                raise ValueError(
+                    "audit checkpoint signing secrets must be unique per key id"
+                )
+            keyring[kid] = secret
         if key is not None:
             if not key:
                 raise ValueError("audit checkpoint signing key is required")
@@ -76,6 +84,13 @@ class AuditCheckpointSigner:
 
         self.queue = queue
         self.checkpoint_path = Path(checkpoint_path)
+        try:
+            if self.checkpoint_path.resolve() == Path(queue.db_path).resolve():
+                raise ValueError(
+                    "audit checkpoint file must be separate from the SQLite database"
+                )
+        except OSError:
+            pass
         self.keys = keyring
         self.key_id = active_key_id
         self.minimum_sequence = int(minimum_sequence)
@@ -402,3 +417,43 @@ class AuditCheckpointSigner:
             "latest": asdict(latest),
             "audit": chain,
         }
+
+
+
+def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Create or verify HumanQueue signed audit checkpoints."
+    )
+    parser.add_argument(
+        "--db",
+        default=os.environ.get(
+            "HUMANQUEUE_DB",
+            str(Path(__file__).resolve().parent / "demo-human-queue.db"),
+        ),
+        help="HumanQueue SQLite database path.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers.add_parser("create", help="Create one signed checkpoint.")
+    subparsers.add_parser("verify", help="Verify checkpoint and audit integrity.")
+    args = parser.parse_args()
+
+    queue = HumanQueue(args.db)
+    signer = AuditCheckpointSigner.from_env(queue)
+    if signer is None:
+        raise SystemExit(
+            "checkpoint signing is not configured; set "
+            "HUMANQUEUE_AUDIT_CHECKPOINT_FILE and signing key environment"
+        )
+
+    if args.command == "create":
+        result: Any = asdict(signer.create())
+    else:
+        result = signer.verify()
+
+    print(json.dumps(result, sort_keys=True, indent=2))
+
+
+if __name__ == "__main__":
+    main()
