@@ -344,6 +344,13 @@ def make_handler(
                 )
                 return
 
+            if path == "/api/audit/verify":
+                self._json(
+                    HTTPStatus.OK,
+                    queue.verify_audit_chain(),
+                )
+                return
+
             if path == "/api/audit":
                 self._json(
                     HTTPStatus.OK,
