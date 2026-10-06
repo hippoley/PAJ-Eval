@@ -197,7 +197,7 @@ class GitHubRepositoryDispatchAdapter:
             api_base.rstrip("/")
             + f"/repos/{repository}/dispatches"
         )
-        self.audit_target = sanitize_target(self.url)
+        self.audit_target = f"github://{repository}/{event_type}"
 
     def dispatch(self, queue: HumanQueue, item: Wait) -> dict:
         if item.execution_state not in {
@@ -239,7 +239,7 @@ class GitHubRepositoryDispatchAdapter:
             item.id,
             actor=self.name,
             adapter=self.name,
-            target=f"github://{self.repository}/{self.event_type}",
+            target=self.audit_target,
         )
         return {
             "status": response.status,
