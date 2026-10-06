@@ -416,10 +416,7 @@ class AuditCheckpointSigner:
                 signed = AuditCheckpoint(
                     **{
                         **asdict(checkpoint),
-                        "signature": self._sign_payload(
-                            payload,
-                            key_id=checkpoint.key_id,
-                        ),
+                        "signature": self.signature_provider.sign(payload),
                     }
                 )
 
