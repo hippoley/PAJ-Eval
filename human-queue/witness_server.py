@@ -20,8 +20,9 @@ from typing import Any
 
 from audit_checkpoint import AuditCheckpoint
 from audit_witness import (
-    HmacWitnessReceiptVerifier,
+    HmacWitnessReceiptSignatureProvider,
     WitnessReceipt,
+    WitnessReceiptSignatureProvider,
     checkpoint_fingerprint,
 )
 
@@ -32,31 +33,40 @@ class WitnessStore:
         path: str | Path,
         *,
         witness: str,
-        key_id: str,
-        key: str,
+        key_id: str | None = None,
+        key: str | None = None,
+        signature_provider: WitnessReceiptSignatureProvider | None = None,
         lock_timeout_seconds: float = 5.0,
         stale_lock_seconds: float = 60.0,
     ) -> None:
         if not witness.strip():
             raise ValueError("witness name is required")
-        if not key_id.strip():
-            raise ValueError("witness key_id is required")
-        if not key:
-            raise ValueError("witness signing key is required")
+        if signature_provider is not None and (
+            key_id is not None or key is not None
+        ):
+            raise ValueError(
+                "custom witness signature_provider cannot be combined with key arguments"
+            )
+        if signature_provider is None:
+            if not (key_id or "").strip():
+                raise ValueError("witness key_id is required")
+            if not key:
+                raise ValueError("witness signing key is required")
+            signature_provider = HmacWitnessReceiptSignatureProvider(
+                {(key_id or "").strip(): key},
+                (key_id or "").strip(),
+            )
         if lock_timeout_seconds <= 0:
             raise ValueError("witness lock_timeout_seconds must be > 0")
         if stale_lock_seconds <= 0:
             raise ValueError("witness stale_lock_seconds must be > 0")
         self.path = Path(path)
         self.witness = witness.strip()
-        self.key_id = key_id.strip()
-        self.key = key
+        self.signature_provider = signature_provider
+        self.key_id = signature_provider.signing_key_id
         self.lock_timeout_seconds = float(lock_timeout_seconds)
         self.stale_lock_seconds = float(stale_lock_seconds)
         self._lock = threading.Lock()
-        self.verifier = HmacWitnessReceiptVerifier(
-            {self.key_id: self.key}
-        )
 
     @property
     def lock_path(self) -> Path:
@@ -170,15 +180,7 @@ class WitnessStore:
                     signature="",
                     checkpoint_fingerprint=fingerprint,
                 )
-                payload = HmacWitnessReceiptVerifier.payload(unsigned)
-                import hashlib
-                import hmac
-
-                signature = hmac.new(
-                    self.key.encode(),
-                    payload.encode(),
-                    hashlib.sha256,
-                ).hexdigest()
+                signature = self.signature_provider.sign(unsigned)
                 receipt = WitnessReceipt(
                     **{
                         **asdict(unsigned),
@@ -205,7 +207,7 @@ class WitnessStore:
 
     def verify(self, receipt: WitnessReceipt) -> bool:
         try:
-            if not self.verifier.verify(receipt):
+            if not self.signature_provider.verify(receipt):
                 return False
         except KeyError:
             return False
