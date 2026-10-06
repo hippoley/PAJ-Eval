@@ -935,3 +935,126 @@ database access could rewrite the full chain. Stronger deployments should
 periodically anchor the reported head hash outside the database (for example in
 an append-only log, transparency service, signed checkpoint, or external audit
 store).
+
+
+## Signed audit checkpoints outside SQLite
+
+The local audit hash chain is now optionally anchored to a separate signed
+JSONL checkpoint file. The checkpoint signing key is process configuration and
+is never persisted in SQLite or the checkpoint file.
+
+Legacy single-key configuration:
+
+```bash
+export HUMANQUEUE_AUDIT_CHECKPOINT_FILE=/var/lib/humanqueue/audit-checkpoints.jsonl
+export HUMANQUEUE_AUDIT_CHECKPOINT_KEY='replace-with-checkpoint-secret'
+export HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID='v1'
+```
+
+Create and verify checkpoints without running the HTTP server:
+
+```bash
+python human-queue/audit_checkpoint.py --db /var/lib/humanqueue/queue.db create
+python human-queue/audit_checkpoint.py --db /var/lib/humanqueue/queue.db verify
+```
+
+The CLI path allows the signing key to be held by a separate process / cron
+environment rather than the serving process.
+
+HTTP mode is also available when the signer is configured in the server:
+
+```http
+POST /api/audit/checkpoint
+GET  /api/audit/checkpoint/verify
+```
+
+Each checkpoint signs:
+
+```text
+version
+sequence
+created_at
+event_count
+head_hash
+previous_signature
+key_id
+```
+
+and each checkpoint includes the previous checkpoint signature. This detects
+checkpoint edits, insertion/reordering, and middle-row deletion.
+
+### Key rotation
+
+Use a keyring so old checkpoints remain verifiable while new checkpoints move
+to a new signing key:
+
+```bash
+export HUMANQUEUE_AUDIT_CHECKPOINT_KEYS='{
+  "v1":"old-secret",
+  "v2":"current-secret"
+}'
+export HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID='v2'
+```
+
+Do not remove `v1` from the verifier until every checkpoint signed with that
+key is outside the verification horizon. An unknown historical `key_id`
+fails closed.
+
+### Tail rollback floor
+
+A signed chain cannot, by itself, prove that an attacker did not truncate the
+*tail* of the checkpoint file. Deployments that maintain a sequence expectation
+outside the checkpoint file can enforce:
+
+```bash
+export HUMANQUEUE_AUDIT_CHECKPOINT_MIN_SEQUENCE=42
+```
+
+If the local checkpoint file contains fewer than 42 signed checkpoints,
+verification reports `checkpoint_rollback_detected`.
+
+The sequence floor must itself come from a trust boundary outside the protected
+file (for example deployment configuration, an external witness, or a control
+plane).
+
+### Writer serialization
+
+Checkpoint append uses both an in-process lock and a filesystem lockfile:
+
+```text
+<checkpoint-file>.lock
+```
+
+This prevents two server/CLI processes from concurrently deriving the same
+`previous_signature` and creating a fork. Stale lockfiles may be recovered
+after the configured stale interval.
+
+Optional settings:
+
+```bash
+HUMANQUEUE_AUDIT_CHECKPOINT_LOCK_TIMEOUT_SECONDS=5
+HUMANQUEUE_AUDIT_CHECKPOINT_STALE_LOCK_SECONDS=60
+```
+
+### Health integration
+
+`GET /api/health` now verifies the local audit chain and, when configured,
+the signed checkpoint chain.
+
+Healthy integrity returns HTTP 200. A broken audit chain or invalid checkpoint
+returns HTTP 503 so ordinary monitoring can detect provenance damage.
+
+A configured signer with no checkpoints yet is explicitly reported as
+`anchored: false`; that is visible but not treated as corruption.
+
+### Threat-model boundary
+
+This HMAC checkpoint protects against an attacker who can rewrite the SQLite
+database but does not possess the checkpoint signing secret / trusted external
+checkpoint state.
+
+It is not a public, asymmetric attestation. An attacker who controls the
+database, checkpoint file, and signing secret can forge new history. Stronger
+deployments should move checkpoint publication to an external append-only
+witness or use an asymmetric signing provider whose verification key can be
+distributed independently.
