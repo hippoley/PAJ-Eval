@@ -525,14 +525,17 @@ class Hs256JwtAuthProvider:
                 f"claimed actor {claimed!r} does not match authenticated actor"
             )
 
+        attributes = {
+            "issuer": self.issuer,
+            "audience": self.audience,
+            "kid": kid,
+        }
+        if token_id_hash is not None:
+            attributes["token_id_hash"] = token_id_hash
+
         return Principal(
             actor=actor,
             kind=self.principal_kind,
             provider=self.provider_name,
-            attributes={
-                "issuer": self.issuer,
-                "audience": self.audience,
-                "kid": kid,
-                "token_id_hash": token_id_hash,
-            },
+            attributes=attributes,
         )
