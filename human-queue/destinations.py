@@ -19,6 +19,7 @@ class ResumeDestination:
     target: str
     policy: RetryPolicy
     enabled: bool
+    revision: int
     created_at: float
     updated_at: float
 
@@ -27,6 +28,7 @@ class ResumeDestination:
             "destination": self.name,
             "adapter": self.adapter,
             "target": self.target,
+            "destination_revision": self.revision,
             "max_attempts": self.policy.max_attempts,
             "base_delay": self.policy.base_delay,
             "multiplier": self.policy.multiplier,
@@ -60,8 +62,34 @@ class DestinationRegistry:
                     target TEXT NOT NULL,
                     policy_json TEXT NOT NULL,
                     enabled INTEGER NOT NULL,
+                    revision INTEGER NOT NULL DEFAULT 1,
                     created_at REAL NOT NULL,
                     updated_at REAL NOT NULL
+                )
+                """
+            )
+            columns = {
+                row["name"]
+                for row in conn.execute(
+                    "PRAGMA table_info(resume_destinations)"
+                ).fetchall()
+            }
+            if "revision" not in columns:
+                conn.execute(
+                    "ALTER TABLE resume_destinations "
+                    "ADD COLUMN revision INTEGER NOT NULL DEFAULT 1"
+                )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS resume_destination_revisions (
+                    name TEXT NOT NULL,
+                    revision INTEGER NOT NULL,
+                    adapter TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    policy_json TEXT NOT NULL,
+                    enabled INTEGER NOT NULL,
+                    changed_at REAL NOT NULL,
+                    PRIMARY KEY(name, revision)
                 )
                 """
             )
@@ -102,21 +130,35 @@ class DestinationRegistry:
         )
         with self._connect() as conn:
             existing = conn.execute(
-                "SELECT created_at FROM resume_destinations WHERE name = ?",
+                "SELECT * FROM resume_destinations WHERE name = ?",
                 (name,),
             ).fetchone()
             created_at = existing["created_at"] if existing else now
+            enabled_int = 1 if enabled else 0
+            changed = (
+                existing is None
+                or existing["adapter"] != adapter
+                or existing["target"] != target
+                or existing["policy_json"] != policy_json
+                or existing["enabled"] != enabled_int
+            )
+            revision = (
+                1
+                if existing is None
+                else int(existing["revision"]) + (1 if changed else 0)
+            )
             conn.execute(
                 """
                 INSERT INTO resume_destinations (
-                    name, adapter, target, policy_json, enabled,
+                    name, adapter, target, policy_json, enabled, revision,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(name) DO UPDATE SET
                     adapter = excluded.adapter,
                     target = excluded.target,
                     policy_json = excluded.policy_json,
                     enabled = excluded.enabled,
+                    revision = excluded.revision,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -124,11 +166,30 @@ class DestinationRegistry:
                     adapter,
                     target,
                     policy_json,
-                    1 if enabled else 0,
+                    enabled_int,
+                    revision,
                     created_at,
                     now,
                 ),
             )
+            if changed:
+                conn.execute(
+                    """
+                    INSERT INTO resume_destination_revisions (
+                        name, revision, adapter, target, policy_json,
+                        enabled, changed_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        name,
+                        revision,
+                        adapter,
+                        target,
+                        policy_json,
+                        enabled_int,
+                        now,
+                    ),
+                )
             row = conn.execute(
                 "SELECT * FROM resume_destinations WHERE name = ?",
                 (name,),
@@ -164,23 +225,30 @@ class DestinationRegistry:
         now: float | None = None,
     ) -> ResumeDestination:
         now = time.time() if now is None else now
+        current = self.get(name)
+        return self.put(
+            name,
+            adapter=current.adapter,
+            target=current.target,
+            policy=current.policy,
+            enabled=enabled,
+            now=now,
+        )
+
+    def history(self, name: str) -> list[ResumeDestination]:
         with self._connect() as conn:
-            result = conn.execute(
+            rows = conn.execute(
                 """
-                UPDATE resume_destinations
-                   SET enabled = ?, updated_at = ?
+                SELECT name, adapter, target, policy_json, enabled,
+                       revision, changed_at AS created_at,
+                       changed_at AS updated_at
+                  FROM resume_destination_revisions
                  WHERE name = ?
+                 ORDER BY revision
                 """,
-                (1 if enabled else 0, now, name),
-            )
-            if result.rowcount == 0:
-                raise KeyError(name)
-            row = conn.execute(
-                "SELECT * FROM resume_destinations WHERE name = ?",
                 (name,),
-            ).fetchone()
-            assert row is not None
-            return self._row(row)
+            ).fetchall()
+        return [self._row(row) for row in rows]
 
     @staticmethod
     def _row(row: sqlite3.Row) -> ResumeDestination:
@@ -196,6 +264,7 @@ class DestinationRegistry:
                 max_delay=float(policy["max_delay"]),
             ),
             enabled=bool(row["enabled"]),
+            revision=int(row["revision"]),
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
