@@ -918,9 +918,14 @@ def test_destination_actor_policy_blocks_unauthorized_approve_without_commit(tmp
         assert current["wait"]["decision"] is None
 
         status, events = request_json(base, f"/api/waits/{wait_id}/events")
-        assert "DECISION_COMMITTED" not in [
-            event["event_type"] for event in events["events"]
-        ]
+        event_types = [event["event_type"] for event in events["events"]]
+        assert "DECISION_COMMITTED" not in event_types
+        assert event_types[-1] == "DECISION_DENIED"
+        denied_event = events["events"][-1]
+        assert denied_event["actor"] == "mallory"
+        assert denied_event["data"]["destination"] == "prod-deploy"
+        assert denied_event["data"]["destination_revision"] == 1
+        assert denied_event["data"]["allowed_decision_actors"] == ["alice"]
 
         status, approved = request_json(
             base,
