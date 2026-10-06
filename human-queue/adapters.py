@@ -8,7 +8,9 @@ still reports PROCESS_RESUMED / PROCESS_COMPLETED back to HumanQueue.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
+from dataclasses import dataclass
+import time
+from typing import Protocol
 from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
@@ -24,6 +26,82 @@ def sanitize_target(url: str) -> str:
     if parts.port:
         host = f"{host}:{parts.port}"
     return urlunsplit((parts.scheme, host, parts.path or "/", "", ""))
+
+
+class ResumeAdapter(Protocol):
+    name: str
+
+    def dispatch(self, queue: HumanQueue, item: Wait) -> dict:
+        ...
+
+
+@dataclass(frozen=True)
+class RetryPolicy:
+    max_attempts: int = 3
+    base_delay: float = 0.25
+    multiplier: float = 2.0
+    max_delay: float = 5.0
+
+    def delay_for(self, attempt: int) -> float:
+        if attempt < 1:
+            raise ValueError("attempt must be >= 1")
+        return min(self.base_delay * (self.multiplier ** (attempt - 1)), self.max_delay)
+
+
+def dispatch_with_retry(
+    queue: HumanQueue,
+    item: Wait,
+    adapter: ResumeAdapter,
+    *,
+    policy: RetryPolicy | None = None,
+    sleeper=time.sleep,
+) -> dict:
+    policy = policy or RetryPolicy()
+    if policy.max_attempts < 1:
+        raise ValueError("max_attempts must be >= 1")
+
+    target = getattr(adapter, "audit_target", adapter.name)
+    last_error: Exception | None = None
+
+    for attempt in range(1, policy.max_attempts + 1):
+        queue.record_resume_delivery_event(
+            item.id,
+            event_type="RESUME_DELIVERY_ATTEMPT",
+            actor=adapter.name,
+            adapter=adapter.name,
+            target=target,
+            attempt=attempt,
+        )
+        try:
+            return adapter.dispatch(queue, queue.get(item.id))
+        except Exception as exc:
+            last_error = exc
+            if attempt >= policy.max_attempts:
+                queue.record_resume_delivery_event(
+                    item.id,
+                    event_type="RESUME_DEAD_LETTERED",
+                    actor=adapter.name,
+                    adapter=adapter.name,
+                    target=target,
+                    attempt=attempt,
+                    error=f"{type(exc).__name__}: {exc}",
+                )
+                break
+            delay = policy.delay_for(attempt)
+            queue.record_resume_delivery_event(
+                item.id,
+                event_type="RESUME_DELIVERY_FAILED",
+                actor=adapter.name,
+                adapter=adapter.name,
+                target=target,
+                attempt=attempt,
+                error=f"{type(exc).__name__}: {exc}",
+                next_delay=delay,
+            )
+            sleeper(delay)
+
+    assert last_error is not None
+    raise last_error
 
 
 class GenericWebhookAdapter:
