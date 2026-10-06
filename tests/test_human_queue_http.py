@@ -348,3 +348,162 @@ def test_http_refuses_delivery_before_human_decision(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_resume_binding_auto_materializes_delivery_on_approve(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Auto resume?",
+                "source": "agent",
+                "resume_token": "step-auto",
+                "resume_binding": {
+                    "adapter": "webhook",
+                    "target": "https://worker.example/resume",
+                    "max_attempts": 4,
+                    "base_delay": 1,
+                    "multiplier": 2,
+                    "max_delay": 8,
+                },
+            },
+        )
+        assert status == 201
+        wait_id = created["wait"]["id"]
+        assert created["wait"]["resume_binding"]["adapter"] == "webhook"
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        assert decided["wait"]["state"] == "approved"
+        assert decided["delivery"]["wait_id"] == wait_id
+        assert decided["delivery"]["status"] == "pending"
+        delivery_id = decided["delivery"]["id"]
+
+        status, listing = request_json(base, "/api/deliveries")
+        assert status == 200
+        assert [d["id"] for d in listing["deliveries"]] == [delivery_id]
+
+        status, events = request_json(base, f"/api/waits/{wait_id}/events")
+        assert status == 200
+        assert [e["event_type"] for e in events["events"]][-2:] == [
+            "RESUME_REQUESTED",
+            "RESUME_DELIVERY_QUEUED",
+        ]
+
+        status, replay = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        assert replay["delivery"]["id"] == delivery_id
+
+        status, listing = request_json(base, "/api/deliveries")
+        assert len(listing["deliveries"]) == 1
+
+        status, events = request_json(base, f"/api/waits/{wait_id}/events")
+        queued = [
+            e for e in events["events"]
+            if e["event_type"] == "RESUME_DELIVERY_QUEUED"
+        ]
+        assert len(queued) == 1
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_resume_binding_does_not_materialize_delivery_on_reject(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Reject auto resume?",
+                "source": "agent",
+                "resume_binding": {
+                    "adapter": "webhook",
+                    "target": "https://worker.example/resume",
+                },
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "reject", "actor": "alice"},
+        )
+        assert status == 200
+        assert decided["wait"]["state"] == "rejected"
+        assert "delivery" not in decided
+
+        status, listing = request_json(base, "/api/deliveries")
+        assert status == 200
+        assert listing["deliveries"] == []
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_invalid_resume_binding_fails_closed_after_decision(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Broken binding",
+                "source": "agent",
+                "resume_binding": {"adapter": "webhook"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, payload = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 409
+        assert payload["error"] == "invalid_resume_binding"
+
+        status, listing = request_json(base, "/api/deliveries")
+        assert listing["deliveries"] == []
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
