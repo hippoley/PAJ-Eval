@@ -112,3 +112,41 @@ The live browser timeline uses this durable provenance instead of inventing a
 parallel UI-only history when connected to the runtime. Idempotent decision
 replays do not duplicate `DECISION_COMMITTED`, and rejected conflicting
 decisions do not append false events.
+
+
+## Machine acknowledgement protocol
+
+A human decision is not treated as proof that the machine successfully
+continued. Approved/edit/resolve decisions now create a distinct resume request,
+and the machine reports execution progress back to HumanQueue:
+
+```text
+DECISION_COMMITTED
+  -> RESUME_REQUESTED
+  -> PROCESS_RESUMED
+  -> PROCESS_COMPLETED
+                 or
+     PROCESS_FAILED
+```
+
+The runtime exposes:
+
+```python
+queue.mark_resumed(wait_id, actor="agent")
+queue.mark_completed(wait_id, actor="agent", success=True, detail="done")
+```
+
+and equivalent HTTP endpoints:
+
+```http
+POST /api/waits/{wait_id}/resumed
+POST /api/waits/{wait_id}/complete
+```
+
+Rejected decisions never create a resume request. Completion before a resume
+acknowledgement is rejected. Resume and same-terminal-result replays are
+idempotent, while contradictory terminal outcomes fail loudly.
+
+SSE queue frames now include recent audit events as well as pending waits, so
+machine-side `PROCESS_RESUMED`, `PROCESS_COMPLETED`, and `PROCESS_FAILED`
+events appear in the browser without polling.
