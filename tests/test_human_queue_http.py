@@ -1206,3 +1206,191 @@ def test_human_token_cannot_authenticate_machine_callback(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_destination_machine_policy_blocks_wrong_machine_without_state_change(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    machine_authenticator = server_module.ActorAuthenticator(
+        {"worker-a": "machine-token-a", "worker-b": "machine-token-b"}
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        machine_authenticator=machine_authenticator,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, destination = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "allowed_machine_actors": ["worker-a"],
+            },
+        )
+        assert status == 201
+        assert destination["destination"]["allowed_machine_actors"] == ["worker-a"]
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Machine-bound deploy",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        assert decided["delivery"]["allowed_machine_actors"] == ["worker-a"]
+
+        status, denied = request_json(
+            base,
+            f"/api/waits/{wait_id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer machine-token-b"},
+        )
+        assert status == 403
+        assert denied["error"] == "machine_not_authorized_for_delivery"
+
+        status, current = request_json(base, f"/api/waits/{wait_id}")
+        assert status == 200
+        assert current["wait"]["execution_state"] == "resume_requested"
+
+        status, events = request_json(base, f"/api/waits/{wait_id}/events")
+        event_types = [event["event_type"] for event in events["events"]]
+        assert event_types[-1] == "MACHINE_CALLBACK_DENIED"
+        assert "PROCESS_RESUMED" not in event_types
+        denied_event = events["events"][-1]
+        assert denied_event["actor"] == "worker-b"
+        assert denied_event["data"]["callback"] == "resumed"
+        assert denied_event["data"]["destination"] == "prod-deploy"
+        assert denied_event["data"]["destination_revision"] == 1
+        assert denied_event["data"]["allowed_machine_actors"] == ["worker-a"]
+
+        status, resumed = request_json(
+            base,
+            f"/api/waits/{wait_id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer machine-token-a"},
+        )
+        assert status == 200
+        assert resumed["wait"]["execution_state"] == "resumed"
+
+        status, completed = request_json(
+            base,
+            f"/api/waits/{wait_id}/complete",
+            method="POST",
+            body={"success": True},
+            headers={"Authorization": "Bearer machine-token-a"},
+        )
+        assert status == 200
+        assert completed["wait"]["execution_state"] == "completed"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_machine_policy_snapshot_does_not_drift_after_destination_change(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    machine_authenticator = server_module.ActorAuthenticator(
+        {"worker-a": "machine-token-a", "worker-b": "machine-token-b"}
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        machine_authenticator=machine_authenticator,
+    )
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "allowed_machine_actors": ["worker-a"],
+            },
+        )
+        _, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Immutable machine policy",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        wait_id = created["wait"]["id"]
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        assert decided["delivery"]["destination_revision"] == 1
+        assert decided["delivery"]["allowed_machine_actors"] == ["worker-a"]
+
+        request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "allowed_machine_actors": ["worker-b"],
+            },
+        )
+
+        status, denied = request_json(
+            base,
+            f"/api/waits/{wait_id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer machine-token-b"},
+        )
+        assert status == 403
+        assert denied["error"] == "machine_not_authorized_for_delivery"
+
+        status, resumed = request_json(
+            base,
+            f"/api/waits/{wait_id}/resumed",
+            method="POST",
+            body={},
+            headers={"Authorization": "Bearer machine-token-a"},
+        )
+        assert status == 200
+        assert resumed["wait"]["execution_state"] == "resumed"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
