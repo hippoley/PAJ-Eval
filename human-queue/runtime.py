@@ -30,6 +30,8 @@ class Wait:
     decision: dict[str, Any] | None
     resume_token: str | None
     payload: dict[str, Any]
+    claimed_by: str | None
+    claim_expires_at: float | None
 
 
 class HumanQueue:
@@ -59,10 +61,20 @@ class HumanQueue:
                     decided_at REAL,
                     decision_json TEXT,
                     resume_token TEXT,
-                    payload_json TEXT NOT NULL
+                    payload_json TEXT NOT NULL,
+                    claimed_by TEXT,
+                    claim_expires_at REAL
                 )
                 """
             )
+            columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(waits)").fetchall()
+            }
+            if "claimed_by" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN claimed_by TEXT")
+            if "claim_expires_at" not in columns:
+                conn.execute("ALTER TABLE waits ADD COLUMN claim_expires_at REAL")
 
     def ask(
         self,
@@ -183,6 +195,69 @@ class HumanQueue:
             ).fetchall()
         return [self._row_to_wait(row) for row in rows]
 
+    def claim(
+        self,
+        wait_id: str,
+        *,
+        actor: str,
+        lease_seconds: float = 30.0,
+    ) -> Wait:
+        """Claim a waiting item for a bounded lease.
+
+        The same actor may renew its lease. Another actor may only claim after
+        expiry. Decisions remain exactly-once independently of the lease.
+        """
+        if lease_seconds <= 0:
+            raise ValueError("lease_seconds must be positive")
+        now = time.time()
+        expires = now + lease_seconds
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            if item.state != "waiting":
+                raise RuntimeError(f"{wait_id} is already {item.state}")
+            if (
+                item.claimed_by
+                and item.claimed_by != actor
+                and item.claim_expires_at
+                and item.claim_expires_at > now
+            ):
+                raise RuntimeError(
+                    f"{wait_id} is claimed by {item.claimed_by} "
+                    f"until {item.claim_expires_at}"
+                )
+            conn.execute(
+                """
+                UPDATE waits
+                   SET claimed_by = ?, claim_expires_at = ?
+                 WHERE id = ? AND state = 'waiting'
+                """,
+                (actor, expires, wait_id),
+            )
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            assert row is not None
+            return self._row_to_wait(row)
+
+    def release_claim(self, wait_id: str, *, actor: str) -> Wait:
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            if item.claimed_by and item.claimed_by != actor:
+                raise RuntimeError(f"{wait_id} is claimed by {item.claimed_by}")
+            conn.execute(
+                "UPDATE waits SET claimed_by = NULL, claim_expires_at = NULL WHERE id = ?",
+                (wait_id,),
+            )
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            assert row is not None
+            return self._row_to_wait(row)
+
     def wait_for_decision(
         self,
         wait_id: str,
@@ -213,4 +288,6 @@ class HumanQueue:
             decision=json.loads(row["decision_json"]) if row["decision_json"] else None,
             resume_token=row["resume_token"],
             payload=json.loads(row["payload_json"]),
+            claimed_by=row["claimed_by"],
+            claim_expires_at=row["claim_expires_at"],
         )
