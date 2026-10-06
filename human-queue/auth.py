@@ -179,12 +179,131 @@ def ensure_disjoint_providers(
     human: AuthProvider | None,
     machine: AuthProvider | None,
 ) -> None:
-    """Enforce token-domain separation when both providers expose local maps."""
-    if not isinstance(human, BearerTokenAuthProvider):
-        return
-    if not isinstance(machine, BearerTokenAuthProvider):
-        return
-    ensure_disjoint_authenticators(
-        human.authenticator,
-        machine.authenticator,
+    """Enforce credential separation for built-in local providers."""
+    if _local_provider_secrets(human) & _local_provider_secrets(machine):
+        raise ValueError(
+            "human and machine auth providers must not share credentials"
+        )
+
+
+@dataclass(frozen=True)
+class TrustedHeaderAuthProvider:
+    """Accept an actor asserted by a trusted gateway/proxy.
+
+    A separate proof header prevents clients from simply spoofing the actor
+    header when the HumanQueue server is reachable directly.
+    """
+
+    principal_kind: str
+    proof_secret: str
+    actor_header: str = "X-HumanQueue-Actor"
+    proof_header: str = "X-HumanQueue-Proxy-Secret"
+    provider_name: str = "trusted-header"
+
+    def __post_init__(self) -> None:
+        if not self.principal_kind.strip():
+            raise ValueError("principal_kind is required")
+        if not self.proof_secret:
+            raise ValueError("trusted-header proof_secret is required")
+        if not self.actor_header.strip() or not self.proof_header.strip():
+            raise ValueError("trusted-header names must be non-empty")
+
+    def authenticate(
+        self,
+        context: AuthContext,
+        *,
+        claimed_actor: str | None = None,
+    ) -> Principal:
+        supplied_proof = context.headers.get(self.proof_header)
+        if not supplied_proof or not secrets.compare_digest(
+            supplied_proof,
+            self.proof_secret,
+        ):
+            raise AuthenticationError("trusted proxy proof required")
+
+        actor = str(context.headers.get(self.actor_header) or "").strip()
+        if not actor:
+            raise AuthenticationError("trusted actor header required")
+
+        claimed = (claimed_actor or "").strip()
+        if claimed and claimed != actor:
+            raise ActorMismatchError(
+                f"claimed actor {claimed!r} does not match authenticated actor"
+            )
+
+        return Principal(
+            actor=actor,
+            kind=self.principal_kind,
+            provider=self.provider_name,
+        )
+
+
+def load_auth_provider(
+    principal_kind: str,
+) -> AuthProvider | None:
+    """Load an auth provider for human or machine principals from env.
+
+    Backward compatibility:
+    - no explicit provider mode + legacy token env => bearer-token
+    - no configured credentials => auth disabled
+    """
+    if principal_kind not in {"human", "machine"}:
+        raise ValueError("principal_kind must be human or machine")
+
+    prefix = "HUMANQUEUE_HUMAN" if principal_kind == "human" else "HUMANQUEUE_MACHINE"
+    legacy_token_env = (
+        "HUMANQUEUE_ACTOR_TOKENS"
+        if principal_kind == "human"
+        else "HUMANQUEUE_MACHINE_TOKENS"
     )
+    mode = os.environ.get(f"{prefix}_AUTH_PROVIDER", "").strip().lower()
+
+    if not mode:
+        if os.environ.get(legacy_token_env):
+            mode = "bearer"
+        elif os.environ.get(f"{prefix}_PROXY_SECRET"):
+            mode = "trusted-header"
+        else:
+            return None
+
+    if mode in {"bearer", "bearer-token"}:
+        provider = BearerTokenAuthProvider.from_env(
+            legacy_token_env,
+            principal_kind=principal_kind,
+        )
+        if provider is None:
+            raise ValueError(
+                f"{legacy_token_env} is required for bearer auth"
+            )
+        return provider
+
+    if mode == "trusted-header":
+        proof_secret = os.environ.get(f"{prefix}_PROXY_SECRET", "")
+        actor_header = os.environ.get(
+            f"{prefix}_ACTOR_HEADER",
+            (
+                "X-HumanQueue-Human"
+                if principal_kind == "human"
+                else "X-HumanQueue-Machine"
+            ),
+        )
+        proof_header = os.environ.get(
+            f"{prefix}_PROXY_PROOF_HEADER",
+            "X-HumanQueue-Proxy-Secret",
+        )
+        return TrustedHeaderAuthProvider(
+            principal_kind=principal_kind,
+            proof_secret=proof_secret,
+            actor_header=actor_header,
+            proof_header=proof_header,
+        )
+
+    raise ValueError(f"unsupported auth provider: {mode}")
+
+
+def _local_provider_secrets(provider: AuthProvider | None) -> set[str]:
+    if isinstance(provider, BearerTokenAuthProvider):
+        return set(provider.authenticator.actor_tokens.values())
+    if isinstance(provider, TrustedHeaderAuthProvider):
+        return {provider.proof_secret}
+    return set()
