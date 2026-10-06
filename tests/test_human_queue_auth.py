@@ -23,6 +23,7 @@ auth = load("human_queue_auth", ROOT / "auth.py")
 ActorAuthenticator = auth.ActorAuthenticator
 AuthenticationError = auth.AuthenticationError
 ActorMismatchError = auth.ActorMismatchError
+ensure_disjoint_authenticators = auth.ensure_disjoint_authenticators
 
 
 def test_authenticator_maps_bearer_token_to_actor():
@@ -76,3 +77,23 @@ def test_authenticator_rejects_invalid_env_shape(monkeypatch):
     monkeypatch.setenv("HUMANQUEUE_ACTOR_TOKENS", '["not","an","object"]')
     with pytest.raises(ValueError, match="JSON object"):
         ActorAuthenticator.from_env()
+
+
+def test_human_and_machine_token_domains_must_be_disjoint():
+    human = ActorAuthenticator({"alice": "human-token"})
+    machine = ActorAuthenticator({"worker-a": "machine-token"})
+    ensure_disjoint_authenticators(human, machine)
+
+    overlapping = ActorAuthenticator({"worker-a": "human-token"})
+    with pytest.raises(ValueError, match="must not share"):
+        ensure_disjoint_authenticators(human, overlapping)
+
+
+def test_machine_authenticator_can_load_separate_env(monkeypatch):
+    monkeypatch.setenv(
+        "HUMANQUEUE_MACHINE_TOKENS",
+        '{"worker-a":"machine-token"}',
+    )
+    machine = ActorAuthenticator.from_env("HUMANQUEUE_MACHINE_TOKENS")
+    assert machine is not None
+    assert machine.authenticate("Bearer machine-token") == "worker-a"
