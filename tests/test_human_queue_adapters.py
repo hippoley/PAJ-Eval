@@ -39,6 +39,7 @@ def test_webhook_adapter_delivers_decision_without_claiming_machine_resumed(tmp_
             length = int(self.headers.get("Content-Length", "0"))
             received["body"] = json.loads(self.rfile.read(length))
             received["authorization"] = self.headers.get("Authorization")
+            received["idempotency_key"] = self.headers.get("Idempotency-Key")
             self.send_response(202)
             self.end_headers()
             self.wfile.write(b"accepted")
@@ -68,6 +69,7 @@ def test_webhook_adapter_delivers_decision_without_claiming_machine_resumed(tmp_
         assert received["body"]["resume_token"] == "deploy-42"
         assert received["body"]["decision"]["action"] == "approve"
         assert received["authorization"] == "Bearer top-secret"
+        assert received["idempotency_key"] == f"humanqueue:{item.id}:deploy-42"
 
         persisted = q.get(item.id)
         assert persisted.execution_state == "resume_requested"
@@ -181,6 +183,7 @@ def test_github_repository_dispatch_adapter_sends_expected_payload(tmp_path):
         assert payload["wait_id"] == item.id
         assert payload["resume_token"] == "deploy-step-7"
         assert payload["decision"]["action"] == "approve"
+        assert payload["delivery_key"] == f"humanqueue:{item.id}:deploy-step-7"
 
         events = q.audit_events(item.id)
         assert events[-1].event_type == "RESUME_DISPATCHED"
