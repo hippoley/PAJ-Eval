@@ -278,3 +278,48 @@ def test_destination_snapshot_carries_change_provenance(tmp_path):
     assert snapshot["destination_revision"] == 1
     assert snapshot["destination_changed_by"] == "release-admin"
     assert snapshot["destination_change_reason"] == "CAB-42"
+
+
+def test_decision_actor_policy_is_versioned_with_destination(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    first = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="security-admin",
+        reason="initial approvers",
+        allowed_decision_actors=["alice", "bob", "alice"],
+        now=100,
+    )
+    second = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        actor="security-admin",
+        reason="remove bob",
+        allowed_decision_actors=["alice"],
+        now=200,
+    )
+
+    assert first.allowed_decision_actors == ("alice", "bob")
+    assert second.revision == 2
+    assert second.allowed_decision_actors == ("alice",)
+
+    history = registry.history("prod-deploy")
+    assert history[0].allowed_decision_actors == ("alice", "bob")
+    assert history[1].allowed_decision_actors == ("alice",)
+
+
+def test_decision_actor_policy_rejects_string_shape(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    try:
+        registry.put(
+            "prod-deploy",
+            adapter="webhook",
+            target="https://worker.example/resume",
+            allowed_decision_actors="alice",
+        )
+    except ValueError as exc:
+        assert "must be an array" in str(exc)
+    else:
+        raise AssertionError("string actor policy unexpectedly accepted")
