@@ -383,3 +383,55 @@ RESUME_DELIVERY_QUEUED
 worker claim
 ...
 ```
+
+
+## Named resume destinations
+
+Agents no longer need to carry raw callback URLs or repository targets in every
+wait. HumanQueue can register secret-free logical destinations:
+
+```http
+POST /api/destinations
+Content-Type: application/json
+
+{
+  "name": "prod-deploy",
+  "adapter": "webhook",
+  "target": "https://worker.example/resume",
+  "max_attempts": 4,
+  "base_delay": 1,
+  "multiplier": 2,
+  "max_delay": 8
+}
+```
+
+Then a wait only references the logical name:
+
+```json
+{
+  "resume_binding": {
+    "destination": "prod-deploy"
+  }
+}
+```
+
+List configured destinations:
+
+```http
+GET /api/destinations
+```
+
+At decision time HumanQueue resolves the destination again. If it was disabled
+after the wait was created, a non-reject decision fails closed before the human
+decision is committed.
+
+Once a decision is accepted, the resolved adapter, target, and retry policy are
+snapshotted into the durable delivery job. Later destination edits therefore do
+not rewrite the meaning of an already-approved execution.
+
+Webhook destination URLs are sanitized before persistence: credentials, query
+parameters, and fragments are stripped. Adapter credentials remain outside the
+registry and continue to live only in the worker environment.
+
+Raw `adapter + target` resume bindings remain supported for backward
+compatibility, but named destinations are the preferred control-plane path.
