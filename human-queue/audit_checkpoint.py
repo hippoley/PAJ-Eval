@@ -44,6 +44,7 @@ class AuditCheckpointSigner:
         key_id: str = "default",
         keys: dict[str, str] | None = None,
         signing_key_id: str | None = None,
+        minimum_sequence: int = 0,
     ) -> None:
         keyring = {
             str(kid).strip(): str(secret)
@@ -70,11 +71,14 @@ class AuditCheckpointSigner:
             raise ValueError(
                 f"audit checkpoint signing key_id {active_key_id!r} is not in keyring"
             )
+        if minimum_sequence < 0:
+            raise ValueError("audit checkpoint minimum_sequence must be >= 0")
 
         self.queue = queue
         self.checkpoint_path = Path(checkpoint_path)
         self.keys = keyring
         self.key_id = active_key_id
+        self.minimum_sequence = int(minimum_sequence)
         self._lock = threading.Lock()
 
     @classmethod
@@ -117,6 +121,12 @@ class AuditCheckpointSigner:
                 path,
                 keys={str(k): str(v) for k, v in parsed.items()},
                 signing_key_id=signing_key_id,
+                minimum_sequence=int(
+                    os.environ.get(
+                        "HUMANQUEUE_AUDIT_CHECKPOINT_MIN_SEQUENCE",
+                        "0",
+                    )
+                ),
             )
 
         if not legacy_key:
@@ -130,6 +140,12 @@ class AuditCheckpointSigner:
             key_id=os.environ.get(
                 "HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID",
                 "default",
+            ),
+            minimum_sequence=int(
+                os.environ.get(
+                    "HUMANQUEUE_AUDIT_CHECKPOINT_MIN_SEQUENCE",
+                    "0",
+                )
             ),
         )
 
@@ -265,6 +281,14 @@ class AuditCheckpointSigner:
                 "ok": False,
                 "reason": "invalid_checkpoint_file",
                 "detail": str(exc),
+            }
+
+        if len(checkpoints) < self.minimum_sequence:
+            return {
+                "ok": False,
+                "reason": "checkpoint_rollback_detected",
+                "checkpoint_count": len(checkpoints),
+                "minimum_sequence": self.minimum_sequence,
             }
 
         previous_signature: str | None = None
