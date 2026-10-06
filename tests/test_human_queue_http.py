@@ -163,7 +163,7 @@ def test_sse_stream_emits_queue_snapshot_and_change(tmp_path):
             assert event == "event: queue"
             assert data.startswith("data: ")
             assert blank == ""
-            assert json.loads(data.removeprefix("data: ")) == {"waits": []}
+            assert json.loads(data.removeprefix("data: ")) == {"waits": [], "events": []}
 
             queue.ask(
                 uri="human://approve",
@@ -204,11 +204,12 @@ def test_http_exposes_audit_provenance(tmp_path):
             "WAIT_CREATED",
             "CLAIMED",
             "DECISION_COMMITTED",
+            "RESUME_REQUESTED",
         ]
 
         status, recent = request_json(base, "/api/audit")
         assert status == 200
-        assert recent["events"][-1]["event_type"] == "DECISION_COMMITTED"
+        assert recent["events"][-1]["event_type"] == "RESUME_REQUESTED"
         assert recent["events"][-1]["actor"] == "alice"
     finally:
         httpd.shutdown()
