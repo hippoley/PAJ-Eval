@@ -442,6 +442,53 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
+    def record_resume_delivery_event(
+        self,
+        wait_id: str,
+        *,
+        event_type: str,
+        actor: str,
+        adapter: str,
+        target: str,
+        attempt: int,
+        error: str | None = None,
+        next_delay: float | None = None,
+    ) -> Wait:
+        allowed = {
+            "RESUME_DELIVERY_ATTEMPT",
+            "RESUME_DELIVERY_FAILED",
+            "RESUME_DEAD_LETTERED",
+        }
+        if event_type not in allowed:
+            raise ValueError(f"unsupported delivery event: {event_type}")
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM waits WHERE id = ?", (wait_id,)).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            if item.execution_state not in {
+                "resume_requested",
+                "resumed",
+                "completed",
+                "failed",
+            }:
+                raise RuntimeError(f"{wait_id} has no resume request")
+            self._append_event(
+                conn,
+                wait_id,
+                event_type,
+                actor=actor,
+                data={
+                    "adapter": adapter,
+                    "target": target,
+                    "attempt": attempt,
+                    "error": error,
+                    "next_delay": next_delay,
+                },
+            )
+            return item
+
     def mark_resume_dispatched(
         self,
         wait_id: str,
