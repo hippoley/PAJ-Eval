@@ -7,6 +7,7 @@ bounded lease so another worker can take over after a crash.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import time
 import uuid
@@ -28,6 +29,7 @@ class Delivery:
     destination_revision: int | None
     destination_changed_by: str | None
     destination_change_reason: str | None
+    allowed_machine_actors: tuple[str, ...]
     status: str
     attempt: int
     max_attempts: int
@@ -65,6 +67,7 @@ class DurableDeliveryQueue:
                     destination_revision INTEGER,
                     destination_changed_by TEXT,
                     destination_change_reason TEXT,
+                    allowed_machine_actors_json TEXT NOT NULL DEFAULT '[]',
                     status TEXT NOT NULL,
                     attempt INTEGER NOT NULL,
                     max_attempts INTEGER NOT NULL,
@@ -106,6 +109,12 @@ class DurableDeliveryQueue:
                     "ALTER TABLE resume_deliveries "
                     "ADD COLUMN destination_change_reason TEXT"
                 )
+            if "allowed_machine_actors_json" not in columns:
+                conn.execute(
+                    "ALTER TABLE resume_deliveries "
+                    "ADD COLUMN allowed_machine_actors_json TEXT "
+                    "NOT NULL DEFAULT '[]'"
+                )
             conn.execute(
                 """
                 CREATE INDEX IF NOT EXISTS idx_resume_deliveries_due
@@ -124,6 +133,7 @@ class DurableDeliveryQueue:
         destination_revision: int | None = None,
         destination_changed_by: str | None = None,
         destination_change_reason: str | None = None,
+        allowed_machine_actors: list[str] | tuple[str, ...] | None = None,
         now: float | None = None,
     ) -> Delivery:
         policy = policy or RetryPolicy()
@@ -138,11 +148,12 @@ class DurableDeliveryQueue:
                     INSERT INTO resume_deliveries (
                         id, wait_id, adapter, target, destination,
                         destination_revision, destination_changed_by,
-                        destination_change_reason, status, attempt,
+                        destination_change_reason, allowed_machine_actors_json,
+                        status, attempt,
                         max_attempts, base_delay, multiplier, max_delay,
                         next_attempt_at, claimed_by, claim_expires_at,
                         last_error, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?, ?,
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?, ?, ?,
                               NULL, NULL, NULL, ?, ?)
                     """,
                     (
@@ -154,6 +165,7 @@ class DurableDeliveryQueue:
                         destination_revision,
                         destination_changed_by,
                         destination_change_reason,
+                        json.dumps(sorted(set(allowed_machine_actors or ()))),
                         policy.max_attempts,
                         policy.base_delay,
                         policy.multiplier,
@@ -190,6 +202,19 @@ class DurableDeliveryQueue:
             if row is None:
                 raise KeyError(delivery_id)
             return self._row(row)
+
+    def for_wait(self, wait_id: str) -> Delivery | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT * FROM resume_deliveries
+                 WHERE wait_id = ?
+                 ORDER BY created_at DESC
+                 LIMIT 1
+                """,
+                (wait_id,),
+            ).fetchone()
+        return None if row is None else self._row(row)
 
     def list(self, *, limit: int = 100) -> list[Delivery]:
         with self._connect() as conn:
@@ -369,6 +394,7 @@ class DurableDeliveryQueue:
             destination_revision=row["destination_revision"],
             destination_changed_by=row["destination_changed_by"],
             destination_change_reason=row["destination_change_reason"],
+            allowed_machine_actors=tuple(json.loads(row["allowed_machine_actors_json"])),
             status=row["status"],
             attempt=row["attempt"],
             max_attempts=row["max_attempts"],
@@ -424,6 +450,7 @@ def reconcile_bound_deliveries(
             destination_revision=resolved.get("destination_revision"),
             destination_changed_by=resolved.get("destination_changed_by"),
             destination_change_reason=resolved.get("destination_change_reason"),
+            allowed_machine_actors=resolved.get("allowed_machine_actors"),
         )
         queue.mark_resume_delivery_queued(
             item.id,
