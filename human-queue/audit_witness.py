@@ -135,19 +135,28 @@ class OnlineWitnessReceiptVerifier:
                 timeout=self.timeout_seconds,
             ) as response:
                 if response.status < 200 or response.status >= 300:
-                    return False
+                    raise RuntimeError(
+                        f"witness verification returned HTTP {response.status}"
+                    )
                 payload = json.loads(response.read())
-        except (
-            urllib.error.HTTPError,
-            urllib.error.URLError,
-            TimeoutError,
-            json.JSONDecodeError,
-        ):
-            return False
-        return bool(
-            isinstance(payload, dict)
-            and payload.get("valid") is True
-        )
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(
+                f"witness verification returned HTTP {exc.code}"
+            ) from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise RuntimeError(
+                "witness verification request failed"
+            ) from exc
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "witness verification returned invalid JSON"
+            ) from exc
+
+        if not isinstance(payload, dict) or "valid" not in payload:
+            raise RuntimeError(
+                "witness verification returned invalid response"
+            )
+        return payload.get("valid") is True
 
 
 class HttpCheckpointWitnessProvider:
@@ -456,8 +465,9 @@ class WitnessReceiptJournal:
         receipt: WitnessReceipt,
         *,
         provider: CheckpointWitnessProvider,
+        already_verified: bool = False,
     ) -> WitnessReceipt:
-        if not provider.verify(receipt):
+        if not already_verified and not provider.verify(receipt):
             raise RuntimeError("cannot persist invalid witness receipt")
 
         with self._file_lock():
@@ -510,6 +520,13 @@ class WitnessReceiptJournal:
         for receipt in receipts:
             try:
                 valid = provider.verify(receipt)
+            except RuntimeError as exc:
+                return {
+                    "ok": False,
+                    "reason": "witness_verification_unavailable",
+                    "receipt_id": receipt.receipt_id,
+                    "detail": str(exc),
+                }
             except Exception:
                 valid = False
             if not valid:
