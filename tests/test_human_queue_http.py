@@ -502,3 +502,169 @@ def test_invalid_resume_binding_is_rejected_before_wait_creation(tmp_path):
         httpd.shutdown()
         thread.join(timeout=2)
         httpd.server_close()
+
+
+def test_named_destination_auto_materializes_snapshot(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, created_dest = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/v1",
+                "max_attempts": 4,
+                "base_delay": 1,
+                "multiplier": 2,
+                "max_delay": 8,
+            },
+        )
+        assert status == 201
+        assert created_dest["destination"]["name"] == "prod-deploy"
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Deploy through named destination?",
+                "source": "agent",
+                "resume_token": "named-http",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        assert status == 201
+        wait_id = created["wait"]["id"]
+        assert created["wait"]["resume_binding"] == {"destination": "prod-deploy"}
+
+        status, decided = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 200
+        assert decided["delivery"]["target"] == "https://worker.example/v1"
+        delivery_id = decided["delivery"]["id"]
+
+        status, _ = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/v2",
+            },
+        )
+        assert status == 201
+
+        status, listing = request_json(base, "/api/deliveries")
+        assert status == 200
+        job = next(d for d in listing["deliveries"] if d["id"] == delivery_id)
+        assert job["target"] == "https://worker.example/v1"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_disabled_destination_blocks_decision_before_commit(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, _ = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+            },
+        )
+        assert status == 201
+
+        status, created = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Governed deploy?",
+                "source": "agent",
+                "resume_binding": {"destination": "prod-deploy"},
+            },
+        )
+        assert status == 201
+        wait_id = created["wait"]["id"]
+
+        status, _ = request_json(
+            base,
+            "/api/destinations",
+            method="POST",
+            body={
+                "name": "prod-deploy",
+                "adapter": "webhook",
+                "target": "https://worker.example/resume",
+                "enabled": False,
+            },
+        )
+        assert status == 201
+
+        status, blocked = request_json(
+            base,
+            f"/api/waits/{wait_id}/decision",
+            method="POST",
+            body={"action": "approve", "actor": "alice"},
+        )
+        assert status == 409
+        assert blocked["error"] == "resume_destination_unavailable"
+
+        status, current = request_json(base, f"/api/waits/{wait_id}")
+        assert status == 200
+        assert current["wait"]["state"] == "waiting"
+        assert current["wait"]["decision"] is None
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_unknown_destination_rejected_at_wait_creation(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    httpd = server_module.make_server(queue, host="127.0.0.1", port=0)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, payload = request_json(
+            base,
+            "/api/waits",
+            method="POST",
+            body={
+                "uri": "human://approve",
+                "title": "Missing destination",
+                "source": "agent",
+                "resume_binding": {"destination": "does-not-exist"},
+            },
+        )
+        assert status == 400
+        assert payload["error"] == "invalid_resume_binding"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
