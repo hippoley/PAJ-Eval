@@ -20,6 +20,8 @@ class ResumeDestination:
     policy: RetryPolicy
     enabled: bool
     revision: int
+    changed_by: str | None
+    change_reason: str | None
     created_at: float
     updated_at: float
 
@@ -29,6 +31,8 @@ class ResumeDestination:
             "adapter": self.adapter,
             "target": self.target,
             "destination_revision": self.revision,
+            "destination_changed_by": self.changed_by,
+            "destination_change_reason": self.change_reason,
             "max_attempts": self.policy.max_attempts,
             "base_delay": self.policy.base_delay,
             "multiplier": self.policy.multiplier,
@@ -63,6 +67,8 @@ class DestinationRegistry:
                     policy_json TEXT NOT NULL,
                     enabled INTEGER NOT NULL,
                     revision INTEGER NOT NULL DEFAULT 1,
+                    changed_by TEXT,
+                    change_reason TEXT,
                     created_at REAL NOT NULL,
                     updated_at REAL NOT NULL
                 )
@@ -79,6 +85,14 @@ class DestinationRegistry:
                     "ALTER TABLE resume_destinations "
                     "ADD COLUMN revision INTEGER NOT NULL DEFAULT 1"
                 )
+            if "changed_by" not in columns:
+                conn.execute(
+                    "ALTER TABLE resume_destinations ADD COLUMN changed_by TEXT"
+                )
+            if "change_reason" not in columns:
+                conn.execute(
+                    "ALTER TABLE resume_destinations ADD COLUMN change_reason TEXT"
+                )
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS resume_destination_revisions (
@@ -88,6 +102,8 @@ class DestinationRegistry:
                     target TEXT NOT NULL,
                     policy_json TEXT NOT NULL,
                     enabled INTEGER NOT NULL,
+                    changed_by TEXT,
+                    change_reason TEXT,
                     changed_at REAL NOT NULL,
                     PRIMARY KEY(name, revision)
                 )
@@ -102,6 +118,8 @@ class DestinationRegistry:
         target: str,
         policy: RetryPolicy | None = None,
         enabled: bool = True,
+        actor: str = "system",
+        reason: str | None = None,
         now: float | None = None,
     ) -> ResumeDestination:
         name = name.strip()
@@ -118,6 +136,10 @@ class DestinationRegistry:
         policy = policy or RetryPolicy()
         if policy.max_attempts < 1:
             raise ValueError("max_attempts must be >= 1")
+        actor = actor.strip()
+        if not actor:
+            raise ValueError("destination change actor is required")
+        reason = reason.strip() if isinstance(reason, str) else reason
         now = time.time() if now is None else now
         policy_json = json.dumps(
             {
@@ -142,23 +164,23 @@ class DestinationRegistry:
                 or existing["policy_json"] != policy_json
                 or existing["enabled"] != enabled_int
             )
-            revision = (
-                1
-                if existing is None
-                else int(existing["revision"]) + (1 if changed else 0)
-            )
+            if existing is not None and not changed:
+                return self._row(existing)
+            revision = 1 if existing is None else int(existing["revision"]) + 1
             conn.execute(
                 """
                 INSERT INTO resume_destinations (
                     name, adapter, target, policy_json, enabled, revision,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    changed_by, change_reason, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(name) DO UPDATE SET
                     adapter = excluded.adapter,
                     target = excluded.target,
                     policy_json = excluded.policy_json,
                     enabled = excluded.enabled,
                     revision = excluded.revision,
+                    changed_by = excluded.changed_by,
+                    change_reason = excluded.change_reason,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -168,6 +190,8 @@ class DestinationRegistry:
                     policy_json,
                     enabled_int,
                     revision,
+                    actor,
+                    reason,
                     created_at,
                     now,
                 ),
@@ -177,8 +201,8 @@ class DestinationRegistry:
                     """
                     INSERT INTO resume_destination_revisions (
                         name, revision, adapter, target, policy_json,
-                        enabled, changed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        enabled, changed_by, change_reason, changed_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         name,
@@ -187,6 +211,8 @@ class DestinationRegistry:
                         target,
                         policy_json,
                         enabled_int,
+                        actor,
+                        reason,
                         now,
                     ),
                 )
@@ -222,6 +248,8 @@ class DestinationRegistry:
         name: str,
         enabled: bool,
         *,
+        actor: str = "system",
+        reason: str | None = None,
         now: float | None = None,
     ) -> ResumeDestination:
         now = time.time() if now is None else now
@@ -232,6 +260,8 @@ class DestinationRegistry:
             target=current.target,
             policy=current.policy,
             enabled=enabled,
+            actor=actor,
+            reason=reason,
             now=now,
         )
 
@@ -240,8 +270,8 @@ class DestinationRegistry:
             rows = conn.execute(
                 """
                 SELECT name, adapter, target, policy_json, enabled,
-                       revision, changed_at AS created_at,
-                       changed_at AS updated_at
+                       revision, changed_by, change_reason,
+                       changed_at AS created_at, changed_at AS updated_at
                   FROM resume_destination_revisions
                  WHERE name = ?
                  ORDER BY revision
@@ -265,6 +295,8 @@ class DestinationRegistry:
             ),
             enabled=bool(row["enabled"]),
             revision=int(row["revision"]),
+            changed_by=row["changed_by"],
+            change_reason=row["change_reason"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
