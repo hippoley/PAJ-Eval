@@ -147,6 +147,18 @@ class DurableDeliveryQueue:
                 raise KeyError(delivery_id)
             return self._row(row)
 
+    def list(self, *, limit: int = 100) -> list[Delivery]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM resume_deliveries
+                 ORDER BY created_at DESC
+                 LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [self._row(row) for row in reversed(rows)]
+
     def due(self, *, now: float | None = None, limit: int = 100) -> list[Delivery]:
         now = time.time() if now is None else now
         with self._connect() as conn:
