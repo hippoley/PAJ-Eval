@@ -21,15 +21,9 @@ that proves HumanQueue is more than UI.
 
 ## Run the proof
 
-Use two terminals from the repository root.
+Use the web UI plus a producer from the repository root.
 
-Terminal A:
-
-```bash
-python human-queue/demo_blocked_process.py producer
-```
-
-You should see:
+Terminal A — start HumanQueue:\n\n```bash\npython human-queue/server.py\n```\n\nOpen `http://127.0.0.1:8765`. The header should switch to **durable runtime connected**.\n\nTerminal B — start a blocked producer:\n\n```bash\npython human-queue/demo_blocked_process.py producer\n```\n\nYou should see:
 
 ```text
 [agent] WAITING_FOR_HUMAN wait_...
@@ -37,13 +31,7 @@ You should see:
 
 The process remains blocked.
 
-Terminal B:
-
-```bash
-python human-queue/demo_blocked_process.py human
-```
-
-Choose `approve`. Terminal A then continues by itself:
+The task appears automatically in the browser. Click **Approve**. Terminal B then continues by itself:
 
 ```text
 [agent] RESUMED cleanup-step-3
@@ -66,12 +54,7 @@ That transition is the current Reality Delta.
 
 ## Next hardening steps
 
-1. expose the same contract over HTTP/SSE
-2. connect the web UI to the runtime instead of fixture data
-3. add leases/claims for multiple human reviewers
-4. add webhook/MCP/GitHub resume adapters
-5. add audit signatures and policy provenance
-6. replace polling with event delivery for distributed deployment
+1. replace browser polling with SSE or event delivery\n2. add leases/claims for multiple human reviewers\n3. add webhook/MCP/GitHub resume adapters\n4. add audit signatures and policy provenance\n5. add authentication and actor identity\n6. move from single-node SQLite to an optional distributed store
 
 The architectural rule is simple: **UI is optional; the durable boundary is the
 product primitive.**
