@@ -13,6 +13,7 @@ import json
 import os
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
@@ -45,6 +46,8 @@ class AuditCheckpointSigner:
         keys: dict[str, str] | None = None,
         signing_key_id: str | None = None,
         minimum_sequence: int = 0,
+        lock_timeout_seconds: float = 5.0,
+        stale_lock_seconds: float = 60.0,
     ) -> None:
         keyring: dict[str, str] = {}
         for raw_kid, raw_secret in (keys or {}).items():
@@ -81,6 +84,10 @@ class AuditCheckpointSigner:
             )
         if minimum_sequence < 0:
             raise ValueError("audit checkpoint minimum_sequence must be >= 0")
+        if lock_timeout_seconds <= 0:
+            raise ValueError("audit checkpoint lock_timeout_seconds must be > 0")
+        if stale_lock_seconds <= 0:
+            raise ValueError("audit checkpoint stale_lock_seconds must be > 0")
 
         self.queue = queue
         self.checkpoint_path = Path(checkpoint_path)
@@ -94,6 +101,8 @@ class AuditCheckpointSigner:
         self.keys = keyring
         self.key_id = active_key_id
         self.minimum_sequence = int(minimum_sequence)
+        self.lock_timeout_seconds = float(lock_timeout_seconds)
+        self.stale_lock_seconds = float(stale_lock_seconds)
         self._lock = threading.Lock()
 
     @classmethod
@@ -142,6 +151,18 @@ class AuditCheckpointSigner:
                         "0",
                     )
                 ),
+                lock_timeout_seconds=float(
+                    os.environ.get(
+                        "HUMANQUEUE_AUDIT_CHECKPOINT_LOCK_TIMEOUT_SECONDS",
+                        "5",
+                    )
+                ),
+                stale_lock_seconds=float(
+                    os.environ.get(
+                        "HUMANQUEUE_AUDIT_CHECKPOINT_STALE_LOCK_SECONDS",
+                        "60",
+                    )
+                ),
             )
 
         if not legacy_key:
@@ -160,6 +181,18 @@ class AuditCheckpointSigner:
                 os.environ.get(
                     "HUMANQUEUE_AUDIT_CHECKPOINT_MIN_SEQUENCE",
                     "0",
+                )
+            ),
+            lock_timeout_seconds=float(
+                os.environ.get(
+                    "HUMANQUEUE_AUDIT_CHECKPOINT_LOCK_TIMEOUT_SECONDS",
+                    "5",
+                )
+            ),
+            stale_lock_seconds=float(
+                os.environ.get(
+                    "HUMANQUEUE_AUDIT_CHECKPOINT_STALE_LOCK_SECONDS",
+                    "60",
                 )
             ),
         )
@@ -224,69 +257,121 @@ class AuditCheckpointSigner:
     def checkpoints(self) -> list[AuditCheckpoint]:
         return [AuditCheckpoint(**row) for row in self._read_raw()]
 
+    @property
+    def lock_path(self) -> Path:
+        return Path(str(self.checkpoint_path) + ".lock")
+
+    @contextmanager
+    def _file_lock(self):
+        deadline = time.monotonic() + self.lock_timeout_seconds
+        self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+
+        while True:
+            try:
+                fd = os.open(
+                    self.lock_path,
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                    0o600,
+                )
+                try:
+                    os.write(
+                        fd,
+                        json.dumps(
+                            {
+                                "pid": os.getpid(),
+                                "created_at": time.time(),
+                            },
+                            sort_keys=True,
+                        ).encode(),
+                    )
+                finally:
+                    os.close(fd)
+                break
+            except FileExistsError:
+                try:
+                    age = time.time() - self.lock_path.stat().st_mtime
+                except FileNotFoundError:
+                    continue
+                if age > self.stale_lock_seconds:
+                    try:
+                        self.lock_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    continue
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        "timed out waiting for audit checkpoint writer lock"
+                    )
+                time.sleep(0.05)
+
+        try:
+            yield
+        finally:
+            try:
+                self.lock_path.unlink()
+            except FileNotFoundError:
+                pass
+
     def create(self, *, now: float | None = None) -> AuditCheckpoint:
         with self._lock:
-            existing_status = self.verify()
-            if not existing_status["ok"]:
-                raise RuntimeError(
-                    "cannot append to an invalid audit checkpoint chain"
-                )
-
-            chain = self.queue.verify_audit_chain()
-            if not chain["ok"]:
-                raise RuntimeError(
-                    "cannot checkpoint a broken audit chain"
-                )
-
-            existing = self.checkpoints()
-            previous_signature = (
-                existing[-1].signature if existing else None
-            )
-            checkpoint = AuditCheckpoint(
-                version=1,
-                sequence=len(existing) + 1,
-                created_at=time.time() if now is None else now,
-                event_count=int(chain["checked"]),
-                head_hash=chain.get("head_hash"),
-                previous_signature=previous_signature,
-                key_id=self.key_id,
-                signature="",
-            )
-            payload = self._payload(
-                version=checkpoint.version,
-                sequence=checkpoint.sequence,
-                created_at=checkpoint.created_at,
-                event_count=checkpoint.event_count,
-                head_hash=checkpoint.head_hash,
-                previous_signature=checkpoint.previous_signature,
-                key_id=checkpoint.key_id,
-            )
-            signed = AuditCheckpoint(
-                **{
-                    **asdict(checkpoint),
-                    "signature": self._sign_payload(
-                        payload,
-                        key_id=checkpoint.key_id,
-                    ),
-                }
-            )
-
-            self.checkpoint_path.parent.mkdir(
-                parents=True,
-                exist_ok=True,
-            )
-            with self.checkpoint_path.open("a", encoding="utf-8") as handle:
-                handle.write(
-                    json.dumps(
-                        asdict(signed),
-                        sort_keys=True,
-                        separators=(",", ":"),
+            with self._file_lock():
+                existing_status = self.verify()
+                if not existing_status["ok"]:
+                    raise RuntimeError(
+                        "cannot append to an invalid audit checkpoint chain"
                     )
-                    + "\n"
+
+                chain = self.queue.verify_audit_chain()
+                if not chain["ok"]:
+                    raise RuntimeError(
+                        "cannot checkpoint a broken audit chain"
+                    )
+
+                existing = self.checkpoints()
+                previous_signature = (
+                    existing[-1].signature if existing else None
                 )
-                handle.flush()
-                os.fsync(handle.fileno())
-            return signed
+                checkpoint = AuditCheckpoint(
+                    version=1,
+                    sequence=len(existing) + 1,
+                    created_at=time.time() if now is None else now,
+                    event_count=int(chain["checked"]),
+                    head_hash=chain.get("head_hash"),
+                    previous_signature=previous_signature,
+                    key_id=self.key_id,
+                    signature="",
+                )
+                payload = self._payload(
+                    version=checkpoint.version,
+                    sequence=checkpoint.sequence,
+                    created_at=checkpoint.created_at,
+                    event_count=checkpoint.event_count,
+                    head_hash=checkpoint.head_hash,
+                    previous_signature=checkpoint.previous_signature,
+                    key_id=checkpoint.key_id,
+                )
+                signed = AuditCheckpoint(
+                    **{
+                        **asdict(checkpoint),
+                        "signature": self._sign_payload(
+                            payload,
+                            key_id=checkpoint.key_id,
+                        ),
+                    }
+                )
+
+                with self.checkpoint_path.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(
+                            asdict(signed),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
+                        + "\n"
+                    )
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                return signed
 
     def verify(self) -> dict[str, Any]:
         try:
