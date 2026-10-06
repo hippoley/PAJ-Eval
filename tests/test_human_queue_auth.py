@@ -23,7 +23,11 @@ auth = load("human_queue_auth", ROOT / "auth.py")
 ActorAuthenticator = auth.ActorAuthenticator
 AuthenticationError = auth.AuthenticationError
 ActorMismatchError = auth.ActorMismatchError
+Principal = auth.Principal
+BearerTokenAuthProvider = auth.BearerTokenAuthProvider
+adapt_authenticator = auth.adapt_authenticator
 ensure_disjoint_authenticators = auth.ensure_disjoint_authenticators
+ensure_disjoint_providers = auth.ensure_disjoint_providers
 
 
 def test_authenticator_maps_bearer_token_to_actor():
@@ -97,3 +101,43 @@ def test_machine_authenticator_can_load_separate_env(monkeypatch):
     machine = ActorAuthenticator.from_env("HUMANQUEUE_MACHINE_TOKENS")
     assert machine is not None
     assert machine.authenticate("Bearer machine-token") == "worker-a"
+
+
+def test_bearer_provider_returns_typed_principal():
+    provider = BearerTokenAuthProvider(
+        ActorAuthenticator({"alice": "token-a"}),
+        principal_kind="human",
+        provider_name="local-test",
+    )
+    principal = provider.authenticate("Bearer token-a")
+    assert principal == Principal(
+        actor="alice",
+        kind="human",
+        provider="local-test",
+        attributes={},
+    )
+
+
+def test_legacy_authenticator_can_be_adapted_without_breaking_api():
+    authenticator = ActorAuthenticator({"worker-a": "machine-token"})
+    provider = adapt_authenticator(
+        authenticator,
+        principal_kind="machine",
+    )
+    assert provider is not None
+    principal = provider.authenticate("Bearer machine-token")
+    assert principal.actor == "worker-a"
+    assert principal.kind == "machine"
+
+
+def test_disjoint_provider_check_applies_to_local_bearer_providers():
+    human = BearerTokenAuthProvider(
+        ActorAuthenticator({"alice": "shared-token"}),
+        principal_kind="human",
+    )
+    machine = BearerTokenAuthProvider(
+        ActorAuthenticator({"worker-a": "shared-token"}),
+        principal_kind="machine",
+    )
+    with pytest.raises(ValueError, match="must not share"):
+        ensure_disjoint_providers(human, machine)
