@@ -775,6 +775,14 @@ class HumanQueue:
              ORDER BY id
             """
         ).fetchall()
+        if not rows:
+            return
+
+        # Migration is one-way only. If any hash already exists, never rewrite
+        # historical evidence during startup; verification must surface damage.
+        if any(row["event_hash"] is not None for row in rows):
+            return
+
         prev_hash: str | None = None
         for row in rows:
             expected = cls._audit_hash(
@@ -786,15 +794,14 @@ class HumanQueue:
                 data_json=row["data_json"],
                 prev_hash=prev_hash,
             )
-            if row["prev_hash"] != prev_hash or row["event_hash"] != expected:
-                conn.execute(
-                    """
-                    UPDATE audit_events
-                       SET prev_hash = ?, event_hash = ?
-                     WHERE id = ?
-                    """,
-                    (prev_hash, expected, row["id"]),
-                )
+            conn.execute(
+                """
+                UPDATE audit_events
+                   SET prev_hash = ?, event_hash = ?
+                 WHERE id = ?
+                """,
+                (prev_hash, expected, row["id"]),
+            )
             prev_hash = expected
 
     @classmethod
