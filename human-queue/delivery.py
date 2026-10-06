@@ -336,6 +336,46 @@ class DurableDeliveryQueue:
         )
 
 
+def reconcile_bound_deliveries(
+    queue: HumanQueue,
+    deliveries: DurableDeliveryQueue,
+) -> list[Delivery]:
+    """Materialize any persisted resume bindings missing a delivery job.
+
+    This closes the crash window between DECISION_COMMITTED/RESUME_REQUESTED
+    and delivery enqueue. The enqueue operation is idempotent by
+    (wait_id, adapter, target), so reconciliation is safe to repeat.
+    """
+    materialized: list[Delivery] = []
+    for item in queue.resume_requested():
+        binding = item.resume_binding or {}
+        adapter = str(binding.get("adapter") or "").strip()
+        target = str(binding.get("target") or "").strip()
+        if not adapter or not target:
+            continue
+        policy = RetryPolicy(
+            max_attempts=int(binding.get("max_attempts") or 3),
+            base_delay=float(binding.get("base_delay") or 0.25),
+            multiplier=float(binding.get("multiplier") or 2.0),
+            max_delay=float(binding.get("max_delay") or 5.0),
+        )
+        job = deliveries.enqueue(
+            item.id,
+            adapter=adapter,
+            target=target,
+            policy=policy,
+        )
+        queue.mark_resume_delivery_queued(
+            item.id,
+            actor="reconciler",
+            adapter=adapter,
+            target=target,
+            delivery_id=job.id,
+        )
+        materialized.append(job)
+    return materialized
+
+
 def run_delivery_once(
     queue: HumanQueue,
     deliveries: DurableDeliveryQueue,
