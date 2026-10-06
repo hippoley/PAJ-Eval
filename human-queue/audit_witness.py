@@ -29,6 +29,11 @@ class WitnessReceipt:
     signature: str
 
 
+class WitnessReceiptVerifier(Protocol):
+    def verify(self, receipt: WitnessReceipt) -> bool:
+        ...
+
+
 class CheckpointWitnessProvider(Protocol):
     def publish(self, checkpoint: AuditCheckpoint) -> WitnessReceipt:
         ...
@@ -89,6 +94,61 @@ class HmacWitnessReceiptVerifier:
         return hmac.compare_digest(receipt.signature, expected)
 
 
+class OnlineWitnessReceiptVerifier:
+    """Ask an independent witness service to validate its own receipt."""
+
+    def __init__(
+        self,
+        endpoint: str,
+        *,
+        timeout_seconds: float = 5.0,
+    ) -> None:
+        endpoint = endpoint.strip()
+        if not endpoint.startswith(("http://", "https://")):
+            raise ValueError(
+                "witness verification endpoint must be http or https"
+            )
+        if timeout_seconds <= 0:
+            raise ValueError("witness verification timeout_seconds must be > 0")
+        self.endpoint = endpoint
+        self.timeout_seconds = float(timeout_seconds)
+
+    def verify(self, receipt: WitnessReceipt) -> bool:
+        body = json.dumps(
+            {"receipt": asdict(receipt)},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        request = urllib.request.Request(
+            self.endpoint,
+            method="POST",
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(
+                request,
+                timeout=self.timeout_seconds,
+            ) as response:
+                if response.status < 200 or response.status >= 300:
+                    return False
+                payload = json.loads(response.read())
+        except (
+            urllib.error.HTTPError,
+            urllib.error.URLError,
+            TimeoutError,
+            json.JSONDecodeError,
+        ):
+            return False
+        return bool(
+            isinstance(payload, dict)
+            and payload.get("valid") is True
+        )
+
+
 class HttpCheckpointWitnessProvider:
     """Publish checkpoints to an independent HTTP witness.
 
@@ -101,7 +161,7 @@ class HttpCheckpointWitnessProvider:
         self,
         endpoint: str,
         *,
-        verifier: HmacWitnessReceiptVerifier,
+        verifier: WitnessReceiptVerifier,
         timeout_seconds: float = 5.0,
     ) -> None:
         endpoint = endpoint.strip()
@@ -236,172 +296,55 @@ class InMemoryWitnessProvider:
 
 def load_witness_provider() -> CheckpointWitnessProvider | None:
     endpoint = os.environ.get("HUMANQUEUE_AUDIT_WITNESS_URL", "").strip()
+    verify_endpoint = os.environ.get(
+        "HUMANQUEUE_AUDIT_WITNESS_VERIFY_URL",
+        "",
+    ).strip()
     raw_keys = os.environ.get("HUMANQUEUE_AUDIT_WITNESS_KEYS", "").strip()
-    if not endpoint and not raw_keys:
+
+    if not endpoint and not verify_endpoint and not raw_keys:
         return None
     if not endpoint:
         raise ValueError(
-            "HUMANQUEUE_AUDIT_WITNESS_URL is required when witness verification is configured"
+            "HUMANQUEUE_AUDIT_WITNESS_URL is required when witness is configured"
         )
-    if not raw_keys:
-        raise ValueError(
-            "HUMANQUEUE_AUDIT_WITNESS_KEYS is required when witness is configured"
-        )
-    try:
-        parsed = json.loads(raw_keys)
-    except json.JSONDecodeError as exc:
-        raise ValueError(
-            "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
-        ) from exc
-    if not isinstance(parsed, dict):
-        raise ValueError(
-            "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
-        )
+
     timeout = float(
         os.environ.get(
             "HUMANQUEUE_AUDIT_WITNESS_TIMEOUT_SECONDS",
             "5",
         )
     )
+
+    if verify_endpoint:
+        verifier: WitnessReceiptVerifier = OnlineWitnessReceiptVerifier(
+            verify_endpoint,
+            timeout_seconds=timeout,
+        )
+    else:
+        if not raw_keys:
+            raise ValueError(
+                "configure HUMANQUEUE_AUDIT_WITNESS_VERIFY_URL for an independent "
+                "online witness, or HUMANQUEUE_AUDIT_WITNESS_KEYS for shared-key verification"
+            )
+        try:
+            parsed = json.loads(raw_keys)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
+            ) from exc
+        if not isinstance(parsed, dict):
+            raise ValueError(
+                "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
+            )
+        verifier = HmacWitnessReceiptVerifier(
+            {str(k): str(v) for k, v in parsed.items()}
+        )
+
     return HttpCheckpointWitnessProvider(
         endpoint,
-        verifier=HmacWitnessReceiptVerifier(
-            {str(k): str(v) for k, v in parsed.items()}
-        ),
+        verifier=verifier,
         timeout_seconds=timeout,
     )
 
 
-
-class WitnessReceiptJournal:
-    """Local cache of independently signed witness receipts."""
-
-    def __init__(self, path: str | Path) -> None:
-        self.path = Path(path)
-
-    def receipts(self) -> list[WitnessReceipt]:
-        if not self.path.exists():
-            return []
-        receipts: list[WitnessReceipt] = []
-        with self.path.open("r", encoding="utf-8") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    raw = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    raise RuntimeError(
-                        f"invalid witness receipt JSON at line {line_number}"
-                    ) from exc
-                if not isinstance(raw, dict):
-                    raise RuntimeError(
-                        f"invalid witness receipt at line {line_number}"
-                    )
-                try:
-                    receipts.append(WitnessReceipt(**raw))
-                except TypeError as exc:
-                    raise RuntimeError(
-                        f"invalid witness receipt shape at line {line_number}"
-                    ) from exc
-        return receipts
-
-    def append(
-        self,
-        receipt: WitnessReceipt,
-        *,
-        provider: CheckpointWitnessProvider,
-    ) -> WitnessReceipt:
-        if not provider.verify(receipt):
-            raise RuntimeError("cannot persist invalid witness receipt")
-
-        existing = self.receipts()
-        for current in existing:
-            if current.receipt_id == receipt.receipt_id:
-                if current == receipt:
-                    return current
-                raise RuntimeError(
-                    "witness receipt id conflicts with existing receipt"
-                )
-
-        if (
-            existing
-            and receipt.checkpoint_sequence
-            < existing[-1].checkpoint_sequence
-        ):
-            raise RuntimeError(
-                "witness receipt checkpoint sequence moved backwards"
-            )
-
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(
-                json.dumps(
-                    asdict(receipt),
-                    sort_keys=True,
-                    separators=(",", ":"),
-                )
-                + "\n"
-            )
-            handle.flush()
-            os.fsync(handle.fileno())
-        return receipt
-
-    def status(
-        self,
-        checkpoint: AuditCheckpoint | None,
-        *,
-        provider: CheckpointWitnessProvider,
-    ) -> dict[str, Any]:
-        try:
-            receipts = self.receipts()
-        except RuntimeError as exc:
-            return {
-                "ok": False,
-                "reason": "invalid_witness_receipt_journal",
-                "detail": str(exc),
-            }
-
-        for receipt in receipts:
-            try:
-                valid = provider.verify(receipt)
-            except Exception:
-                valid = False
-            if not valid:
-                return {
-                    "ok": False,
-                    "reason": "invalid_witness_receipt_signature",
-                    "receipt_id": receipt.receipt_id,
-                }
-
-        if checkpoint is None:
-            return {
-                "ok": True,
-                "witnessed": False,
-                "receipt_count": len(receipts),
-                "checkpoint_sequence": None,
-            }
-
-        matching = [
-            receipt
-            for receipt in receipts
-            if receipt.checkpoint_sequence == checkpoint.sequence
-            and receipt.checkpoint_signature == checkpoint.signature
-            and receipt.checkpoint_head_hash == checkpoint.head_hash
-        ]
-        latest = matching[-1] if matching else None
-        return {
-            "ok": True,
-            "witnessed": latest is not None,
-            "receipt_count": len(receipts),
-            "checkpoint_sequence": checkpoint.sequence,
-            "receipt": asdict(latest) if latest else None,
-        }
-
-
-def load_witness_receipt_journal() -> WitnessReceiptJournal | None:
-    path = os.environ.get(
-        "HUMANQUEUE_AUDIT_WITNESS_RECEIPTS_FILE",
-        "",
-    ).strip()
-    return WitnessReceiptJournal(path) if path else None
