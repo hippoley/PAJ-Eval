@@ -9,6 +9,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -353,8 +354,75 @@ def load_witness_provider() -> CheckpointWitnessProvider | None:
 class WitnessReceiptJournal:
     """Local cache of independently signed witness receipts."""
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        lock_timeout_seconds: float = 5.0,
+        stale_lock_seconds: float = 60.0,
+    ) -> None:
+        if lock_timeout_seconds <= 0:
+            raise ValueError("witness journal lock_timeout_seconds must be > 0")
+        if stale_lock_seconds <= 0:
+            raise ValueError("witness journal stale_lock_seconds must be > 0")
         self.path = Path(path)
+        self.lock_timeout_seconds = float(lock_timeout_seconds)
+        self.stale_lock_seconds = float(stale_lock_seconds)
+
+    @property
+    def lock_path(self) -> Path:
+        return Path(str(self.path) + ".lock")
+
+    @contextmanager
+    def _file_lock(self):
+        deadline = time.monotonic() + self.lock_timeout_seconds
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+        while True:
+            try:
+                fd = os.open(
+                    self.lock_path,
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                    0o600,
+                )
+                try:
+                    os.write(
+                        fd,
+                        json.dumps(
+                            {
+                                "pid": os.getpid(),
+                                "created_at": time.time(),
+                            },
+                            sort_keys=True,
+                        ).encode(),
+                    )
+                finally:
+                    os.close(fd)
+                break
+            except FileExistsError:
+                try:
+                    age = time.time() - self.lock_path.stat().st_mtime
+                except FileNotFoundError:
+                    continue
+                if age > self.stale_lock_seconds:
+                    try:
+                        self.lock_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    continue
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        "timed out waiting for witness receipt journal lock"
+                    )
+                time.sleep(0.05)
+
+        try:
+            yield
+        finally:
+            try:
+                self.lock_path.unlink()
+            except FileNotFoundError:
+                pass
 
     def receipts(self) -> list[WitnessReceipt]:
         if not self.path.exists():
@@ -392,36 +460,36 @@ class WitnessReceiptJournal:
         if not provider.verify(receipt):
             raise RuntimeError("cannot persist invalid witness receipt")
 
-        existing = self.receipts()
-        for current in existing:
-            if current.receipt_id == receipt.receipt_id:
-                if current == receipt:
-                    return current
+        with self._file_lock():
+            existing = self.receipts()
+            for current in existing:
+                if current.receipt_id == receipt.receipt_id:
+                    if current == receipt:
+                        return current
+                    raise RuntimeError(
+                        "witness receipt id conflicts with existing receipt"
+                    )
+
+            if (
+                existing
+                and receipt.checkpoint_sequence
+                < existing[-1].checkpoint_sequence
+            ):
                 raise RuntimeError(
-                    "witness receipt id conflicts with existing receipt"
+                    "witness receipt checkpoint sequence moved backwards"
                 )
 
-        if (
-            existing
-            and receipt.checkpoint_sequence
-            < existing[-1].checkpoint_sequence
-        ):
-            raise RuntimeError(
-                "witness receipt checkpoint sequence moved backwards"
-            )
-
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(
-                json.dumps(
-                    asdict(receipt),
-                    sort_keys=True,
-                    separators=(",", ":"),
+            with self.path.open("a", encoding="utf-8") as handle:
+                handle.write(
+                    json.dumps(
+                        asdict(receipt),
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
                 )
-                + "\n"
-            )
-            handle.flush()
-            os.fsync(handle.fileno())
+                handle.flush()
+                os.fsync(handle.fileno())
         return receipt
 
     def status(
@@ -481,4 +549,20 @@ def load_witness_receipt_journal() -> WitnessReceiptJournal | None:
         "HUMANQUEUE_AUDIT_WITNESS_RECEIPTS_FILE",
         "",
     ).strip()
-    return WitnessReceiptJournal(path) if path else None
+    if not path:
+        return None
+    return WitnessReceiptJournal(
+        path,
+        lock_timeout_seconds=float(
+            os.environ.get(
+                "HUMANQUEUE_AUDIT_WITNESS_RECEIPT_LOCK_TIMEOUT_SECONDS",
+                "5",
+            )
+        ),
+        stale_lock_seconds=float(
+            os.environ.get(
+                "HUMANQUEUE_AUDIT_WITNESS_RECEIPT_STALE_LOCK_SECONDS",
+                "60",
+            )
+        ),
+    )
