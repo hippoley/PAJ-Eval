@@ -135,3 +135,35 @@ def test_conflicting_concurrent_decisions_have_one_winner(tmp_path):
 
     assert sorted(kind for kind, _ in outcomes) == ["conflict", "ok"]
     assert q.get(item.id).state in {"approved", "rejected"}
+
+
+def test_claim_lease_blocks_other_actor_until_expiry(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://review", title="Review?", source="agent")
+
+    first = q.claim(item.id, actor="alice", lease_seconds=0.1)
+    assert first.claimed_by == "alice"
+    assert first.claim_expires_at is not None
+
+    with pytest.raises(RuntimeError):
+        q.claim(item.id, actor="bob", lease_seconds=1)
+
+    renewed = q.claim(item.id, actor="alice", lease_seconds=1)
+    assert renewed.claimed_by == "alice"
+
+    time.sleep(0.12)
+    taken = q.claim(item.id, actor="bob", lease_seconds=1)
+    assert taken.claimed_by == "bob"
+
+
+def test_release_claim_requires_owner(tmp_path):
+    q = HumanQueue(tmp_path / "queue.db")
+    item = q.ask(uri="human://review", title="Review?", source="agent")
+    q.claim(item.id, actor="alice", lease_seconds=1)
+
+    with pytest.raises(RuntimeError):
+        q.release_claim(item.id, actor="bob")
+
+    released = q.release_claim(item.id, actor="alice")
+    assert released.claimed_by is None
+    assert released.claim_expires_at is None
