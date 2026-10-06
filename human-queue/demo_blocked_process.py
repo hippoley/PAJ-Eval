@@ -47,9 +47,25 @@ def producer() -> None:
     print("[agent] decide in the web UI at http://127.0.0.1:8765 or run the terminal human mode")
     result = q.wait_for_decision(item.id)
     if result.decision and result.decision["action"] == "approve":
+        q.mark_resumed(item.id, actor="demo-agent")
         print("[agent] RESUMED cleanup-step-3")
-        print("[agent] deleting keys ... done")
-        print("[agent] WORKFLOW_COMPLETE")
+        try:
+            print("[agent] deleting keys ... done")
+            q.mark_completed(
+                item.id,
+                actor="demo-agent",
+                success=True,
+                detail="1,842 stale keys deleted",
+            )
+            print("[agent] WORKFLOW_COMPLETE")
+        except Exception as exc:
+            q.mark_completed(
+                item.id,
+                actor="demo-agent",
+                success=False,
+                detail=str(exc),
+            )
+            raise
     else:
         print(f"[agent] STOPPED decision={result.decision}")
 
