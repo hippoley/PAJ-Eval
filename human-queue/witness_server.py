@@ -11,6 +11,7 @@ import os
 import secrets
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import asdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -33,6 +34,8 @@ class WitnessStore:
         witness: str,
         key_id: str,
         key: str,
+        lock_timeout_seconds: float = 5.0,
+        stale_lock_seconds: float = 60.0,
     ) -> None:
         if not witness.strip():
             raise ValueError("witness name is required")
@@ -40,14 +43,75 @@ class WitnessStore:
             raise ValueError("witness key_id is required")
         if not key:
             raise ValueError("witness signing key is required")
+        if lock_timeout_seconds <= 0:
+            raise ValueError("witness lock_timeout_seconds must be > 0")
+        if stale_lock_seconds <= 0:
+            raise ValueError("witness stale_lock_seconds must be > 0")
         self.path = Path(path)
         self.witness = witness.strip()
         self.key_id = key_id.strip()
         self.key = key
+        self.lock_timeout_seconds = float(lock_timeout_seconds)
+        self.stale_lock_seconds = float(stale_lock_seconds)
         self._lock = threading.Lock()
         self.verifier = HmacWitnessReceiptVerifier(
             {self.key_id: self.key}
         )
+
+    @property
+    def lock_path(self) -> Path:
+        return Path(str(self.path) + ".lock")
+
+    @contextmanager
+    def _file_lock(self):
+        deadline = time.monotonic() + self.lock_timeout_seconds
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+        while True:
+            try:
+                fd = os.open(
+                    self.lock_path,
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                    0o600,
+                )
+                try:
+                    os.write(
+                        fd,
+                        json.dumps(
+                            {
+                                "pid": os.getpid(),
+                                "created_at": time.time(),
+                            },
+                            sort_keys=True,
+                        ).encode(),
+                    )
+                finally:
+                    os.close(fd)
+                break
+            except FileExistsError:
+                try:
+                    age = time.time() - self.lock_path.stat().st_mtime
+                except FileNotFoundError:
+                    continue
+                if age > self.stale_lock_seconds:
+                    try:
+                        self.lock_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                    continue
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        "timed out waiting for witness store writer lock"
+                    )
+                time.sleep(0.05)
+
+        try:
+            yield
+        finally:
+            try:
+                self.lock_path.unlink()
+            except FileNotFoundError:
+                pass
 
     def _records(self) -> list[dict[str, Any]]:
         if not self.path.exists():
@@ -79,65 +143,65 @@ class WitnessStore:
     ) -> WitnessReceipt:
         fingerprint = checkpoint_fingerprint(checkpoint)
         with self._lock:
-            records = self._records()
-            for record in records:
-                if record.get("checkpoint_fingerprint") == fingerprint:
-                    receipt = WitnessReceipt(**record["receipt"])
-                    if not self.verify(receipt):
-                        raise RuntimeError(
-                            "stored witness receipt failed verification"
-                        )
-                    return receipt
+            with self._file_lock():
+                records = self._records()
+                for record in records:
+                    if record.get("checkpoint_fingerprint") == fingerprint:
+                        receipt = WitnessReceipt(**record["receipt"])
+                        if not self.verify(receipt):
+                            raise RuntimeError(
+                                "stored witness receipt failed verification"
+                            )
+                        return receipt
 
-            unsigned = WitnessReceipt(
-                version=1,
-                witness=self.witness,
-                receipt_id=f"receipt_{fingerprint[:20]}",
-                received_at=(
-                    time.time()
-                    if received_at is None
-                    else float(received_at)
-                ),
-                checkpoint_sequence=checkpoint.sequence,
-                checkpoint_signature=checkpoint.signature,
-                checkpoint_head_hash=checkpoint.head_hash,
-                key_id=self.key_id,
-                signature="",
-                checkpoint_fingerprint=fingerprint,
-            )
-            payload = HmacWitnessReceiptVerifier.payload(unsigned)
-            import hashlib
-            import hmac
-
-            signature = hmac.new(
-                self.key.encode(),
-                payload.encode(),
-                hashlib.sha256,
-            ).hexdigest()
-            receipt = WitnessReceipt(
-                **{
-                    **asdict(unsigned),
-                    "signature": signature,
-                }
-            )
-
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            with self.path.open("a", encoding="utf-8") as handle:
-                handle.write(
-                    json.dumps(
-                        {
-                            "checkpoint_fingerprint": fingerprint,
-                            "checkpoint": asdict(checkpoint),
-                            "receipt": asdict(receipt),
-                        },
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    )
-                    + "\n"
+                unsigned = WitnessReceipt(
+                    version=1,
+                    witness=self.witness,
+                    receipt_id=f"receipt_{fingerprint[:20]}",
+                    received_at=(
+                        time.time()
+                        if received_at is None
+                        else float(received_at)
+                    ),
+                    checkpoint_sequence=checkpoint.sequence,
+                    checkpoint_signature=checkpoint.signature,
+                    checkpoint_head_hash=checkpoint.head_hash,
+                    key_id=self.key_id,
+                    signature="",
+                    checkpoint_fingerprint=fingerprint,
                 )
-                handle.flush()
-                os.fsync(handle.fileno())
-            return receipt
+                payload = HmacWitnessReceiptVerifier.payload(unsigned)
+                import hashlib
+                import hmac
+
+                signature = hmac.new(
+                    self.key.encode(),
+                    payload.encode(),
+                    hashlib.sha256,
+                ).hexdigest()
+                receipt = WitnessReceipt(
+                    **{
+                        **asdict(unsigned),
+                        "signature": signature,
+                    }
+                )
+
+                with self.path.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(
+                            {
+                                "checkpoint_fingerprint": fingerprint,
+                                "checkpoint": asdict(checkpoint),
+                                "receipt": asdict(receipt),
+                            },
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        )
+                        + "\n"
+                    )
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                return receipt
 
     def verify(self, receipt: WitnessReceipt) -> bool:
         try:
@@ -368,6 +432,18 @@ def main() -> None:
         witness=witness,
         key_id=key_id,
         key=key,
+        lock_timeout_seconds=float(
+            os.environ.get(
+                "HUMANQUEUE_WITNESS_LOCK_TIMEOUT_SECONDS",
+                "5",
+            )
+        ),
+        stale_lock_seconds=float(
+            os.environ.get(
+                "HUMANQUEUE_WITNESS_STALE_LOCK_SECONDS",
+                "60",
+            )
+        ),
     )
     server = make_server(
         store,
