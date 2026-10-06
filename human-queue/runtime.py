@@ -462,6 +462,35 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
+    def record_decision_denied(
+        self,
+        wait_id: str,
+        *,
+        actor: str,
+        reason: str,
+        data: dict[str, Any] | None = None,
+    ) -> Wait:
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT * FROM waits WHERE id = ?",
+                (wait_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(wait_id)
+            item = self._row_to_wait(row)
+            self._append_event(
+                conn,
+                wait_id,
+                "DECISION_DENIED",
+                actor=actor,
+                data={
+                    "reason": reason,
+                    **(data or {}),
+                },
+            )
+            return item
+
     def mark_resume_delivery_queued(
         self,
         wait_id: str,
