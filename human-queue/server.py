@@ -306,39 +306,6 @@ def make_handler(
                 )
                 return
 
-            if path == "/api/audit/checkpoint":
-                if audit_checkpoint_signer is None:
-                    self._json(
-                        HTTPStatus.NOT_FOUND,
-                        {"error": "audit_checkpoint_not_configured"},
-                    )
-                    return
-                principal = self._resolve_human_principal(
-                    body,
-                    default="checkpoint-operator",
-                )
-                if principal is None:
-                    return
-                try:
-                    checkpoint = audit_checkpoint_signer.create()
-                except RuntimeError as exc:
-                    self._json(
-                        HTTPStatus.CONFLICT,
-                        {
-                            "error": "audit_checkpoint_failed",
-                            "detail": str(exc),
-                        },
-                    )
-                    return
-                self._json(
-                    HTTPStatus.CREATED,
-                    {
-                        "checkpoint": asdict(checkpoint),
-                        "principal": self._principal_audit(principal),
-                    },
-                )
-                return
-
             if path == "/api/destinations":
                 self._json(
                     HTTPStatus.OK,
@@ -448,6 +415,39 @@ def make_handler(
                 body = self._read_json()
             except ValueError as exc:
                 self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                return
+
+            if path == "/api/audit/checkpoint":
+                if audit_checkpoint_signer is None:
+                    self._json(
+                        HTTPStatus.NOT_FOUND,
+                        {"error": "audit_checkpoint_not_configured"},
+                    )
+                    return
+                principal = self._resolve_human_principal(
+                    body,
+                    default="checkpoint-operator",
+                )
+                if principal is None:
+                    return
+                try:
+                    checkpoint = audit_checkpoint_signer.create()
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {
+                            "error": "audit_checkpoint_failed",
+                            "detail": str(exc),
+                        },
+                    )
+                    return
+                self._json(
+                    HTTPStatus.CREATED,
+                    {
+                        "checkpoint": asdict(checkpoint),
+                        "principal": self._principal_audit(principal),
+                    },
+                )
                 return
 
             if path == "/api/destinations":
