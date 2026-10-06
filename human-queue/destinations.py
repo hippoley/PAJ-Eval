@@ -159,6 +159,8 @@ class DestinationRegistry:
         if not actor:
             raise ValueError("destination change actor is required")
         reason = reason.strip() if isinstance(reason, str) else reason
+        if isinstance(allowed_decision_actors, str):
+            raise ValueError("allowed_decision_actors must be an array")
         allowed = tuple(
             sorted(
                 {
