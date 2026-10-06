@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -229,3 +230,42 @@ class InMemoryWitnessProvider:
     @property
     def receipts(self) -> tuple[WitnessReceipt, ...]:
         return tuple(self._receipts)
+
+
+
+def load_witness_provider() -> CheckpointWitnessProvider | None:
+    endpoint = os.environ.get("HUMANQUEUE_AUDIT_WITNESS_URL", "").strip()
+    raw_keys = os.environ.get("HUMANQUEUE_AUDIT_WITNESS_KEYS", "").strip()
+    if not endpoint and not raw_keys:
+        return None
+    if not endpoint:
+        raise ValueError(
+            "HUMANQUEUE_AUDIT_WITNESS_URL is required when witness verification is configured"
+        )
+    if not raw_keys:
+        raise ValueError(
+            "HUMANQUEUE_AUDIT_WITNESS_KEYS is required when witness is configured"
+        )
+    try:
+        parsed = json.loads(raw_keys)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise ValueError(
+            "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
+        )
+    timeout = float(
+        os.environ.get(
+            "HUMANQUEUE_AUDIT_WITNESS_TIMEOUT_SECONDS",
+            "5",
+        )
+    )
+    return HttpCheckpointWitnessProvider(
+        endpoint,
+        verifier=HmacWitnessReceiptVerifier(
+            {str(k): str(v) for k, v in parsed.items()}
+        ),
+        timeout_seconds=timeout,
+    )
