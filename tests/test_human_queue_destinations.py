@@ -129,3 +129,75 @@ def test_webhook_destination_strips_url_secrets_before_persisting(tmp_path):
     assert item.target == "https://example.com:8443/resume"
     reopened = DestinationRegistry(tmp_path / "queue.db")
     assert reopened.get("secret-free").target == "https://example.com:8443/resume"
+
+
+def test_destination_revision_only_changes_when_configuration_changes(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+
+    first = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/v1",
+        policy=RetryPolicy(max_attempts=4),
+        now=100,
+    )
+    same = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/v1",
+        policy=RetryPolicy(max_attempts=4),
+        now=110,
+    )
+    changed = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/v2",
+        policy=RetryPolicy(max_attempts=4),
+        now=120,
+    )
+
+    assert first.revision == 1
+    assert same.revision == 1
+    assert changed.revision == 2
+    assert [item.revision for item in registry.history("prod-deploy")] == [1, 2]
+    assert [item.target for item in registry.history("prod-deploy")] == [
+        "https://worker.example/v1",
+        "https://worker.example/v2",
+    ]
+
+
+def test_enable_disable_changes_destination_revision(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    created = registry.put(
+        "prod-deploy",
+        adapter="webhook",
+        target="https://worker.example/resume",
+        now=100,
+    )
+    disabled = registry.set_enabled("prod-deploy", False, now=110)
+    enabled = registry.set_enabled("prod-deploy", True, now=120)
+
+    assert created.revision == 1
+    assert disabled.revision == 2
+    assert enabled.revision == 3
+    assert [item.enabled for item in registry.history("prod-deploy")] == [
+        True,
+        False,
+        True,
+    ]
+
+
+def test_named_binding_snapshot_contains_destination_revision(tmp_path):
+    registry = DestinationRegistry(tmp_path / "queue.db")
+    registry.put(
+        "github-release",
+        adapter="github_repository_dispatch",
+        target="github://acme/app/humanqueue-resume",
+    )
+    snapshot = resolve_resume_binding(
+        {"destination": "github-release"},
+        registry,
+    )
+
+    assert snapshot["destination"] == "github-release"
+    assert snapshot["destination_revision"] == 1
