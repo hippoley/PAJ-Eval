@@ -18,6 +18,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from adapters import RetryPolicy
+from auth import ActorAuthenticator, ActorMismatchError, AuthenticationError
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from runtime import HumanQueue, Wait
@@ -68,6 +69,7 @@ def make_handler(
     index_path: Path = DEFAULT_INDEX,
     deliveries: DurableDeliveryQueue | None = None,
     destinations: DestinationRegistry | None = None,
+    authenticator: ActorAuthenticator | None = None,
 ):
     deliveries = deliveries or DurableDeliveryQueue(queue.db_path)
     destinations = destinations or DestinationRegistry(queue.db_path)
@@ -86,6 +88,33 @@ def make_handler(
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
+
+        def _resolve_human_actor(
+            self,
+            body: dict,
+            *,
+            default: str,
+        ) -> str | None:
+            claimed = str(body.get("actor") or "").strip()
+            if authenticator is None:
+                return claimed or default
+            try:
+                return authenticator.authenticate(
+                    self.headers.get("Authorization"),
+                    claimed_actor=claimed or None,
+                )
+            except ActorMismatchError as exc:
+                self._json(
+                    HTTPStatus.FORBIDDEN,
+                    {"error": "actor_mismatch", "detail": str(exc)},
+                )
+                return None
+            except AuthenticationError as exc:
+                self._json(
+                    HTTPStatus.UNAUTHORIZED,
+                    {"error": "authentication_required", "detail": str(exc)},
+                )
+                return None
 
         def _read_json(self) -> dict:
             length = int(self.headers.get("Content-Length", "0"))
@@ -266,6 +295,9 @@ def make_handler(
                         {"error": "name_adapter_and_target_required"},
                     )
                     return
+                actor = self._resolve_human_actor(body, default="api-user")
+                if actor is None:
+                    return
                 try:
                     policy = RetryPolicy(
                         max_attempts=int(body.get("max_attempts") or 3),
@@ -279,7 +311,7 @@ def make_handler(
                         target=target,
                         policy=policy,
                         enabled=bool(body.get("enabled", True)),
-                        actor=str(body.get("actor") or "api-user"),
+                        actor=actor,
                         reason=body.get("reason"),
                         allowed_decision_actors=body.get("allowed_decision_actors"),
                     )
@@ -433,7 +465,10 @@ def make_handler(
             claim_suffix = "/claim"
             if path.startswith("/api/waits/") and path.endswith(claim_suffix):
                 wait_id = path[len("/api/waits/") : -len(claim_suffix)]
-                actor = str(body.get("actor") or "").strip()
+                actor = self._resolve_human_actor(body, default="")
+                if actor is None:
+                    return
+                actor = actor.strip()
                 if not wait_id or not actor:
                     self._json(
                         HTTPStatus.BAD_REQUEST,
@@ -461,7 +496,10 @@ def make_handler(
             release_suffix = "/release"
             if path.startswith("/api/waits/") and path.endswith(release_suffix):
                 wait_id = path[len("/api/waits/") : -len(release_suffix)]
-                actor = str(body.get("actor") or "").strip()
+                actor = self._resolve_human_actor(body, default="")
+                if actor is None:
+                    return
+                actor = actor.strip()
                 if not wait_id or not actor:
                     self._json(
                         HTTPStatus.BAD_REQUEST,
@@ -492,7 +530,13 @@ def make_handler(
                         {"error": "wait_id_and_action_required"},
                     )
                     return
-                decision_actor = str(body.get("actor") or "web-human").strip()
+                decision_actor = self._resolve_human_actor(
+                    body,
+                    default="web-human",
+                )
+                if decision_actor is None:
+                    return
+                decision_actor = decision_actor.strip()
                 resolved = None
                 if action != "reject":
                     try:
@@ -606,10 +650,17 @@ def make_server(
     index_path: Path = DEFAULT_INDEX,
     deliveries: DurableDeliveryQueue | None = None,
     destinations: DestinationRegistry | None = None,
+    authenticator: ActorAuthenticator | None = None,
 ) -> ThreadingHTTPServer:
     return ThreadingHTTPServer(
         (host, port),
-        make_handler(queue, index_path, deliveries, destinations),
+        make_handler(
+            queue,
+            index_path,
+            deliveries,
+            destinations,
+            authenticator,
+        ),
     )
 
 
@@ -620,12 +671,14 @@ def main() -> None:
     queue = HumanQueue(db)
     deliveries = DurableDeliveryQueue(db)
     destinations = DestinationRegistry(db)
+    authenticator = ActorAuthenticator.from_env()
     server = make_server(
         queue,
         host=host,
         port=port,
         deliveries=deliveries,
         destinations=destinations,
+        authenticator=authenticator,
     )
     print(f"human:// runtime listening on http://{host}:{port}")
     print(f"queue db: {db}")
