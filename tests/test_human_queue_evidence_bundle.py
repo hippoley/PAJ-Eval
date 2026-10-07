@@ -2,6 +2,9 @@ import copy
 import importlib.util
 import json
 import sys
+import threading
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -34,6 +37,10 @@ quorum_module = load(
 bundle_module = load(
     "human_queue_evidence_bundle",
     ROOT / "evidence_bundle.py",
+)
+server_module = load(
+    "human_queue_server_bundle",
+    ROOT / "server.py",
 )
 
 HumanQueue = runtime.HumanQueue
@@ -310,3 +317,240 @@ def test_bundle_strict_authenticity_rejects_wrong_witness_key(tmp_path):
         "witness_receipt_signature_invalid"
     )
     assert result["witness_receipts"]["witness"] == "witness-a"
+
+
+
+def request_json(base, path, *, headers=None):
+    request = urllib.request.Request(
+        base + path,
+        method="GET",
+        headers=headers or {},
+    )
+    try:
+        with urllib.request.urlopen(request) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read())
+
+
+def test_http_evidence_bundle_export_is_offline_verifiable(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    item = queue.ask(
+        uri="human://approve",
+        title="HTTP bundle",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+    signer = AuditCheckpointSigner(
+        queue,
+        tmp_path / "checkpoints.jsonl",
+        key="checkpoint-secret",
+    )
+    signer.create(now=100)
+
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        audit_checkpoint_signer=signer,
+    )
+    thread = threading.Thread(
+        target=httpd.serve_forever,
+        daemon=True,
+    )
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, payload = request_json(
+            base,
+            "/api/evidence/bundle",
+        )
+        assert status == 200
+        assert payload["principal"]["provider"] == "unverified-body"
+        bundle = payload["bundle"]
+
+        result = verify_evidence_bundle(bundle)
+        assert result["ok"] is True
+        assert result["bundle_id"] == bundle["bundle_id"]
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_http_evidence_bundle_respects_configured_human_auth(tmp_path):
+    queue = HumanQueue(tmp_path / "queue.db")
+    provider = server_module.BearerTokenAuthProvider(
+        principal_kind="human",
+        tokens={"export-secret": "alice"},
+        provider="bundle-token",
+    )
+    httpd = server_module.make_server(
+        queue,
+        host="127.0.0.1",
+        port=0,
+        human_auth_provider=provider,
+    )
+    thread = threading.Thread(
+        target=httpd.serve_forever,
+        daemon=True,
+    )
+    thread.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    try:
+        status, denied = request_json(
+            base,
+            "/api/evidence/bundle",
+        )
+        assert status == 401
+        assert denied["error"] == "authentication_required"
+
+        status, allowed = request_json(
+            base,
+            "/api/evidence/bundle",
+            headers={
+                "Authorization": "Bearer export-secret",
+            },
+        )
+        assert status == 200
+        assert allowed["principal"] == {
+            "kind": "human",
+            "provider": "bundle-token",
+        }
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=2)
+        httpd.server_close()
+
+
+def test_cli_export_then_verify_without_database(tmp_path, monkeypatch, capsys):
+    db = tmp_path / "queue.db"
+    queue = HumanQueue(db)
+    item = queue.ask(
+        uri="human://approve",
+        title="CLI bundle",
+        source="agent",
+    )
+    queue.decide(item.id, action="approve", actor="alice")
+
+    checkpoint_path = tmp_path / "checkpoints.jsonl"
+    signer = AuditCheckpointSigner(
+        queue,
+        checkpoint_path,
+        key="checkpoint-secret",
+    )
+    signer.create(now=100)
+
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_FILE",
+        str(checkpoint_path),
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEY",
+        "checkpoint-secret",
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID",
+        "default",
+    )
+    output = tmp_path / "bundle.json"
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evidence_bundle.py",
+            "export",
+            "--db",
+            str(db),
+            "--output",
+            str(output),
+        ],
+    )
+    bundle_module.main()
+    exported = json.loads(capsys.readouterr().out)
+    assert exported["ok"] is True
+    assert output.exists()
+
+    db.unlink()
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evidence_bundle.py",
+            "verify",
+            str(output),
+        ],
+    )
+    try:
+        bundle_module.main()
+    except SystemExit as exc:
+        assert exc.code == 0
+    verified = json.loads(capsys.readouterr().out)
+    assert verified["ok"] is True
+    assert verified["authenticity"]["checkpoint_signatures"] == "not_checked"
+
+
+def test_cli_strict_verify_uses_checkpoint_keyring_from_environment(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    bundle = make_bundle(tmp_path)
+    path = tmp_path / "bundle.json"
+    path.write_text(
+        json.dumps(bundle),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS",
+        '{"default":"checkpoint-secret"}',
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID",
+        "default",
+    )
+    monkeypatch.setenv(
+        "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON",
+        json.dumps(
+            {
+                "threshold": 2,
+                "witnesses": {
+                    "witness-a": {
+                        "url": "https://unused-a.example/witness",
+                        "keys": {"w1": "secret-a"},
+                    },
+                    "witness-b": {
+                        "url": "https://unused-b.example/witness",
+                        "keys": {"w1": "secret-b"},
+                    },
+                },
+            }
+        ),
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "evidence_bundle.py",
+            "verify",
+            "--strict",
+            str(path),
+        ],
+    )
+    try:
+        bundle_module.main()
+    except SystemExit as exc:
+        assert exc.code == 0
+
+    verified = json.loads(capsys.readouterr().out)
+    assert verified["ok"] is True
+    assert verified["authenticity"] == {
+        "checkpoint_signatures": "verified",
+        "witness_receipt_signatures": "verified",
+    }
