@@ -41,6 +41,7 @@ from audit_witness import (
 from audit_witness_quorum import WitnessQuorum, load_witness_quorum
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
+from evidence import build_evidence_snapshot
 from runtime import HumanQueue, Wait
 
 
@@ -264,99 +265,39 @@ def make_handler(
                 return
 
             if path == "/api/health":
-                audit_status = queue.verify_audit_chain()
-                checkpoint_status = (
-                    audit_checkpoint_signer.verify()
-                    if audit_checkpoint_signer is not None
-                    else {
-                        "ok": True,
-                        "configured": False,
-                        "anchored": False,
-                    }
+                evidence = build_evidence_snapshot(
+                    queue,
+                    checkpoint_signer=audit_checkpoint_signer,
+                    witness_provider=audit_witness_provider,
+                    witness_receipts=audit_witness_receipts,
+                    witness_quorum=audit_witness_quorum,
                 )
-                if audit_witness_provider is None:
-                    witness_status = {
-                        "ok": True,
-                        "configured": False,
-                        "journal_configured": audit_witness_receipts is not None,
-                        "witnessed": False,
-                    }
-                elif audit_witness_receipts is None:
-                    witness_status = {
-                        "ok": True,
-                        "configured": True,
-                        "journal_configured": False,
-                        "witnessed": False,
-                    }
-                else:
-                    latest_checkpoint = (
-                        audit_checkpoint_signer.latest()
-                        if audit_checkpoint_signer is not None
-                        else None
-                    )
-                    witness_status = {
-                        "configured": True,
-                        "journal_configured": True,
-                        **audit_witness_receipts.status(
-                            latest_checkpoint,
-                            provider=audit_witness_provider,
-                        ),
-                    }
-                if audit_witness_quorum is None:
-                    quorum_status = {
-                        "ok": True,
-                        "configured": False,
-                        "satisfied": False,
-                    }
-                else:
-                    latest_checkpoint = (
-                        audit_checkpoint_signer.latest()
-                        if audit_checkpoint_signer is not None
-                        else None
-                    )
-                    if latest_checkpoint is None:
-                        quorum_status = {
-                            "ok": True,
-                            "configured": True,
-                            "satisfied": False,
-                            "checkpoint_sequence": None,
-                        }
-                    elif audit_witness_receipts is None:
-                        quorum_status = {
-                            "ok": False,
-                            "configured": True,
-                            "satisfied": False,
-                            "reason": "witness_receipt_journal_not_configured",
-                            "checkpoint_sequence": latest_checkpoint.sequence,
-                        }
-                    else:
-                        result = audit_witness_quorum.evaluate(
-                            latest_checkpoint,
-                            audit_witness_receipts.receipts(),
-                        )
-                        quorum_status = {
-                            "ok": result.satisfied,
-                            "configured": True,
-                            "checkpoint_sequence": latest_checkpoint.sequence,
-                            **result.to_dict(),
-                        }
-
-                healthy = bool(
-                    audit_status.get("ok")
-                    and checkpoint_status.get("ok")
-                    and witness_status.get("ok")
-                    and quorum_status.get("ok")
-                )
+                healthy = bool(evidence["policy_ok"])
                 self._json(
                     HTTPStatus.OK if healthy else HTTPStatus.SERVICE_UNAVAILABLE,
                     {
                         "ok": healthy,
                         "mode": "durable",
-                        "audit_chain": audit_status,
-                        "audit_checkpoint": checkpoint_status,
-                        "audit_witness": witness_status,
-                        "audit_witness_quorum": quorum_status,
+                        "audit_chain": evidence["audit_chain"],
+                        "audit_checkpoint": evidence["checkpoint"]["verification"],
+                        "audit_witness": evidence["witness"]["status"],
+                        "audit_witness_quorum": evidence["quorum"],
+                        "evidence_id": evidence["evidence_id"],
                     },
+                )
+                return
+
+            if path == "/api/evidence":
+                evidence = build_evidence_snapshot(
+                    queue,
+                    checkpoint_signer=audit_checkpoint_signer,
+                    witness_provider=audit_witness_provider,
+                    witness_receipts=audit_witness_receipts,
+                    witness_quorum=audit_witness_quorum,
+                )
+                self._json(
+                    HTTPStatus.OK,
+                    evidence,
                 )
                 return
 
