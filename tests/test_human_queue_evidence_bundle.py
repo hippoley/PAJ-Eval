@@ -38,8 +38,10 @@ bundle_module = load(
 
 HumanQueue = runtime.HumanQueue
 AuditCheckpointSigner = checkpoint_module.AuditCheckpointSigner
+HmacCheckpointSignatureProvider = checkpoint_module.HmacCheckpointSignatureProvider
 InMemoryWitnessProvider = witness_module.InMemoryWitnessProvider
 WitnessReceiptJournal = witness_module.WitnessReceiptJournal
+HmacWitnessReceiptVerifier = witness_module.HmacWitnessReceiptVerifier
 WitnessQuorum = quorum_module.WitnessQuorum
 export_evidence_bundle = bundle_module.export_evidence_bundle
 verify_evidence_bundle = bundle_module.verify_evidence_bundle
@@ -221,3 +223,90 @@ def test_bundle_json_round_trip_preserves_verifiability(tmp_path):
 
     assert result["ok"] is True
     assert result["bundle_id"] == bundle["bundle_id"]
+
+
+
+def test_bundle_strict_authenticity_verifies_checkpoint_and_witness_signatures(tmp_path):
+    bundle = make_bundle(tmp_path)
+    checkpoint_provider = HmacCheckpointSignatureProvider(
+        {"default": "checkpoint-secret"},
+        "default",
+    )
+    witness_verifiers = {
+        "witness-a": HmacWitnessReceiptVerifier(
+            {"w1": "secret-a"}
+        ),
+        "witness-b": HmacWitnessReceiptVerifier(
+            {"w1": "secret-b"}
+        ),
+    }
+
+    result = verify_evidence_bundle(
+        bundle,
+        checkpoint_signature_provider=checkpoint_provider,
+        witness_receipt_verifiers=witness_verifiers,
+    )
+
+    assert result["ok"] is True
+    assert result["authenticity"] == {
+        "checkpoint_signatures": "verified",
+        "witness_receipt_signatures": "verified",
+    }
+
+
+def test_bundle_strict_authenticity_rejects_wrong_checkpoint_key(tmp_path):
+    bundle = make_bundle(tmp_path)
+    wrong_provider = HmacCheckpointSignatureProvider(
+        {"default": "wrong-checkpoint-secret"},
+        "default",
+    )
+
+    result = verify_evidence_bundle(
+        bundle,
+        checkpoint_signature_provider=wrong_provider,
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "checkpoint_binding_invalid"
+    assert result["checkpoints"]["reason"] == "checkpoint_signature_invalid"
+
+
+def test_bundle_strict_authenticity_requires_verifier_for_every_witness(tmp_path):
+    bundle = make_bundle(tmp_path)
+    result = verify_evidence_bundle(
+        bundle,
+        witness_receipt_verifiers={
+            "witness-a": HmacWitnessReceiptVerifier(
+                {"w1": "secret-a"}
+            )
+        },
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "witness_binding_invalid"
+    assert result["witness_receipts"]["reason"] == (
+        "witness_receipt_verifier_missing"
+    )
+    assert result["witness_receipts"]["witness"] == "witness-b"
+
+
+def test_bundle_strict_authenticity_rejects_wrong_witness_key(tmp_path):
+    bundle = make_bundle(tmp_path)
+    result = verify_evidence_bundle(
+        bundle,
+        witness_receipt_verifiers={
+            "witness-a": HmacWitnessReceiptVerifier(
+                {"w1": "wrong-a"}
+            ),
+            "witness-b": HmacWitnessReceiptVerifier(
+                {"w1": "secret-b"}
+            ),
+        },
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "witness_binding_invalid"
+    assert result["witness_receipts"]["reason"] == (
+        "witness_receipt_signature_invalid"
+    )
+    assert result["witness_receipts"]["witness"] == "witness-a"
