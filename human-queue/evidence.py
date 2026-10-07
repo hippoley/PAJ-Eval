@@ -67,6 +67,7 @@ def build_evidence_snapshot(
         single_witness = {
             "ok": True,
             "configured": False,
+            "journal_configured": witness_receipts is not None,
             "witnessed": False,
         }
     elif witness_receipts is None:
@@ -107,10 +108,6 @@ def build_evidence_snapshot(
             "configured": True,
             "satisfied": False,
             "checkpoint_sequence": None,
-            "threshold": witness_quorum.threshold,
-            "required_witnesses": list(
-                witness_quorum.required_witnesses
-            ),
         }
     elif witness_receipts is None:
         quorum = {
