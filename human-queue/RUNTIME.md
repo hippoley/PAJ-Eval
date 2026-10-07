@@ -54,7 +54,15 @@ That transition is the current Reality Delta.
 
 ## Next hardening steps
 
-1. replace browser polling with SSE or event delivery\n2. add leases/claims for multiple human reviewers\n3. add webhook/MCP/GitHub resume adapters\n4. add audit signatures and policy provenance\n5. add authentication and actor identity\n6. move from single-node SQLite to an optional distributed store
+The early hardening items (SSE, reviewer leases, durable adapters, identity,
+policy provenance, signed audit checkpoints, and external witnesses) are now
+implemented in this branch. Remaining production-oriented work is narrower:
+
+1. provide production KMS/HSM or asymmetric checkpoint/witness providers
+2. support a distributed durable store without weakening exactly-once decision semantics
+3. add operational rotation/runbooks for external identity and witness infrastructure
+4. add retention/export policy for large audit histories and evidence bundles
+5. continue adversarial/recovery testing across multi-node failure modes
 
 The architectural rule is simple: **UI is optional; the durable boundary is the
 product primitive.**
@@ -1303,3 +1311,160 @@ local audit hash chain
 Each layer answers a different question. HumanQueue should not describe a local
 HMAC checkpoint as externally witnessed, nor a single witness receipt as a
 quorum.
+
+
+## Evidence snapshot and offline evidence bundle
+
+HumanQueue now exposes one stable read-only evidence view instead of requiring
+operators to manually correlate audit, checkpoint, witness, and quorum APIs.
+
+Read the current snapshot:
+
+```http
+GET /api/evidence
+```
+
+The snapshot uses schema:
+
+```text
+humanqueue.evidence.v1
+```
+
+and contains:
+
+```text
+audit_chain
+checkpoint.latest + checkpoint.verification
+witness status + persisted receipts
+quorum policy/result
+policy_ok
+evidence_id
+generated_at
+```
+
+`evidence_id` is a canonical SHA-256 digest of the evidence content and does
+not include `generated_at`. Re-reading unchanged evidence therefore preserves
+the same ID even when the observation time changes.
+
+`/api/health` is derived from the same evidence builder, so health and evidence
+cannot silently drift into different policy semantics.
+
+### Export a complete evidence bundle
+
+The snapshot is useful for status, but it is not by itself sufficient for
+independent replay. A complete bundle additionally carries the exact audit hash
+inputs:
+
+```text
+raw audit records including original data_json
+all signed checkpoints
+persisted witness receipts
+current evidence snapshot
+```
+
+Export over HTTP:
+
+```http
+GET /api/evidence/bundle
+```
+
+When human authentication is configured, this endpoint requires a valid human
+principal. The bundle can contain execution/audit payloads, so it should be
+handled as audit data even though signing keys, bearer tokens, JWTs, and witness
+secrets are not included.
+
+Export directly from a runtime database:
+
+```bash
+python human-queue/evidence_bundle.py export \
+  --db /var/lib/humanqueue/queue.db \
+  --output /tmp/humanqueue-evidence.json
+```
+
+Then move the JSON file to another machine and verify it without opening the
+HumanQueue SQLite database:
+
+```bash
+python human-queue/evidence_bundle.py verify \
+  /tmp/humanqueue-evidence.json
+```
+
+Default offline verification checks:
+
+```text
+bundle_id canonical hash
+audit event hash chain using the original persisted data_json
+checkpoint ordering and previous-signature linkage
+checkpoint -> audit-head boundary binding
+witness receipt -> checkpoint signature/head/fingerprint binding
+snapshot evidence_id
+snapshot audit summary -> exported audit records
+```
+
+This mode proves **structural integrity and binding consistency**. It deliberately
+reports checkpoint and witness signature authenticity as `not_checked` unless
+verification material is supplied.
+
+### Strict offline authenticity verification
+
+For local HMAC deployments, load verification keyrings from environment and run:
+
+```bash
+python human-queue/evidence_bundle.py verify --strict \
+  /tmp/humanqueue-evidence.json
+```
+
+Strict mode reuses the existing environment shapes:
+
+```text
+HUMANQUEUE_AUDIT_CHECKPOINT_KEYS
+or HUMANQUEUE_AUDIT_CHECKPOINT_KEY + HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID
+
+HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON with per-witness local keys
+or HUMANQUEUE_AUDIT_WITNESS_KEYS
+```
+
+Keys are intentionally read from environment rather than command-line options so
+they are not encouraged into shell history.
+
+Once strict verification is requested, it fails closed:
+
+```text
+checkpoint exists but no checkpoint verifier -> failure
+unknown checkpoint key id -> failure
+invalid checkpoint signature -> failure
+receipt exists but witness verifier is missing -> failure
+invalid witness receipt signature -> failure
+```
+
+A successful strict result reports:
+
+```json
+{
+  "authenticity": {
+    "checkpoint_signatures": "verified",
+    "witness_receipt_signatures": "verified"
+  }
+}
+```
+
+### Verification boundary
+
+A bundle hash is not a signature. An attacker who can rewrite a bundle can also
+recompute its outer `bundle_id`. The security progression is therefore:
+
+```text
+bundle hash / structural replay
+  -> signed checkpoint verification
+  -> witness receipt verification
+  -> independent witness state / quorum
+```
+
+The stdlib CLI can perform local HMAC authenticity checks. Online independent
+witness verification and custom asymmetric/KMS/HSM verification remain provider
+concerns; the verifier does not claim those checks occurred when it only has a
+self-contained JSON file.
+
+This distinction is intentional:
+
+> **self-consistent evidence is not the same claim as independently authenticated evidence.**
