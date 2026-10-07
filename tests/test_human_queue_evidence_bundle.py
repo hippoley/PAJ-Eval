@@ -46,6 +46,7 @@ verify_evidence_bundle = bundle_module.verify_evidence_bundle
 
 
 def make_bundle(tmp_path):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     queue = HumanQueue(tmp_path / "queue.db")
     item = queue.ask(
         uri="human://approve",
