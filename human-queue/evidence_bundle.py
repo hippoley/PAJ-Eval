@@ -9,10 +9,17 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from audit_checkpoint import AuditCheckpoint, AuditCheckpointSigner
+from audit_checkpoint import (
+    AuditCheckpoint,
+    AuditCheckpointSigner,
+    CheckpointSignatureProvider,
+    checkpoint_signature_payload,
+)
 from audit_witness import (
     CheckpointWitnessProvider,
+    WitnessReceipt,
     WitnessReceiptJournal,
+    WitnessReceiptVerifier,
     checkpoint_fingerprint,
 )
 from evidence import build_evidence_snapshot
@@ -186,6 +193,8 @@ def _verify_audit_records(
 def _verify_checkpoint_bindings(
     checkpoints: list[dict[str, Any]],
     records: list[dict[str, Any]],
+    *,
+    signature_provider: CheckpointSignatureProvider | None = None,
 ) -> dict[str, Any]:
     previous_signature: str | None = None
 
@@ -245,6 +254,29 @@ def _verify_checkpoint_bindings(
                 "audit_boundary_hash": boundary_hash,
             }
 
+        if signature_provider is not None:
+            checkpoint_obj = AuditCheckpoint(**checkpoint)
+            try:
+                valid_signature = signature_provider.verify(
+                    checkpoint_signature_payload(checkpoint_obj),
+                    key_id=checkpoint_obj.key_id,
+                    signature=checkpoint_obj.signature,
+                )
+            except KeyError:
+                return {
+                    "ok": False,
+                    "reason": "checkpoint_signature_key_unknown",
+                    "checkpoint_sequence": sequence,
+                    "key_id": checkpoint_obj.key_id,
+                }
+            if not valid_signature:
+                return {
+                    "ok": False,
+                    "reason": "checkpoint_signature_invalid",
+                    "checkpoint_sequence": sequence,
+                    "key_id": checkpoint_obj.key_id,
+                }
+
         previous_signature = signature
 
     return {
@@ -255,13 +287,19 @@ def _verify_checkpoint_bindings(
             if checkpoints
             else None
         ),
-        "signature_authenticity": "not_checked",
+        "signature_authenticity": (
+            "verified"
+            if signature_provider is not None
+            else "not_checked"
+        ),
     }
 
 
 def _verify_receipt_bindings(
     receipts: list[dict[str, Any]],
     checkpoints: list[dict[str, Any]],
+    *,
+    verifiers: dict[str, WitnessReceiptVerifier] | None = None,
 ) -> dict[str, Any]:
     by_sequence = {
         int(checkpoint["sequence"]): checkpoint
@@ -331,15 +369,45 @@ def _verify_receipt_bindings(
                 "checkpoint_sequence": sequence,
             }
 
+        if verifiers is not None:
+            witness = str(receipt.get("witness") or "")
+            verifier = verifiers.get(witness)
+            if verifier is None:
+                return {
+                    "ok": False,
+                    "reason": "witness_receipt_verifier_missing",
+                    "receipt_index": index,
+                    "witness": witness,
+                }
+            try:
+                receipt_obj = WitnessReceipt(**receipt)
+                valid_receipt = verifier.verify(receipt_obj)
+            except (KeyError, TypeError):
+                valid_receipt = False
+            if not valid_receipt:
+                return {
+                    "ok": False,
+                    "reason": "witness_receipt_signature_invalid",
+                    "receipt_index": index,
+                    "witness": witness,
+                }
+
     return {
         "ok": True,
         "checked": len(receipts),
-        "signature_authenticity": "not_checked",
+        "signature_authenticity": (
+            "verified"
+            if verifiers is not None
+            else "not_checked"
+        ),
     }
 
 
 def verify_evidence_bundle(
     bundle: dict[str, Any],
+    *,
+    checkpoint_signature_provider: CheckpointSignatureProvider | None = None,
+    witness_receipt_verifiers: dict[str, WitnessReceiptVerifier] | None = None,
 ) -> dict[str, Any]:
     if bundle.get("schema") != BUNDLE_SCHEMA:
         return {
@@ -396,6 +464,7 @@ def verify_evidence_bundle(
     checkpoint = _verify_checkpoint_bindings(
         checkpoints,
         records,
+        signature_provider=checkpoint_signature_provider,
     )
     if not checkpoint["ok"]:
         return {
@@ -408,6 +477,7 @@ def verify_evidence_bundle(
     witness = _verify_receipt_bindings(
         receipts,
         checkpoints,
+        verifiers=witness_receipt_verifiers,
     )
     if not witness["ok"]:
         return {
@@ -460,8 +530,12 @@ def verify_evidence_bundle(
         "checkpoints": checkpoint,
         "witness_receipts": witness,
         "authenticity": {
-            "checkpoint_signatures": "not_checked",
-            "witness_receipt_signatures": "not_checked",
+            "checkpoint_signatures": checkpoint[
+                "signature_authenticity"
+            ],
+            "witness_receipt_signatures": witness[
+                "signature_authenticity"
+            ],
         },
     }
 
