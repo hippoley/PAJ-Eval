@@ -42,6 +42,7 @@ from audit_witness_quorum import WitnessQuorum, load_witness_quorum
 from delivery import DurableDeliveryQueue, Delivery
 from destinations import DestinationRegistry, ResumeDestination, resolve_resume_binding
 from evidence import build_evidence_snapshot
+from evidence_bundle import export_evidence_bundle
 from runtime import HumanQueue, Wait
 
 
@@ -298,6 +299,39 @@ def make_handler(
                 self._json(
                     HTTPStatus.OK,
                     evidence,
+                )
+                return
+
+            if path == "/api/evidence/bundle":
+                principal = self._resolve_human_principal(
+                    {},
+                    default="evidence-exporter",
+                )
+                if principal is None:
+                    return
+                try:
+                    bundle = export_evidence_bundle(
+                        queue,
+                        checkpoint_signer=audit_checkpoint_signer,
+                        witness_provider=audit_witness_provider,
+                        witness_receipts=audit_witness_receipts,
+                        witness_quorum=audit_witness_quorum,
+                    )
+                except RuntimeError as exc:
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {
+                            "error": "evidence_bundle_export_failed",
+                            "detail": str(exc),
+                        },
+                    )
+                    return
+                self._json(
+                    HTTPStatus.OK,
+                    {
+                        "bundle": bundle,
+                        "principal": self._principal_audit(principal),
+                    },
                 )
                 return
 
