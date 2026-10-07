@@ -109,6 +109,25 @@ class AuditCheckpoint:
     signature: str
 
 
+def checkpoint_signature_payload(
+    checkpoint: AuditCheckpoint,
+) -> str:
+    """Canonical payload covered by a checkpoint signature."""
+    return json.dumps(
+        {
+            "version": checkpoint.version,
+            "sequence": checkpoint.sequence,
+            "created_at": checkpoint.created_at,
+            "event_count": checkpoint.event_count,
+            "head_hash": checkpoint.head_hash,
+            "previous_signature": checkpoint.previous_signature,
+            "key_id": checkpoint.key_id,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
 class AuditCheckpointSigner:
     """Append and verify signed audit-head checkpoints outside SQLite."""
 
@@ -281,18 +300,17 @@ class AuditCheckpointSigner:
         previous_signature: str | None,
         key_id: str,
     ) -> str:
-        return json.dumps(
-            {
-                "version": version,
-                "sequence": sequence,
-                "created_at": created_at,
-                "event_count": event_count,
-                "head_hash": head_hash,
-                "previous_signature": previous_signature,
-                "key_id": key_id,
-            },
-            sort_keys=True,
-            separators=(",", ":"),
+        return checkpoint_signature_payload(
+            AuditCheckpoint(
+                version=version,
+                sequence=sequence,
+                created_at=created_at,
+                event_count=event_count,
+                head_hash=head_hash,
+                previous_signature=previous_signature,
+                key_id=key_id,
+                signature="",
+            )
         )
 
     def _read_raw(self) -> list[dict[str, Any]]:
