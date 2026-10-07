@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -13,6 +14,7 @@ from audit_checkpoint import (
     AuditCheckpoint,
     AuditCheckpointSigner,
     CheckpointSignatureProvider,
+    HmacCheckpointSignatureProvider,
     checkpoint_signature_payload,
 )
 from audit_witness import (
@@ -20,10 +22,13 @@ from audit_witness import (
     WitnessReceipt,
     WitnessReceiptJournal,
     WitnessReceiptVerifier,
+    HmacWitnessReceiptVerifier,
     checkpoint_fingerprint,
+    load_witness_provider,
+    load_witness_receipt_journal,
 )
 from evidence import build_evidence_snapshot
-from audit_witness_quorum import WitnessQuorum
+from audit_witness_quorum import WitnessQuorum, load_witness_quorum
 from runtime import HumanQueue
 
 
@@ -540,22 +545,274 @@ def verify_evidence_bundle(
     }
 
 
+def _strict_verifiers_from_env(
+    bundle: dict[str, Any],
+) -> tuple[
+    CheckpointSignatureProvider | None,
+    dict[str, WitnessReceiptVerifier] | None,
+]:
+    checkpoint_provider: CheckpointSignatureProvider | None = None
+    raw_checkpoint_keys = os.environ.get(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS",
+        "",
+    ).strip()
+    legacy_checkpoint_key = os.environ.get(
+        "HUMANQUEUE_AUDIT_CHECKPOINT_KEY",
+        "",
+    )
+
+    if raw_checkpoint_keys:
+        try:
+            parsed = json.loads(raw_checkpoint_keys)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS must contain a JSON object"
+            ) from exc
+        if not isinstance(parsed, dict) or not parsed:
+            raise ValueError(
+                "HUMANQUEUE_AUDIT_CHECKPOINT_KEYS must contain a non-empty JSON object"
+            )
+        keys = {
+            str(k): str(v)
+            for k, v in parsed.items()
+        }
+        active = os.environ.get(
+            "HUMANQUEUE_AUDIT_CHECKPOINT_SIGNING_KEY_ID",
+            "",
+        ).strip() or sorted(keys)[0]
+        checkpoint_provider = HmacCheckpointSignatureProvider(
+            keys,
+            active,
+        )
+    elif legacy_checkpoint_key:
+        key_id = os.environ.get(
+            "HUMANQUEUE_AUDIT_CHECKPOINT_KEY_ID",
+            "default",
+        ).strip() or "default"
+        checkpoint_provider = HmacCheckpointSignatureProvider(
+            {key_id: legacy_checkpoint_key},
+            key_id,
+        )
+
+    witness_verifiers: dict[str, WitnessReceiptVerifier] = {}
+    raw_quorum = os.environ.get(
+        "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON",
+        "",
+    ).strip()
+    if raw_quorum:
+        try:
+            config = json.loads(raw_quorum)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "HUMANQUEUE_AUDIT_WITNESS_QUORUM_JSON must contain a JSON object"
+            ) from exc
+        if isinstance(config, dict):
+            raw_witnesses = config.get("witnesses")
+            if isinstance(raw_witnesses, dict):
+                for name, target in raw_witnesses.items():
+                    if not isinstance(target, dict):
+                        continue
+                    raw_keys = target.get("keys")
+                    if isinstance(raw_keys, dict) and raw_keys:
+                        witness_verifiers[str(name)] = (
+                            HmacWitnessReceiptVerifier(
+                                {
+                                    str(k): str(v)
+                                    for k, v in raw_keys.items()
+                                }
+                            )
+                        )
+
+    if not witness_verifiers:
+        raw_witness_keys = os.environ.get(
+            "HUMANQUEUE_AUDIT_WITNESS_KEYS",
+            "",
+        ).strip()
+        if raw_witness_keys:
+            try:
+                parsed = json.loads(raw_witness_keys)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a JSON object"
+                ) from exc
+            if not isinstance(parsed, dict) or not parsed:
+                raise ValueError(
+                    "HUMANQUEUE_AUDIT_WITNESS_KEYS must contain a non-empty JSON object"
+                )
+            verifier = HmacWitnessReceiptVerifier(
+                {
+                    str(k): str(v)
+                    for k, v in parsed.items()
+                }
+            )
+            witness_names = {
+                str(receipt.get("witness") or "")
+                for receipt in bundle.get("witness_receipts", [])
+                if isinstance(receipt, dict)
+                and str(receipt.get("witness") or "")
+            }
+            witness_verifiers = {
+                name: verifier
+                for name in witness_names
+            }
+
+    return (
+        checkpoint_provider,
+        witness_verifiers or None,
+    )
+
+
 def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Verify a HumanQueue evidence bundle offline."
+        description=(
+            "Export or verify HumanQueue provenance evidence bundles."
+        )
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(
+        dest="command",
+        required=True,
+    )
+
+    export_parser = subparsers.add_parser(
+        "export",
+        help="Export an evidence bundle from a HumanQueue database.",
+    )
+    export_parser.add_argument(
+        "--db",
+        default=os.environ.get(
+            "HUMANQUEUE_DB",
+            str(
+                Path(__file__).resolve().parent
+                / "demo-human-queue.db"
+            ),
+        ),
+        help="HumanQueue SQLite database path.",
+    )
+    export_parser.add_argument(
+        "--output",
+        required=True,
+        help="Destination JSON file.",
+    )
+
+    verify_parser = subparsers.add_parser(
+        "verify",
+        help="Verify an evidence bundle without opening the HumanQueue database.",
+    )
+    verify_parser.add_argument(
         "bundle",
         help="Path to a HumanQueue evidence bundle JSON file.",
     )
+    verify_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help=(
+            "Also verify checkpoint and witness HMAC signatures "
+            "using keyrings from environment variables."
+        ),
+    )
+
     args = parser.parse_args()
 
+    if args.command == "export":
+        queue = HumanQueue(args.db)
+        checkpoint_signer = AuditCheckpointSigner.from_env(
+            queue
+        )
+        witness_provider = load_witness_provider()
+        witness_receipts = load_witness_receipt_journal()
+        witness_quorum = load_witness_quorum()
+
+        bundle = export_evidence_bundle(
+            queue,
+            checkpoint_signer=checkpoint_signer,
+            witness_provider=witness_provider,
+            witness_receipts=witness_receipts,
+            witness_quorum=witness_quorum,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        output.write_text(
+            json.dumps(
+                bundle,
+                sort_keys=True,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "bundle_id": bundle["bundle_id"],
+                    "output": str(output),
+                },
+                sort_keys=True,
+            )
+        )
+        return
+
     path = Path(args.bundle)
-    bundle = json.loads(path.read_text(encoding="utf-8"))
-    result = verify_evidence_bundle(bundle)
-    print(json.dumps(result, sort_keys=True, indent=2))
+    bundle = json.loads(
+        path.read_text(encoding="utf-8")
+    )
+    checkpoint_provider = None
+    witness_verifiers = None
+    if args.strict:
+        (
+            checkpoint_provider,
+            witness_verifiers,
+        ) = _strict_verifiers_from_env(bundle)
+
+        if (
+            bundle.get("checkpoints")
+            and checkpoint_provider is None
+        ):
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "reason": "checkpoint_verifier_not_configured",
+                    },
+                    sort_keys=True,
+                    indent=2,
+                )
+            )
+            raise SystemExit(1)
+
+        if (
+            bundle.get("witness_receipts")
+            and witness_verifiers is None
+        ):
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "reason": "witness_verifiers_not_configured",
+                    },
+                    sort_keys=True,
+                    indent=2,
+                )
+            )
+            raise SystemExit(1)
+
+    result = verify_evidence_bundle(
+        bundle,
+        checkpoint_signature_provider=checkpoint_provider,
+        witness_receipt_verifiers=witness_verifiers,
+    )
+    print(
+        json.dumps(
+            result,
+            sort_keys=True,
+            indent=2,
+        )
+    )
     raise SystemExit(0 if result["ok"] else 1)
 
 
