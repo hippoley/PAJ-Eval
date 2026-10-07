@@ -46,6 +46,7 @@ WitnessReceipt = witness_module.WitnessReceipt
 OnlineWitnessReceiptVerifier = witness_module.OnlineWitnessReceiptVerifier
 HttpCheckpointWitnessProvider = witness_module.HttpCheckpointWitnessProvider
 HmacWitnessReceiptVerifier = witness_module.HmacWitnessReceiptVerifier
+HmacWitnessReceiptSignatureProvider = witness_module.HmacWitnessReceiptSignatureProvider
 checkpoint_fingerprint = witness_module.checkpoint_fingerprint
 WitnessStore = witness_server.WitnessStore
 
@@ -205,7 +206,11 @@ def test_witness_verify_rejects_valid_hmac_receipt_not_in_store(tmp_path):
     )
 
     assert forged.signature != real.signature
-    assert store.verifier.verify(forged) is True
+    verifier = HmacWitnessReceiptSignatureProvider(
+        {"w1": "witness-secret"},
+        "w1",
+    )
+    assert verifier.verify(forged) is True
     assert store.verify(forged) is False
 
 
