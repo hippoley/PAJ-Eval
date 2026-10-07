@@ -9,9 +9,14 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from audit_checkpoint import AuditCheckpointSigner
-from audit_witness import WitnessReceiptJournal, checkpoint_fingerprint
+from audit_checkpoint import AuditCheckpoint, AuditCheckpointSigner
+from audit_witness import (
+    CheckpointWitnessProvider,
+    WitnessReceiptJournal,
+    checkpoint_fingerprint,
+)
 from evidence import build_evidence_snapshot
+from audit_witness_quorum import WitnessQuorum
 from runtime import HumanQueue
 
 
@@ -57,7 +62,9 @@ def export_evidence_bundle(
     queue: HumanQueue,
     *,
     checkpoint_signer: AuditCheckpointSigner | None = None,
+    witness_provider: CheckpointWitnessProvider | None = None,
     witness_receipts: WitnessReceiptJournal | None = None,
+    witness_quorum: WitnessQuorum | None = None,
     exported_at: float | None = None,
 ) -> dict[str, Any]:
     audit_records = queue.audit_chain_records()
@@ -80,7 +87,9 @@ def export_evidence_bundle(
     snapshot = build_evidence_snapshot(
         queue,
         checkpoint_signer=checkpoint_signer,
+        witness_provider=witness_provider,
         witness_receipts=witness_receipts,
+        witness_quorum=witness_quorum,
         generated_at=0,
     )
     snapshot.pop("generated_at", None)
@@ -303,10 +312,8 @@ def _verify_receipt_bindings(
             }
 
         try:
-            checkpoint_obj = __import__(
-                "audit_checkpoint"
-            ).AuditCheckpoint(**checkpoint)
-        except (TypeError, AttributeError) as exc:
+            checkpoint_obj = AuditCheckpoint(**checkpoint)
+        except TypeError as exc:
             return {
                 "ok": False,
                 "reason": "invalid_checkpoint_for_fingerprint",
@@ -416,6 +423,22 @@ def verify_evidence_bundle(
         return {
             "ok": False,
             "reason": "snapshot_must_be_object",
+        }
+
+    snapshot_for_hash = dict(snapshot)
+    actual_evidence_id = snapshot_for_hash.pop(
+        "evidence_id",
+        None,
+    )
+    expected_evidence_id = _canonical_hash(
+        snapshot_for_hash
+    )
+    if actual_evidence_id != expected_evidence_id:
+        return {
+            "ok": False,
+            "reason": "snapshot_evidence_id_mismatch",
+            "expected_evidence_id": expected_evidence_id,
+            "actual_evidence_id": actual_evidence_id,
         }
     snapshot_audit = snapshot.get("audit_chain")
     if (
