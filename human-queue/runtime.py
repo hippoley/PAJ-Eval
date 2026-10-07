@@ -715,6 +715,31 @@ class HumanQueue:
             assert row is not None
             return self._row_to_wait(row)
 
+    def audit_chain_records(self) -> list[dict[str, Any]]:
+        """Return exact hash inputs for offline audit-chain verification."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, wait_id, event_type, actor, created_at, data_json,
+                       prev_hash, event_hash
+                  FROM audit_events
+                 ORDER BY id
+                """
+            ).fetchall()
+        return [
+            {
+                "id": int(row["id"]),
+                "wait_id": row["wait_id"],
+                "event_type": row["event_type"],
+                "actor": row["actor"],
+                "created_at": row["created_at"],
+                "data_json": row["data_json"],
+                "prev_hash": row["prev_hash"],
+                "event_hash": row["event_hash"],
+            }
+            for row in rows
+        ]
+
     def recent_audit_events(self, limit: int = 100) -> list[AuditEvent]:
         if limit <= 0:
             return []
