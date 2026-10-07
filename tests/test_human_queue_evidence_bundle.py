@@ -382,9 +382,11 @@ def test_http_evidence_bundle_export_is_offline_verifiable(tmp_path):
 def test_http_evidence_bundle_respects_configured_human_auth(tmp_path):
     queue = HumanQueue(tmp_path / "queue.db")
     provider = server_module.BearerTokenAuthProvider(
+        authenticator=server_module.ActorAuthenticator(
+            {"alice": "export-secret"}
+        ),
         principal_kind="human",
-        tokens={"export-secret": "alice"},
-        provider="bundle-token",
+        provider_name="bundle-token",
     )
     httpd = server_module.make_server(
         queue,
