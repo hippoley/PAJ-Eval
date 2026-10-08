@@ -1,0 +1,33 @@
+{
+  "schema_version": "paj-release-gate-v1",
+  "checked_at": "2026-09-18",
+  "source_contract": {
+    "neutral_participant_routes": true,
+    "explicit_consent_before_persistence": true,
+    "preview_local_only": true,
+    "strict_golden_ingestion_contract": true,
+    "rich_event_replay": true
+  },
+  "deployed_backend": {
+    "consent_aware_ingestion_v4": true,
+    "research_replay_indexes": true,
+    "ingest_probe_version": 6,
+    "research_sessions_version": 4,
+    "database_rpc_smoke": true,
+    "strict_golden_edge_contract": true,
+    "formal_study_metadata_v5": true
+  },
+  "operational": {
+    "researcher_accounts": 0,
+    "consented_browser_http_smoke": false,
+    "authenticated_researcher_replay_smoke": false
+  },
+  "release": {
+    "status": "blocked",
+    "blockers": [
+      "researcher_account_missing",
+      "consented_browser_http_smoke_missing",
+      "authenticated_researcher_replay_smoke_missing"
+    ]
+  }
+}

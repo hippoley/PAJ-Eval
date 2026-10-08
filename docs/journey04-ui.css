@@ -1,0 +1,20 @@
+/* Journey 04 isolated product UI — scoped to pf04 only */
+body[data-instrument="pf04"]{--jx-ink:#15191e;--jx-muted:#747b84;--jx-line:#d8ddd9;--jx-panel:#fff;--jx-accent:#5966ff}
+body[data-instrument="pf04"] .app{max-width:1280px!important}
+body[data-instrument="pf04"] #intro .hero{max-width:840px}
+body[data-instrument="pf04"] #intro h1{font-size:clamp(46px,6.8vw,76px)!important;line-height:.97!important;letter-spacing:-.055em!important}
+body[data-instrument="pf04"] #intro .lead{font-size:18px!important;line-height:1.65!important;max-width:760px}
+body[data-instrument="pf04"] #intro .primary{min-height:44px!important;border-radius:7px!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+body[data-instrument="pf04"] .workspace{border-radius:10px!important;box-shadow:0 16px 44px rgba(20,25,30,.07)!important;overflow:hidden}
+body[data-instrument="pf04"] .main{padding:26px 30px 34px!important}
+body[data-instrument="pf04"] .sceneChrome{border-radius:0!important;border-width:0 0 1px!important;background:transparent!important;box-shadow:none!important;margin-bottom:22px!important}
+body[data-instrument="pf04"] .actions{margin-top:30px!important;padding-top:18px!important}
+body[data-instrument="pf04"] .btn,body[data-instrument="pf04"] .primary{border-radius:6px!important;min-height:39px!important}
+body[data-instrument="pf04"] #cue .moment,body[data-instrument="pf04"] #transition .moment{max-width:760px!important;text-align:left!important}
+body[data-instrument="pf04"] #done .summary{gap:12px!important}
+body[data-instrument="pf04"] #done .trace{border-radius:7px!important}
+body[data-instrument="pf04"][data-world="seed"] .main{background:#11151a!important}
+body[data-instrument="pf04"][data-world="near"] .main{background:#f4f7f8!important}
+body[data-instrument="pf04"][data-world="far"] .main{background:#eef2f6!important}
+body[data-instrument="pf04"] .sceneChrome:after{content:"PRODUCT / DELIVERY / TRAVEL";margin-left:auto;color:#8b929a;font:9px ui-monospace,monospace;letter-spacing:.08em}
+@media(max-width:800px){body[data-instrument="pf04"] .main{padding:19px!important}body[data-instrument="pf04"] .workspace{border-radius:7px!important}}
