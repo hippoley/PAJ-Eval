@@ -83,6 +83,23 @@ A synthetic PF06 submission was written through `ingest_probe_atomic_v5(...)` an
 The synthetic session was deleted and the follow-up remaining count was zero.
 
 
+### Pause/restore recovery verification — 2026-10-08
+
+The canonical Free-tier project was found in `INACTIVE` state after the inactivity warning and was restored through the Supabase management API. The restore progressed through `COMING_UP` and reached `ACTIVE_HEALTHY`.
+
+Post-restore read-only verification confirmed:
+
+- all seven recorded migrations are present, from `initial_probe_event_store` through `formal_study_metadata_v5`;
+- the public research tables are present with RLS enabled;
+- `ingest-probe` remains ACTIVE v6 with `verify_jwt=false` and the explicit origin/payload checks in the function body;
+- `research-sessions` remains ACTIVE v4 with `verify_jwt=true`;
+- the database currently contains zero Auth users, zero researcher-role users, and zero persisted study rows.
+
+During `COMING_UP`, management queries briefly reported no public tables or migrations. No schema repair or write was attempted while restoration was incomplete. The objects reappeared once the project reached `ACTIVE_HEALTHY`, so the transient empty result is not evidence of data loss.
+
+The public GitHub Pages root still exposes the earlier Probe Player. The consented `study.html → run.html → ingest-probe` flow remains only on this draft branch, so no browser-ingestion or authenticated-replay gate is marked complete by this recovery check. `RELEASE_GATE.json` must remain blocked until those two browser-level checks and researcher provisioning are evidenced.
+
+
 ## Formal Golden study flow
 
 The Golden-depth journeys remain ordinary local previews unless the participant enters through a neutral consent URL such as `docs/study.html?journey=01&locale=<locale>` and explicitly checks the consent box. The participant-facing URL uses journey numbers rather than PF identifiers.
