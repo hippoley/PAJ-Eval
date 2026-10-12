@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PAJ-Eval · Playable Judgment Challenges</title>
+<style>
+:root{--bg:#f1efe8;--paper:#fffefa;--ink:#18191d;--muted:#70747d;--line:#ddd9cf;--dark:#202227;--warm:#b85a3e}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,"Noto Sans",system-ui,sans-serif}.wrap{max-width:1120px;margin:auto;padding:32px 18px 64px}.top{display:flex;justify-content:space-between;gap:15px;align-items:center;font:11px ui-monospace,monospace;letter-spacing:.1em;color:var(--muted)}select{font:inherit}.hero{padding:72px 0 46px;max-width:850px}.ey{font:11px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}h1{font-size:clamp(48px,7vw,78px);line-height:.98;letter-spacing:-.055em;margin:12px 0 20px}.lead{font-size:20px;color:#444850;max-width:780px}.note{border-left:3px solid var(--warm);background:#fff7ed;padding:14px 16px;margin-top:22px;max-width:780px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.card{display:flex;flex-direction:column;min-height:250px;padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--paper);text-decoration:none;color:inherit;transition:.16s transform,.16s box-shadow}.card:hover{transform:translateY(-2px);box-shadow:0 14px 36px #2a271f14}.num{font:11px ui-monospace,monospace;color:var(--muted)}.card h2{font-size:26px;letter-spacing:-.035em;margin:18px 0 8px}.card p{color:#555a63}.route{margin-top:auto;padding-top:22px;font:12px ui-monospace,monospace;color:var(--muted)}.play{margin-top:10px;font-weight:750}.footer{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:18px;color:var(--muted);font-size:13px}.stat{font-size:28px;font-weight:800;color:var(--ink);letter-spacing:-.04em}@media(max-width:760px){.hero{padding-top:48px}.grid,.footer{grid-template-columns:1fr}}
+</style></head>
+<body><div class="wrap">
+<header class="top"><b>PAJ-EVAL / RESEARCH PREVIEW</b><div><span>MARKET</span> <select id="locale"></select></div></header>
+<section class="hero"><div class="ey">PLAYABLE JUDGMENT CHALLENGE</div><h1>Eight journeys.<br>Nothing to memorize.</h1><p class="lead">Each journey looks like ordinary software: browse, inspect, act, see a consequence, revise if you want, then move into a different world. The research layer stays out of the way while you play.</p><div class="note"><b>Preview mode is local-only.</b> These pages do not submit research data. Formal study runs should use a consented study link rather than this showcase page so the participant is not pre-framed by the suite.</div></section>
+<main id="grid" class="grid"></main>
+<section class="footer"><div><div class="stat">8</div>playable multi-world journeys</div><div><div class="stat">10</div>market-localized world packs per journey</div><div>Seed worlds, real consequences, reversible pre-commit actions, and near/far transfer are protected by automated regression tests.</div><div>Raw behavior remains separate from downstream interpretation. The public preview is intentionally not connected to canonical research ingestion yet.</div></section>
+</div>
+<script>
+const locales=[
+ ['zh-CN','简体中文 · 中国'],['zh-TW','繁體中文 · 台灣'],['en','English · United States'],['ja','日本語 · 日本'],['ko','한국어 · 대한민국'],['es','Español · España'],['fr','Français · France'],['de','Deutsch · Deutschland'],['pt','Português · Brasil'],['ru','Русский · Россия']
+];
+const journeys=[
+ {n:'01',title:'Choices across three worlds',desc:'A shop, two job offers, and a time-constrained trip.',route:'SHOP → OFFERS → TRAVEL'},
+ {n:'02',title:'Three systems',desc:'A production console, a fulfillment operation, and a building-service anomaly.',route:'SERVICE → FULFILLMENT → ENERGY'},
+ {n:'03',title:'Three verification desks',desc:'Vendor procurement, workspace selection, and a long-term service contract.',route:'PROCUREMENT → SPACE → SERVICE'},
+ {n:'04',title:'Three operations incidents',desc:'A digital funnel, a delivery operation, and a disrupted travel day.',route:'PRODUCT → DELIVERY → TRAVEL'},
+ {n:'05',title:'Three experiments',desc:'Three constrained decisions where information itself has a cost.',route:'LAUNCH → QUALITY → FIELD'},
+ {n:'06',title:'Three recoveries',desc:'Production, delivery, and home automation evolve while you decide whether to keep checking.',route:'SERVICE → DELIVERY → HOME'},
+ {n:'07',title:'Three workspaces',desc:'Polished plans sit beside original requests, metrics, constraints, and prior outcomes.',route:'PRODUCT → SUPPORT → FIELD SERVICE'},
+ {n:'08',title:'Open workspaces',desc:'Sparse operational worlds with no diagnostic prompt and no structural hint between them.',route:'OPERATIONS → EVENT → FACILITIES'}
+];
+const sel=document.getElementById('locale'),grid=document.getElementById('grid');
+for(const [k,v] of locales){const o=document.createElement('option');o.value=k;o.textContent=v;sel.appendChild(o)}
+sel.value=new URLSearchParams(location.search).get('locale')||'zh-CN';
+function render(){const locale=sel.value;grid.innerHTML=journeys.map(j=>`<a class="card" href="run.html?journey=${j.n}&locale=${encodeURIComponent(locale)}"><div class="num">JOURNEY ${j.n}</div><h2>${j.title}</h2><p>${j.desc}</p><div class="route">${j.route}</div><div class="play">Play →</div></a>`).join('')}
+sel.onchange=()=>{history.replaceState(null,'','?locale='+encodeURIComponent(sel.value));render()};render();
+</script></body></html>
