@@ -100,6 +100,22 @@ During `COMING_UP`, management queries briefly reported no public tables or migr
 The public GitHub Pages root still exposes the earlier Probe Player. The consented `study.html → run.html → ingest-probe` flow remains only on this draft branch, so no browser-ingestion or authenticated-replay gate is marked complete by this recovery check. `RELEASE_GATE.json` must remain blocked until those two browser-level checks and researcher provisioning are evidenced.
 
 
+### Recovery browser HTTP verification — 2026-10-12
+
+A public, noindex operations route at `docs/recovery-smoke.html` exercised the recovered canonical backend from the actual GitHub Pages origin. The route records no human response; it uses a clearly marked synthetic PF08 trace and the same durability order required by the participant transport.
+
+Observed browser result:
+
+- IndexedDB queue commit completed before the network request;
+- first HTTP submission returned 200 with `duplicate=false`;
+- the identical second submission returned 200 with `duplicate=true` and the same session id;
+- the local queue entry was removed only after the durable acknowledgement;
+- retained evidence session: `c1885d43-e127-4899-b8a9-9b995cdf33a2`;
+- client submission: `27ba3d24-3530-4e6f-afa3-c3d7bde0318e`.
+
+An independent database read verified one session, one PF08 probe run and four ordered events: `session_start → open_object → commit → session_complete`. Consent, instrument, study, market and world metadata matched the Golden contract. This closes the recovered browser HTTP smoke gate. It does not close authenticated researcher replay; the evidence session is intentionally retained for that next gate.
+
+
 ## Formal Golden study flow
 
 The Golden-depth journeys remain ordinary local previews unless the participant enters through a neutral consent URL such as `docs/study.html?journey=01&locale=<locale>` and explicitly checks the consent box. The participant-facing URL uses journey numbers rather than PF identifiers.
