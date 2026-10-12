@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>PAJ-Eval · Recovery Browser Smoke</title>
+<style>
+body{max-width:760px;margin:64px auto;padding:0 24px;font:16px/1.6 system-ui;color:#172033;background:#f7f8fb}
+main{background:#fff;border:1px solid #dfe3ea;border-radius:18px;padding:32px;box-shadow:0 18px 50px #22304a12}
+h1{margin-top:0}button{padding:12px 18px;border:0;border-radius:10px;background:#172033;color:#fff;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5}label{display:block;margin:24px 0}pre{white-space:pre-wrap;background:#f1f4f8;padding:16px;border-radius:10px}
+</style>
+</head>
+<body><main>
+<p>PAJ-EVAL / OPERATIONS</p>
+<h1>Recovery browser smoke</h1>
+<p>This route writes synthetic evidence only. It verifies browser IndexedDB commit, the deployed ingest Edge Function, atomic persistence, and idempotent retry after a project restore. It collects no human response.</p>
+<label><input id="consent" type="checkbox"> I understand this creates one clearly marked synthetic verification session.</label>
+<button id="run" disabled>Run recovery smoke</button>
+<pre id="status">Ready. No request has been sent.</pre>
+</main>
+<script>
+const ENDPOINT='https://pwdcgfvarudhqezlzwmx.supabase.co/functions/v1/ingest-probe';
+const consent=document.querySelector('#consent'),run=document.querySelector('#run'),status=document.querySelector('#status');
+consent.onchange=()=>run.disabled=!consent.checked;
+function openQueue(){return new Promise((resolve,reject)=>{const r=indexedDB.open('paj-recovery-smoke-v1',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('submissions'))r.result.createObjectStore('submissions',{keyPath:'client_submission_id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function change(mode,fn){const db=await openQueue();return new Promise((resolve,reject)=>{const tx=db.transaction('submissions',mode);fn(tx.objectStore('submissions'));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+const put=x=>change('readwrite',s=>s.put(x)); const drop=id=>change('readwrite',s=>s.delete(id));
+async function post(payload){const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});let body={};try{body=await r.json()}catch{}return {status:r.status,body}}
+run.onclick=async()=>{
+ run.disabled=true;consent.disabled=true;
+ try{
+  const id=crypto.randomUUID(),now=new Date().toISOString();
+  const ev=(seq,event,t)=>({seq,t,event,locale:'en',market:'US',study_version:'golden-study-v1',envelope_version:'golden-event-envelope-v1',raw_event_type:event,raw_event:{seq,t_ms:t,type:event,world:'seed',synthetic_recovery_smoke:true}});
+  const payload={client_submission_id:id,consent_version:'golden-consent-v1',locale:'en',instrument_version:'golden-pf08-v1',probe_family:'PF08',world_variant:'golden-open-workspaces-v1',terminal_action:'synthetic_recovery_smoke_complete',market:'US',study_version:'golden-study-v1',consented_at_client:now,events:[ev(1,'session_start',0),ev(2,'open_object',10),ev(3,'commit',20),ev(4,'session_complete',30)]};
+  status.textContent='1/3 Committing payload to IndexedDB…';await put(payload);
+  status.textContent='2/3 Sending first HTTP submission…';const first=await post(payload);
+  if(!first.body.ok)throw new Error(first.body.error||('HTTP '+first.status));
+  status.textContent='3/3 Repeating the same submission to verify idempotency…';const second=await post(payload);
+  if(!second.body.ok||second.body.session_id!==first.body.session_id||second.body.duplicate!==true)throw new Error('idempotency_verification_failed');
+  await drop(id);
+  status.textContent=JSON.stringify({state:'VERIFIED',client_submission_id:id,session_id:first.body.session_id,first_http:first.status,first_duplicate:first.body.duplicate,second_http:second.status,second_duplicate:second.body.duplicate,event_count:first.body.event_count,queue:'cleared_after_durable_ack'},null,2);
+ }catch(e){status.textContent='FAILED\n'+String(e&&e.message||e);run.disabled=false;consent.disabled=false}
+};
+</script></body></html>
