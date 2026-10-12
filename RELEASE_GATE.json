@@ -1,6 +1,6 @@
 {
   "schema_version": "paj-release-gate-v1",
-  "checked_at": "2026-09-18",
+  "checked_at": "2026-10-12",
   "source_contract": {
     "neutral_participant_routes": true,
     "explicit_consent_before_persistence": true,
@@ -19,14 +19,13 @@
   },
   "operational": {
     "researcher_accounts": 0,
-    "consented_browser_http_smoke": false,
+    "consented_browser_http_smoke": true,
     "authenticated_researcher_replay_smoke": false
   },
   "release": {
     "status": "blocked",
     "blockers": [
       "researcher_account_missing",
-      "consented_browser_http_smoke_missing",
       "authenticated_researcher_replay_smoke_missing"
     ]
   }
