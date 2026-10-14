@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMD395 · Private Procurement Report</title>
+<style>
+:root{font-family:system-ui,-apple-system,'Microsoft YaHei',sans-serif;color:#192c43;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}main{margin:9vh auto;max-width:520px;background:white;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 18px 60px #001c3514;padding:36px}
+small{letter-spacing:.12em;color:#63748c}h1{line-height:1.3;font-size:26px;margin:18px 0}p{line-height:1.7;color:#5d6d80}
+label{display:block;font-weight:600;margin:15px 0 6px}input{display:block;width:100%;padding:13px;border:1px solid #bdcbd9;border-radius:8px;font:inherit}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;background:#133d61;color:#fff;padding:12px 16px;margin:16px 8px 0 0}button.secondary{background:#eaf0f7;color:#183a58}button:disabled{opacity:.5}#status{white-space:pre-wrap;min-height:26px;color:#234f72;margin-top:16px}
+#workspace{display:none;height:100vh}#top{display:flex;justify-content:space-between;align-items:center;background:#122941;color:white;padding:6px 16px;min-height:52px}#top button{margin:0;padding:7px 13px;background:#d6e5f1;color:#122941}iframe{height:calc(100vh - 52px);border:0;width:100%;display:block;background:white}
+@media(max-width:600px){main{margin:18px 12px;padding:22px}h1{font-size:22px}}
+</style></head><body>
+<main id="panel"><small>PRIVATE PROCUREMENT INTELLIGENCE</small><h1>AMD Ryzen AI Max+ 395<br>交互采购咨询报告</h1>
+<p>供应商报价与研究资料保存在受保护的服务中。本页公开，但不包含报价和报告正文。仅已授权并验证邮箱的账户可查看。</p>
+<label for="email">授权邮箱</label><input type="email" id="email" autocomplete="username" placeholder="Email">
+<label for="password">密码</label><input type="password" id="password" autocomplete="current-password" placeholder="至少 6 位">
+<button id="login">登录并查看报告</button><button class="secondary" id="register">首次使用：创建账户</button>
+<div id="status" role="status"></div><p style="font-size:12px">首次注册后通常需要先验证邮件。如果注册被限制，请联系报告管理员开通账户。密码不会存入 GitHub Pages。</p></main>
+<section id="workspace"><div id="top"><span>AMD395 · Private Report</span><button id="logout">退出</button></div><iframe id="viewer" sandbox="allow-scripts allow-downloads" referrerpolicy="no-referrer" title="AMD395采购咨询报告"></iframe></section>
+<script>
+const API='https://pwdcgfvarudhqezlzwmx.supabase.co';
+const KEY='sb_publishable_ALC8f3HsbaFTT0tpvi5Ikg_weLdi_S7';
+const el=id=>document.getElementById(id);
+let busy=false;const say=s=>el('status').textContent=s;
+async function auth(path,payload){const res=await fetch(API+'/auth/v1/'+path,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.msg||data.error_description||data.message||'认证失败，HTTP '+res.status);return data}
+async function enter(mode){if(busy)return;busy=true;el('login').disabled=true;el('register').disabled=true;say('正在连接身份验证服务……');
+try{const email=el('email').value.trim().toLowerCase(),password=el('password').value;if(!email||password.length<6)throw new Error('请输入有效邮箱和至少 6 位密码。');
+if(mode==='register'){await auth('signup',{email,password});say('账户申请已提交。请先查看邮箱验证邮件，再返回登录。');return;}
+const tokens=await auth('token?grant_type=password',{email,password});if(!tokens.access_token)throw new Error('未收到有效登录令牌。');
+say('身份验证通过，正在检查采购报告访问权限……');
+const r=await fetch(API+'/functions/v1/amd395-private-report',{headers:{authorization:'Bearer '+tokens.access_token,apikey:KEY},cache:'no-store'});
+if(r.status===403)throw new Error('当前邮箱未在授权名单，或邮箱尚未验证。');
+if(!r.ok)throw new Error('报告读取失败，HTTP '+r.status+'。');
+const html=await r.text();
+if(!html.toLowerCase().includes('<!doctype html'))throw new Error('报告响应格式异常。');
+el('viewer').srcdoc=html;el('panel').style.display='none';el('workspace').style.display='block';
+}catch(e){say(String(e.message||e))}finally{busy=false;el('login').disabled=false;el('register').disabled=false;}}
+el('login').onclick=()=>enter('login');el('register').onclick=()=>enter('register');el('password').onkeydown=e=>{if(e.key==='Enter')enter('login')};
+el('logout').onclick=()=>{el('viewer').srcdoc='';el('workspace').style.display='none';el('panel').style.display='block';el('password').value='';say('已退出当前报告页面。')};
+</script></body></html>
